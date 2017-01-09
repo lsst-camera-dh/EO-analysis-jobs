@@ -1,0 +1,11 @@
+# -*- python -*-
+{
+    'schema_name' : 'read_noise_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'read_noise' : float,
+    'system_noise' : float,
+    'total_noise' : float,
+    'slot' : str,
+    'sensor_id' : str
+}

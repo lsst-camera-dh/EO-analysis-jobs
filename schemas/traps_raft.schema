@@ -1,0 +1,9 @@
+# -*- python -*-
+{
+    'schema_name' : 'traps_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'num_traps' : int,
+    'slot' : str,
+    'sensor_id' : str
+}

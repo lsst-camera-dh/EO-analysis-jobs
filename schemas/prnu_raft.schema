@@ -1,0 +1,10 @@
+# -*- python -*-
+{
+    'schema_name' : 'prnu_raft',
+    'schema_version' : 0,
+    'wavelength' : int,
+    'pixel_stdev' : float,
+    'pixel_mean' : float,
+    'slot' : str,
+    'sensor_id' : str
+}
