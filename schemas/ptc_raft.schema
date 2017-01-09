@@ -1,0 +1,10 @@
+# -*- python -*-
+{
+    'schema_name' : 'ptc_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'ptc_gain' : float,
+    'ptc_gain_error' : float,
+    'slot' : str,
+    'sensor_id' : str
+}

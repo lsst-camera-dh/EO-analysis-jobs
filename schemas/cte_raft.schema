@@ -1,0 +1,16 @@
+# -*- python -*-
+{
+    'schema_name' : 'cte_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'cti_high_serial' : float,
+    'cti_high_serial_error' : float,
+    'cti_high_parallel' : float,
+    'cti_high_parallel_error' : float,
+    'cti_low_serial' : float,
+    'cti_low_serial_error' : float,
+    'cti_low_parallel' : float,
+    'cti_low_parallel_error' : float,
+    'slot' : str,
+    'sensor_id' : str
+}

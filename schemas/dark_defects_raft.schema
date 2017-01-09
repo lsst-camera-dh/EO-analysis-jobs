@@ -1,0 +1,10 @@
+# -*- python -*-
+{
+    'schema_name' : 'dark_defects_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'dark_pixels' : int,
+    'dark_columns' : int,
+    'slot' : str,
+    'sensor_id' : str
+}

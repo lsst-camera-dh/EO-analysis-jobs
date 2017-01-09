@@ -1,0 +1,10 @@
+# -*- python -*-
+{
+    'schema_name' : 'bright_defects_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'bright_pixels' : int,
+    'bright_columns' : int,
+    'slot' : str,
+    'sensor_id' : str
+}

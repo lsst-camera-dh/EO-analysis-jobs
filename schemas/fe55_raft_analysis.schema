@@ -1,0 +1,11 @@
+# -*- python -*-
+{
+    'schema_name' : 'fe55_raft_analysis',
+    'schema_version' : 0,
+    'amp' : int,
+    'gain' : float,
+    'gain_error' : float,
+    'psf_sigma' : float,
+    'slot' : str,
+    'sensor_id' : str
+}

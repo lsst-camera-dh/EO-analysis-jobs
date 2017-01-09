@@ -1,0 +1,3 @@
+#%Module1.0 #-*-tcl-*-#
+source "$::env(LCATR_MODULES)/lcatr.tcl"
+lcatr_package producer_cte_raft.py validator_cte_raft.py
