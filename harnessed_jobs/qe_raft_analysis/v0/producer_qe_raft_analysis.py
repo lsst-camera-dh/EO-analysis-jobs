@@ -41,6 +41,7 @@ for sensor_id in raft.sensor_names:
                                        sensor_id=sensor_id)
 
     task = sensorTest.QeTask()
+    task.config.temp_set_point = -100.
     task.run(sensor_id, lambda_files, pd_ratio_file, mask_files, gains,
              correction_image=correction_image)
 

@@ -32,6 +32,7 @@ for sensor_id in raft.sensor_names:
                                   description='Superflat high flux files:')
 
     task = sensorTest.CteTask()
+    task.config.temp_set_point = -100.
     task.run(sensor_id, sflat_high_files, flux_level='high', gains=gains,
              mask_files=mask_files)
 

@@ -26,18 +26,13 @@ for sensor_id in raft.sensor_names:
                                            description='Fe55 files for read noise:')
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
                                        sensor_id=sensor_id)
-    system_noise = eotestUtils.getSystemNoise(gains)
-    if system_noise is None:
-        print()
-        print("WARNING: The system noise file is not given in")
-        print("config/%s/eotest_calibrations.cfg." % siteUtils.getSiteName())
-        print("The system noise will be set to zero for all amplifiers.")
-        print()
-        sys.stdout.flush()
+
+    system_noise = None
 
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
 
     task = sensorTest.ReadNoiseTask()
+    task.config.temp_set_point = -100.
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)

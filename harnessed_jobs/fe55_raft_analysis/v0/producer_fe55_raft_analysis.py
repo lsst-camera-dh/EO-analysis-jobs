@@ -17,12 +17,10 @@ import camera_components
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 
-print("fe55_raft_acq process name", siteUtils.getProcessName('fe55_raft_acq'))
-
 for sensor_id in raft.sensor_names:
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
-                                           description='Fe55 files:')[:1]
+                                           description='Fe55 files:')
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Bias files:')
@@ -60,4 +58,5 @@ for sensor_id in raft.sensor_names:
     sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
 
     task = sensorTest.Fe55Task()
+    task.config.temp_set_point = -100.
     task.run(sensor_id, fe55_files, (rolloff_mask_file,), accuracy_req=0.01)

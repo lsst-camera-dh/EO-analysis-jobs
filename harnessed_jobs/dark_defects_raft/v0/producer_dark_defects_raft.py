@@ -21,4 +21,5 @@ for sensor_id in raft.sensor_names:
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
 
     task = sensorTest.DarkPixelsTask()
+    task.config.temp_set_point = -100.
     task.run(sensor_id, sflat_files, mask_files)
