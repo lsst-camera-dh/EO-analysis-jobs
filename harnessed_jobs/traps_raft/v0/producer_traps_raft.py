@@ -31,6 +31,5 @@ for sensor_id in raft.sensor_names:
                                        sensor_id=sensor_id)
 
     task = sensorTest.TrapTask()
-    task.config.temp_set_point = -100.
     task.run(sensor_id, trap_file, mask_files, gains)
 

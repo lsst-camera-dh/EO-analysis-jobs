@@ -33,5 +33,4 @@ for sensor_id in raft.sensor_names:
         sys.stdout.flush()
 
     task = sensorTest.PrnuTask()
-    task.config.temp_set_point = -100.
     task.run(sensor_id, lambda_files, mask_files, gains, correction_image)

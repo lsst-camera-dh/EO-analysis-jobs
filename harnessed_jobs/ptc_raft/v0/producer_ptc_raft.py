@@ -23,5 +23,4 @@ for sensor_id in raft.sensor_names:
                                        sensor_id=sensor_id)
 
     task = sensorTest.PtcTask()
-    task.config.temp_set_point = -100.
     task.run(sensor_id, flat_files, mask_files, gains)
