@@ -67,5 +67,6 @@ for slot, sensor_id in raft.items():
                                           slot=slot,
                                           sensor_id=sensor_id))
 
+results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()
