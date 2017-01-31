@@ -3,13 +3,12 @@
 Producer script for raft-level CTE analysis.
 """
 from __future__ import print_function
+import shutil
 import glob
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 import camera_components
-
-siteUtils.aggregate_job_ids()
 
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
@@ -43,10 +42,7 @@ for sensor_id in raft.sensor_names:
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
              mask_files=mask_files)
 
-    results_file \
-        = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,
-                                    jobname='fe55_raft_analysis',
-                                    description='Fe55 results file')[0]
+    results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
     superflat_files = sorted(glob.glob('%s_superflat_*.fits' % sensor_id))

@@ -9,8 +9,6 @@ import siteUtils
 import eotestUtils
 import camera_components
 
-siteUtils.aggregate_job_ids()
-
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 
