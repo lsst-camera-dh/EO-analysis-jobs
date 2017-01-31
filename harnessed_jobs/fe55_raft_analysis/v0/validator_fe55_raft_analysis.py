@@ -4,6 +4,7 @@ Validator script for raft-level Fe55 analysis.
 """
 from __future__ import print_function
 import glob
+import numpy as np
 import lcatr.schema
 import siteUtils
 import eotestUtils
@@ -39,13 +40,12 @@ for slot, sensor_id in raft.items():
     #
     md = siteUtils.DataCatalogMetadata(CCD_MANU=ccd_vendor,
                                        LSST_NUM=sensor_id,
-                                       producer='SR-EOT-1',
                                        TESTTYPE='FE55',
                                        TEST_CATEGORY='EO')
     #
     # Persist various png files.
     #
-    png_files = glob.glob('%(sensor_id)s_fe55*.png' % locals())
+    png_files = glob.glob('%(sensor_id)s*.png' % locals())
     png_filerefs = []
     for png_file in png_files:
         dp = eotestUtils.png_data_product(png_file, sensor_id)
@@ -60,6 +60,8 @@ for slot, sensor_id in raft.items():
     sigmas = data['PSF_SIGMA']
     for amp, gain_value, gain_error, sigma in zip(amps, gain_data, gain_errors,
                                                   sigmas):
+        if not np.isfinite(gain_error):
+            gain_error = -1
         results.append(lcatr.schema.valid(lcatr.schema.get('fe55_raft_analysis'),
                                           amp=amp, gain=gain_value,
                                           gain_error=gain_error,

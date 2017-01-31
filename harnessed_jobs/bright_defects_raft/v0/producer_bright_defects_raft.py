@@ -25,3 +25,8 @@ for sensor_id in raft.sensor_names:
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
     task.run(sensor_id, dark_files, mask_files, gains)
+
+    siteUtils.make_png_file(sensorTest.plot_flat,
+                            '%s_medianed_dark.png' % sensor_id,
+                            '%s_median_dark_bp.fits' % sensor_id,
+                            title='%s, medianed dark for bright defects analysis' % sensor_id)

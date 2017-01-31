@@ -3,7 +3,6 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
-import sys
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
@@ -35,3 +34,11 @@ for sensor_id in raft.sensor_names:
     task.config.temp_set_point = -100.
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)
+
+    results_file \
+        = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,
+                                    jobname='fe55_raft_analysis',
+                                    description='Fe55 results file')[0]
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+
+    siteUtils.make_png_file(plots.noise, '%s_noise.png' % sensor_id)
