@@ -46,8 +46,10 @@ for slot, sensor_id in raft.items():
                                       CCD_MANU=ccd_vendor)
     results.extend([siteUtils.make_fileref(item, folder=slot)
                     for item in qe_files])
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               ccd_vendor, sensor_id,
+                                               'LAMBDA', 'EO', folder=slot))
 
 results.extend(siteUtils.jobInfo())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

@@ -35,8 +35,11 @@ for slot, sensor_id in raft.items():
                                           max_frac_dev=max_frac_dev,
                                           slot=slot,
                                           sensor_id=sensor_id))
+    # Persist the png files.
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               ccd_vendor, sensor_id,
+                                               'FLAT', 'EO', folder=slot))
 
 results.extend(siteUtils.jobInfo())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

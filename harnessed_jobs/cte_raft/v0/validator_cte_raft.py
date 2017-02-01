@@ -14,6 +14,7 @@ raft = camera_components.Raft.create_from_etrav(raft_id)
 
 results = []
 for slot, sensor_id in raft.items():
+    ccd_vendor = sensor_id.split('-')[0].upper()
     superflats = glob.glob('%(sensor_id)s_superflat_*.fits' % locals())
     for item in superflats:
         eotestUtils.addHeaderData(item, FILENAME=item,
@@ -39,7 +40,7 @@ for slot, sensor_id in raft.items():
                       cti_high_parallel, cti_high_parallel_error,
                       cti_low_serial, cti_low_serial_error,
                       cti_low_parallel, cti_low_parallel_error):
-        results.append(lcatr.schema.valid(lcatr.schema.get('cte'),
+        results.append(lcatr.schema.valid(lcatr.schema.get('cte_raft'),
                                           amp=values[0],
                                           cti_high_serial=values[1],
                                           cti_high_serial_error=values[2],
@@ -51,8 +52,10 @@ for slot, sensor_id in raft.items():
                                           cti_low_parallel_error=values[8],
                                           slot=slot,
                                           sensor_id=sensor_id))
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               ccd_vendor, sensor_id,
+                                               'SFLAT_500', 'EO', folder=slot))
 
 results.extend(siteUtils.jobInfo())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

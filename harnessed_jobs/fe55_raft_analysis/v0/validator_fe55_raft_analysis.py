@@ -35,23 +35,11 @@ for slot, sensor_id in raft.items():
     #
     bias_mean_file = glob.glob('%(sensor_id)s_mean_bias_*.fits' % locals())[0]
     results.append(siteUtils.make_fileref(bias_mean_file, folder=slot))
-    #
-    # Common metadata for persisted non-FITS files.
-    #
-    md = siteUtils.DataCatalogMetadata(CCD_MANU=ccd_vendor,
-                                       LSST_NUM=sensor_id,
-                                       TESTTYPE='FE55',
-                                       TEST_CATEGORY='EO')
-    #
-    # Persist various png files.
-    #
-    png_files = glob.glob('%(sensor_id)s*.png' % locals())
-    png_filerefs = []
-    for png_file in png_files:
-        dp = eotestUtils.png_data_product(png_file, sensor_id)
-        png_filerefs.append(siteUtils.make_fileref(png_file, folder=slot,
-                                                   metadata=md(DATA_PRODUCT=dp)))
-    results.extend(png_filerefs)
+
+    # Persist the png files.
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               ccd_vendor, sensor_id,
+                                               'FE55', 'EO', folder=slot))
 
     data = sensorTest.EOTestResults(gain_file)
     amps = data['AMP']

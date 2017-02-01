@@ -45,20 +45,11 @@ for slot, sensor_id in raft.items():
                      for item in files]
     results.extend(data_products)
 
-    md = siteUtils.DataCatalogMetadata(CCD_MANU=ccd_vendor,
-                                       LSST_NUM=sensor_id,
-                                       TESTTYPE='FE55',
-                                       TEST_CATEGORY='EO')
-    png_files = glob.glob('%(sensor_id)s*.png' % locals())
-    png_filerefs = []
-    for png_file in png_files:
-        dp = eotestUtils.png_data_product(png_file, sensor_id)
-        png_filerefs.append(siteUtils.make_fileref(png_file, folder=slot,
-                                                   metadata=md(DATA_PRODUCT=dp)))
-    results.extend(png_filerefs)
+    # Persist the png files.
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               ccd_vendor, sensor_id,
+                                               'FE55', 'EO', folder=slot))
 
 results.extend(siteUtils.jobInfo())
-results.append(eotestUtils.eotestCalibrations())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

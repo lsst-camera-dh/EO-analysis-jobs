@@ -71,6 +71,14 @@ for sensor_id in raft.sensor_names:
     results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
+    siteUtils.make_png_file(plots.gains,
+                            '%s_gains.png' % sensor_id)
+
+    siteUtils.make_png_file(sensorTest.plot_flat,
+                            '%s_mean_bias.png' % sensor_id,
+                            mean_bias_file,
+                            title='%s, mean bias frame' % sensor_id)
+
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
                             '%s_fe55_dists.png' % sensor_id,
@@ -79,11 +87,3 @@ for sensor_id in raft.sensor_names:
     siteUtils.make_png_file(plots.psf_dists,
                             '%s_psf_dists.png' % sensor_id,
                             fe55_file=fe55_file)
-
-    siteUtils.make_png_file(plots.gains,
-                            '%s_gains.png' % sensor_id)
-
-    siteUtils.make_png_file(sensorTest.plot_flat,
-                            '%s_mean_bias.png' % sensor_id,
-                            mean_bias_file,
-                            title='%s, mean bias frame' % sensor_id)

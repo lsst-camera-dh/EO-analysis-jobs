@@ -54,12 +54,8 @@ for sensor_id in raft.sensor_names:
                             '%s_qe.png' % sensor_id,
                             qe_file='%s_QE.fits' % sensor_id)
 
-    wl_files \
-        = siteUtils.dependency_glob('%s*_lambda_*.fits' % sensor_id,
-                                    jobname=siteUtils.processName('qe_raft_acq'),
-                                    description='Lambda files:')
     try:
-        plots.flat_fields(os.path.dirname(wl_files[0]))
+        plots.flat_fields(os.path.dirname(lambda_files[0]))
     except Exception as eobj:
         print("Exception raised while creating flat fields:")
         print(str(eobj))
