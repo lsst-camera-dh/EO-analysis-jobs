@@ -30,13 +30,6 @@ for slot, sensor_id in raft.items():
                                           band=band, QE=np.mean(QE[band]),
                                           slot=slot, sensor_id=sensor_id))
 
-    qe_acq_job_id = siteUtils.get_prerequisite_job_id('S*/%s_lambda_flat_*.fits' % sensor_id,
-                                                      jobname='qe_raft_acq_sim')
-    md = dict(photodiode_ratio_file=dict(JOB_ID=qe_acq_job_id),
-              illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
-    results.extend(eotestUtils.eotestCalibsPersist('photodiode_ratio_file',
-                                                   'illumination_non_uniformity_file',
-                                                   metadata=md))
     qe_files = glob.glob('*QE*.*')
     for item in qe_files:
         if item.endswith('.fits'):
@@ -50,6 +43,15 @@ for slot, sensor_id in raft.items():
                                                ccd_vendor, sensor_id,
                                                'LAMBDA', 'EO', folder=slot))
 
+qe_acq_job_id = siteUtils.get_prerequisite_job_id(('S*/%s_lambda_flat_*.fits'
+                                                   % sensor_id),
+                                                  jobname='qe_raft_acq_sim')
+md = dict(photodiode_ratio_file=dict(JOB_ID=qe_acq_job_id),
+          illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
+
+results.extend(eotestUtils.eotestCalibsPersist('photodiode_ratio_file',
+                                               'illumination_non_uniformity_file',
+                                               metadata=md))
 results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()
