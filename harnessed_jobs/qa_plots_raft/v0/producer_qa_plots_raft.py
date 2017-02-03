@@ -7,7 +7,7 @@ import os
 from collections import OrderedDict
 from lcatr.harness.helpers import dependency_glob
 import siteUtils
-from eo_acq_qa import TrendingObjects
+from eo_acq_qa import RaftTrendingObjects
 import camera_components
 
 def dirname_dependencyGlob(ccd_vendor, **kwds):
@@ -37,7 +37,7 @@ datasets = OrderedDict([('FE55', 'fe55_raft_acq'),
 
 ccd_vendor = raft.sensor_names[0].split('-')[0]
 
-QA_trender = TrendingObjects()
+QA_trender = RaftTrendingObjects(raft.sensor_names)
 for test_type, jobname in datasets.items():
     dirname = dirname_dependencyGlob(ccd_vendor, jobname=jobname)
     print(dirname)
