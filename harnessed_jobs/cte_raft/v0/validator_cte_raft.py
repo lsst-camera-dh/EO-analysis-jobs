@@ -52,9 +52,12 @@ for slot, sensor_id in raft.items():
                                           cti_low_parallel_error=values[8],
                                           slot=slot,
                                           sensor_id=sensor_id))
+    # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='SFLAT_500', TEST_CATEGORY='EO')
     results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
-                                               ccd_vendor, sensor_id,
-                                               'SFLAT_500', 'EO', folder=slot))
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
 results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)

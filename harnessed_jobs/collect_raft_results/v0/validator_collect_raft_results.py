@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Validator script for collect_raft_results job.
+"""
 from __future__ import print_function
 import lcatr.schema
 import siteUtils
@@ -8,9 +11,10 @@ import camera_components
 results = []
 
 run_number = siteUtils.getRunNumber()
-md = siteUtils.DataCatalogMetadata(CCD_MANU=ccd_vendor,
-                                   ORIGIN=siteUtils.getSiteName(),
-                                   TEST_CATEGORY='EO')
+
+md = siteUtils.DataCatalogMetadata(ORIGIN=siteUtils.getSiteName(),
+                                   TEST_CATEGORY='EO',
+                                   DATA_PRODUCT='EOTEST_RESULTS')
 
 # Persist eotest_results files for each sensor.
 raft_id = siteUtils.getUnitId()
@@ -23,7 +27,7 @@ for sensor_id in raft.sensor_names:
                               CCD_MANU=ccd_vendor,
                               RUNNUM=run_number)
     results.append(lcatr.schema.fileref.make(results_file,
-                                             metadata=md(DATA_PRODUCT='EOTEST_RESULTS',
+                                             metadata=md(CCD_MANU=ccd_vendor,
                                                          LSST_NUM=sensor_id)))
 
 # Persist raft-level mosaics

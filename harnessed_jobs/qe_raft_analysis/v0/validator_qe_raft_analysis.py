@@ -39,10 +39,14 @@ for slot, sensor_id in raft.items():
                                       CCD_MANU=ccd_vendor)
     results.extend([siteUtils.make_fileref(item, folder=slot)
                     for item in qe_files])
+    # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='LAMBDA', TEST_CATEGORY='EO')
     results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
-                                               ccd_vendor, sensor_id,
-                                               'LAMBDA', 'EO', folder=slot))
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
+sensor_id = raft.sensor_names[0]
 qe_acq_job_id = siteUtils.get_prerequisite_job_id(('S*/%s_lambda_flat_*.fits'
                                                    % sensor_id),
                                                   jobname='qe_raft_acq_sim')

@@ -46,9 +46,11 @@ for slot, sensor_id in raft.items():
     results.extend(data_products)
 
     # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='FE55', TEST_CATEGORY='EO')
     results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
-                                               ccd_vendor, sensor_id,
-                                               'FE55', 'EO', folder=slot))
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
 results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)

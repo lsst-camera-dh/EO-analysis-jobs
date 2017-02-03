@@ -37,9 +37,11 @@ for slot, sensor_id in raft.items():
     results.append(siteUtils.make_fileref(bias_mean_file, folder=slot))
 
     # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='FE55', TEST_CATEGORY='EO')
     results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
-                                               ccd_vendor, sensor_id,
-                                               'FE55', 'EO', folder=slot))
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
     data = sensorTest.EOTestResults(gain_file)
     amps = data['AMP']
