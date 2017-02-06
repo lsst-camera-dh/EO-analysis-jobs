@@ -19,7 +19,7 @@ md = siteUtils.DataCatalogMetadata(ORIGIN=siteUtils.getSiteName(),
 # Persist eotest_results files for each sensor.
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
-for sensor_id in raft.sensor_names:
+for slot, sensor_id in raft.items():
     ccd_vendor = sensor_id.split('-')[0].upper()
     results_file = '%s_eotest_results.fits' % sensor_id
     eotestUtils.addHeaderData(results_file, LSST_NUM=sensor_id,
@@ -28,7 +28,9 @@ for sensor_id in raft.sensor_names:
                               RUNNUM=run_number)
     results.append(lcatr.schema.fileref.make(results_file,
                                              metadata=md(CCD_MANU=ccd_vendor,
-                                                         LSST_NUM=sensor_id)))
+                                                         LSST_NUM=sensor_id,
+                                                         SLOT=slot,
+                                                         LsstId=raft_id)))
 
 # Persist raft-level mosaics
 # TBD
