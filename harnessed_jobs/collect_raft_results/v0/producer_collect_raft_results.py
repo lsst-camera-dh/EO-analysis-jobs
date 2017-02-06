@@ -16,12 +16,12 @@ raft = camera_components.Raft.create_from_etrav(raft_id)
 for sensor_id in raft.sensor_names:
     results_file = '%s_eotest_results.fits' % sensor_id
 
-    # Use a wavelength scan file to determine the maximum number of
+    # Use the mean bias file to determine the maximum number of
     # active pixels for the image quality statistics.
-    wl_file = \
-        dependency_glob('S*/%s_lambda_flat_*.fits',
-                        jobname=siteUtils.getProcessName('qe_raft_acq'))[0]
-    total_num, rolloff_mask = sensorTest.pixel_counts(wl_file)
+    bias_file = siteUtils.dependency_glob('S*/%s_*mean_bias*.fits' % sensor_id,
+                                          jobname='fe55_raft_analysis',
+                                          description="Mean bias files:")[0]
+    total_num, rolloff_mask = sensorTest.pixel_counts(bias_file)
 
     # Aggregate information from summary.lims files into a final
     # EOTestResults output file.
