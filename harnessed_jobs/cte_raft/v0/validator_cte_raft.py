@@ -2,6 +2,7 @@
 """
 Validator script for raft-level CTE analysis.
 """
+from __future__ import print_function, absolute_import
 import glob
 import lsst.eotest.sensor as sensorTest
 import lcatr.schema
@@ -14,12 +15,13 @@ raft = camera_components.Raft.create_from_etrav(raft_id)
 
 results = []
 for slot, sensor_id in raft.items():
+    print("Processing:", slot, sensor_id)
     ccd_vendor = sensor_id.split('-')[0].upper()
     superflats = glob.glob('%(sensor_id)s_superflat_*.fits' % locals())
     for item in superflats:
         eotestUtils.addHeaderData(item, FILENAME=item,
                                   DATE=eotestUtils.utc_now_isoformat())
-    results = [siteUtils.make_fileref(x, folder=slot) for x in superflats]
+    results.extend([siteUtils.make_fileref(x, folder=slot) for x in superflats])
 
     results_file = '%s_eotest_results.fits' % sensor_id
     data = sensorTest.EOTestResults(results_file)
