@@ -68,19 +68,24 @@ plt.savefig('%s_superflat_high.png' % raft_id)
 del sflat_high
 
 sflat_low = raftTest.RaftMosaic(slot_dependency_glob('*superflat_low.fits',
-                                                      'cte_raft'), gains=gains)
+                                                     'cte_raft'), gains=gains)
 sflat_low.plot(title='%s, low flux superflat' % raft_id)
 plt.savefig('%s_superflat_low.png' % raft_id)
 del sflat_low
 
 # QE images at 350, 500, 620, 750, 870, and 1000 nm.
 for wl in (350, 500, 620, 750, 870, 1000):
+    print("Processing %i nm image" % wl)
     files = slot_dependency_glob('*lambda_flat_%04i_*.fits' % wl,
                                  siteUtils.getProcessName('qe_raft_acq'))
-    flat = raftTest.RaftMosaic(files, gains=gains)
-    flat.plot(title='%s, %i nm' % (raft_id, wl))
-    plt.savefig('%s_%04inm_flat.png' % (raft_id, wl))
-    del flat
+    try:
+        flat = raftTest.RaftMosaic(files, gains=gains)
+        flat.plot(title='%s, %i nm' % (raft_id, wl))
+        plt.savefig('%s_%04inm_flat.png' % (raft_id, wl))
+        del flat
+    except IndexError as eobj:
+        print(files)
+        print(eobj)
 
 # Raft-level bar charts of read noise, nonlinearity, serial and parallel CTI,
 # charge diffusion PSF, and gains from Fe55 and PTC.
