@@ -8,8 +8,6 @@ import siteUtils
 import eotestUtils
 import camera_components
 
-siteUtils.aggregate_job_ids()
-
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 
@@ -24,3 +22,9 @@ for sensor_id in raft.sensor_names:
 
     task = sensorTest.PtcTask()
     task.run(sensor_id, flat_files, mask_files, gains)
+
+    results_file = '%s_eotest_results.fits' % sensor_id
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+    siteUtils.make_png_file(plots.ptcs,
+                            '%s_ptcs.png' % sensor_id,
+                            ptc_file='%s_ptc.fits' % sensor_id)

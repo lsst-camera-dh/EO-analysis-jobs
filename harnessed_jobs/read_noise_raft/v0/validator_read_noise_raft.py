@@ -34,9 +34,6 @@ for slot, sensor_id in raft.items():
 
     fe55_acq_job_id = siteUtils.get_prerequisite_job_id('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                                         jobname='fe55_raft_acq_sim')
-    md = dict(system_noise_file=dict(JOB_ID=fe55_acq_job_id))
-    results.extend(eotestUtils.eotestCalibsPersist('system_noise_file',
-                                                   metadata=md))
 
     files = glob.glob('%s_read_noise?*.fits' % sensor_id)
     for fitsfile in files:
@@ -48,8 +45,13 @@ for slot, sensor_id in raft.items():
                      for item in files]
     results.extend(data_products)
 
-results.extend(siteUtils.jobInfo())
-results.append(eotestUtils.eotestCalibrations())
+    # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='FE55', TEST_CATEGORY='EO')
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
+results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

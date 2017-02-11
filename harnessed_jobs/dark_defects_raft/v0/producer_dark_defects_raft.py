@@ -8,8 +8,6 @@ import siteUtils
 import eotestUtils
 import camera_components
 
-siteUtils.aggregate_job_ids()
-
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 
@@ -22,3 +20,8 @@ for sensor_id in raft.sensor_names:
 
     task = sensorTest.DarkPixelsTask()
     task.run(sensor_id, sflat_files, mask_files)
+
+    siteUtils.make_png_file(sensorTest.plot_flat,
+                            '%s_superflat_dark_defects.png' % sensor_id,
+                            '%s_median_sflat.fits' % sensor_id,
+                            title='%s, superflat for dark defects analysis' % sensor_id)

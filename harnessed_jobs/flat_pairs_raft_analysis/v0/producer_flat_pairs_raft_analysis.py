@@ -8,8 +8,6 @@ import siteUtils
 import eotestUtils
 import camera_components
 
-siteUtils.aggregate_job_ids()
-
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 
@@ -25,3 +23,14 @@ for sensor_id in raft.sensor_names:
     task = sensorTest.FlatPairTask()
     task.run(sensor_id, flat_files, mask_files, gains,
              linearity_spec_range=(1e4, 9e4))
+
+    results_file = '%s_eotest_results.fits' % sensor_id
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+
+    detresp_file = '%s_det_response.fits' % sensor_id
+    siteUtils.make_png_file(plots.linearity,
+                            '%s_linearity.png' % sensor_id,
+                            detresp_file=detresp_file)
+    siteUtils.make_png_file(plots.linearity_resids,
+                            '%s_linearity_resids.png' % sensor_id,
+                            detresp_file=detresp_file)

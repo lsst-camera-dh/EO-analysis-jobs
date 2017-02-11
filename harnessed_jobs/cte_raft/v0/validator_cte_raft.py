@@ -2,6 +2,7 @@
 """
 Validator script for raft-level CTE analysis.
 """
+from __future__ import print_function, absolute_import
 import glob
 import lsst.eotest.sensor as sensorTest
 import lcatr.schema
@@ -14,11 +15,13 @@ raft = camera_components.Raft.create_from_etrav(raft_id)
 
 results = []
 for slot, sensor_id in raft.items():
+    print("Processing:", slot, sensor_id)
+    ccd_vendor = sensor_id.split('-')[0].upper()
     superflats = glob.glob('%(sensor_id)s_superflat_*.fits' % locals())
     for item in superflats:
         eotestUtils.addHeaderData(item, FILENAME=item,
                                   DATE=eotestUtils.utc_now_isoformat())
-    results = [siteUtils.make_fileref(x, folder=slot) for x in superflats]
+    results.extend([siteUtils.make_fileref(x, folder=slot) for x in superflats])
 
     results_file = '%s_eotest_results.fits' % sensor_id
     data = sensorTest.EOTestResults(results_file)
@@ -39,7 +42,7 @@ for slot, sensor_id in raft.items():
                       cti_high_parallel, cti_high_parallel_error,
                       cti_low_serial, cti_low_serial_error,
                       cti_low_parallel, cti_low_parallel_error):
-        results.append(lcatr.schema.valid(lcatr.schema.get('cte'),
+        results.append(lcatr.schema.valid(lcatr.schema.get('cte_raft'),
                                           amp=values[0],
                                           cti_high_serial=values[1],
                                           cti_high_serial_error=values[2],
@@ -51,8 +54,13 @@ for slot, sensor_id in raft.items():
                                           cti_low_parallel_error=values[8],
                                           slot=slot,
                                           sensor_id=sensor_id))
+    # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='SFLAT_500', TEST_CATEGORY='EO')
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
 results.extend(siteUtils.jobInfo())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

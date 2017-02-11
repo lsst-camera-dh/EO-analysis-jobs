@@ -3,12 +3,12 @@
 Producer script for raft-level CTE analysis.
 """
 from __future__ import print_function
+import shutil
+import glob
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 import camera_components
-
-siteUtils.aggregate_job_ids()
 
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
@@ -41,3 +41,28 @@ for sensor_id in raft.sensor_names:
                                   description='Superflat low flux files:')
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
              mask_files=mask_files)
+
+    results_file = '%s_eotest_results.fits' % sensor_id
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+
+    superflat_files = sorted(glob.glob('%s_superflat_*.fits' % sensor_id))
+    mask_files = [x for x in glob.glob('%s*mask.fits' % sensor_id)
+                  if x.find('rolloff') == -1]
+    for sflat_file in superflat_files:
+        flux_level = 'low'
+        if sflat_file.find('high') != -1:
+            flux_level = 'high'
+        siteUtils.make_png_file(sensorTest.plot_flat,
+                                sflat_file.replace('.fits', '.png'),
+                                sflat_file,
+                                title=('%s, CTE supeflat, %s flux '
+                                       % (sensor_id, flux_level)))
+        siteUtils.make_png_file(plots.cte_profiles,
+                                ('%s_serial_oscan_%s.png' %
+                                 (sensor_id, flux_level)),
+                                flux_level, sflat_file, mask_files, serial=True)
+
+        siteUtils.make_png_file(plots.cte_profiles,
+                                ('%s_parallel_oscan_%s.png' %
+                                 (sensor_id, flux_level)),
+                                flux_level, sflat_file, mask_files, serial=False)

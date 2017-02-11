@@ -30,13 +30,6 @@ for slot, sensor_id in raft.items():
                                           band=band, QE=np.mean(QE[band]),
                                           slot=slot, sensor_id=sensor_id))
 
-    qe_acq_job_id = siteUtils.get_prerequisite_job_id('S*/%s_lambda_flat_*.fits' % sensor_id,
-                                                      jobname='qe_raft_acq_sim')
-    md = dict(photodiode_ratio_file=dict(JOB_ID=qe_acq_job_id),
-              illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
-    results.extend(eotestUtils.eotestCalibsPersist('photodiode_ratio_file',
-                                                   'illumination_non_uniformity_file',
-                                                   metadata=md))
     qe_files = glob.glob('*QE*.*')
     for item in qe_files:
         if item.endswith('.fits'):
@@ -46,8 +39,23 @@ for slot, sensor_id in raft.items():
                                       CCD_MANU=ccd_vendor)
     results.extend([siteUtils.make_fileref(item, folder=slot)
                     for item in qe_files])
+    # Persist the png files.
+    metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
+                    TESTTYPE='LAMBDA', TEST_CATEGORY='EO')
+    results.extend(siteUtils.persist_png_files('%s*.png' % sensor_id,
+                                               sensor_id, folder=slot,
+                                               metadata=metadata))
 
+sensor_id = raft.sensor_names[0]
+qe_acq_job_id = siteUtils.get_prerequisite_job_id(('S*/%s_lambda_flat_*.fits'
+                                                   % sensor_id),
+                                                  jobname='qe_raft_acq_sim')
+md = dict(photodiode_ratio_file=dict(JOB_ID=qe_acq_job_id),
+          illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
+
+results.extend(eotestUtils.eotestCalibsPersist('photodiode_ratio_file',
+                                               'illumination_non_uniformity_file',
+                                               metadata=md))
 results.extend(siteUtils.jobInfo())
-
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

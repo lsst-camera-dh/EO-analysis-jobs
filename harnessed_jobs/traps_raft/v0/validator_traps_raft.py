@@ -30,7 +30,7 @@ for slot, sensor_id in raft.items():
     num_traps = data['NUM_TRAPS']
 
     for amp, ntrap in zip(amps, num_traps):
-        results.append(lcatr.schema.valid(lcatr.schema.get('traps'),
+        results.append(lcatr.schema.valid(lcatr.schema.get('traps_raft'),
                                           amp=amp, num_traps=ntrap,
                                           slot=slot,
                                           sensor_id=sensor_id))

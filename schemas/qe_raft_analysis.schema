@@ -1,0 +1,9 @@
+# -*- python -*-
+{
+    'schema_name' : 'qe_raft_analysis',
+    'schema_version' : 0,
+    'band' : str,
+    'QE' : float,
+    'slot' : str,
+    'sensor_id' : str
+}

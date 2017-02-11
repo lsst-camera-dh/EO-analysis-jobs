@@ -3,17 +3,13 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
-import sys
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 import camera_components
 
-siteUtils.aggregate_job_ids()
-
 raft_id = siteUtils.getUnitId()
-db_name = 'Dev'
-raft = camera_components.Raft.create_from_etrav(raft_id, db_name=db_name)
+raft = camera_components.Raft.create_from_etrav(raft_id)
 
 for sensor_id in raft.sensor_names:
     #
@@ -36,3 +32,8 @@ for sensor_id in raft.sensor_names:
     task.config.temp_set_point = -100.
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)
+
+    results_file = '%s_eotest_results.fits' % sensor_id
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+
+    siteUtils.make_png_file(plots.noise, '%s_noise.png' % sensor_id)
