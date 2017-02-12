@@ -32,8 +32,10 @@ for slot, sensor_id in raft.items():
                                                          SLOT=slot,
                                                          LsstId=raft_id)))
 
-# Persist raft-level mosaics
-# TBD
+# Persist the png files.
+metadata = dict(CCD_MANU=ccd_vendor, TEST_CATEGORY='EO')
+results.extend(siteUtils.persist_png_files('%s*.png' % raft_id,
+                                           raft_id, metadata=metadata))
 
 results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)
