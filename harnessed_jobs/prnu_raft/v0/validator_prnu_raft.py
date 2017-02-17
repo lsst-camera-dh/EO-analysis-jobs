@@ -27,7 +27,7 @@ for slot, sensor_id in raft.items():
 
         qe_acq_job_id = \
             siteUtils.get_prerequisite_job_id('S*/%s_lambda_flat_*.fits' % sensor_id,
-                                              jobname='qe_raft_acq_sim')
+                                              jobname=siteUtils.getProcessName('qe_raft_acq'))
         md = dict(illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
         results.extend(eotestUtils.eotestCalibsPersist('illumination_non_uniformity_file',
                                                        metadata=md))
