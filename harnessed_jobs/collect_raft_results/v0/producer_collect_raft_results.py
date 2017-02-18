@@ -115,5 +115,5 @@ bar_charts.make_bar_chart('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
 plt.savefig('%s_psf_sigma.png' % raft_id)
 
 bar_charts.make_multi_bar_chart(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
-                                title=raft_id, colors='br')
+                                title=raft_id, colors='br', ylog=True)
 plt.savefig('%s_system_gain.png' % raft_id)
