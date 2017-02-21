@@ -30,7 +30,7 @@ for slot, sensor_id in raft.items():
                                           band=band, QE=np.mean(QE[band]),
                                           slot=slot, sensor_id=sensor_id))
 
-    qe_files = glob.glob('*QE*.*')
+    qe_files = glob.glob('%s_*QE*.*' % sensor_id)
     for item in qe_files:
         if item.endswith('.fits'):
             eotestUtils.addHeaderData(item, LSST_NUM=sensor_id,
@@ -49,7 +49,7 @@ for slot, sensor_id in raft.items():
 sensor_id = raft.sensor_names[0]
 qe_acq_job_id = siteUtils.get_prerequisite_job_id(('S*/%s_lambda_flat_*.fits'
                                                    % sensor_id),
-                                                  jobname='qe_raft_acq_sim')
+                                                  jobname=siteUtils.getProcessName('qe_raft_acq'))
 md = dict(photodiode_ratio_file=dict(JOB_ID=qe_acq_job_id),
           illumination_non_uniformity_file=dict(JOB_ID=qe_acq_job_id))
 
