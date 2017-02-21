@@ -30,7 +30,7 @@ for slot, sensor_id in raft.items():
                                           band=band, QE=np.mean(QE[band]),
                                           slot=slot, sensor_id=sensor_id))
 
-    qe_files = glob.glob('*QE*.*')
+    qe_files = glob.glob('%s_*QE*.*' % sensor_id)
     for item in qe_files:
         if item.endswith('.fits'):
             eotestUtils.addHeaderData(item, LSST_NUM=sensor_id,
