@@ -3,20 +3,13 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
+import multiprocessing
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 import camera_components
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
-    #
-    # Use Fe55 exposures and the overscan region instead of the bias
-    # frames as per 2015-09-10 TS1-TS3 sprint decision:
-    # https://confluence.slac.stanford.edu/display/LSSTCAM/Science+Raft+Teststands
-    #
+def run_read_noise_task(sensor_id):
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Fe55 files for read noise:')
@@ -37,3 +30,18 @@ for sensor_id in raft.sensor_names:
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
     siteUtils.make_png_file(plots.noise, '%s_noise.png' % sensor_id)
+
+if __name__ == '__main__':
+    raft_id = siteUtils.getUnitId()
+    raft = camera_components.Raft.create_from_etrav(raft_id)
+
+    # Nominally use N-1 cores in the processing pool, but ensure the
+    # number is not less than 1.
+    processes = max(1, multiprocessing.cpu_count() - 1)
+    pool = multiprocessing.Pool(processes=processes)
+    results = [pool.apply_async(run_read_noise_task, sensor_id)
+               for sensor_id in raft.sensor_names]
+    pool.close()
+    pool.join()
+    for res in results:
+        res.get()
