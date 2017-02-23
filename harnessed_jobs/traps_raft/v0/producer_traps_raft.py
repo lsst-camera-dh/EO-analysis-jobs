@@ -6,12 +6,9 @@ from __future__ import print_function
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_trap_task(sensor_id):
     trap_file = siteUtils.dependency_glob('S*/%s_trap_ppump_*.fits' % sensor_id,
                                           jobname=siteUtils.getProcessName('ppump_raft_acq'),
                                           description='Trap file:')[0]
@@ -31,3 +28,5 @@ for sensor_id in raft.sensor_names:
     task = sensorTest.TrapTask()
     task.run(sensor_id, trap_file, mask_files, gains)
 
+if __name__ == '__main__':
+    sensor_analyses(run_trap_task)

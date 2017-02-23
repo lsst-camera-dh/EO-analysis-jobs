@@ -7,12 +7,9 @@ import glob
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
 import siteUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_fe55_task(sensor_id):
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Fe55 files:')
@@ -87,3 +84,6 @@ for sensor_id in raft.sensor_names:
     siteUtils.make_png_file(plots.psf_dists,
                             '%s_psf_dists.png' % sensor_id,
                             fe55_file=fe55_file)
+
+if __name__ == '__main__':
+    sensor_analyses(run_fe55_task)

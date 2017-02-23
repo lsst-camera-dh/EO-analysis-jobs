@@ -3,17 +3,13 @@
 Producer script for raft-level CTE analysis.
 """
 from __future__ import print_function
-import shutil
 import glob
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_cte_task(sensor_id):
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
@@ -66,3 +62,6 @@ for sensor_id in raft.sensor_names:
                                 ('%s_parallel_oscan_%s.png' %
                                  (sensor_id, flux_level)),
                                 flux_level, sflat_file, mask_files, serial=False)
+
+if __name__ == '__main__':
+    sensor_analyses(run_cte_task)
