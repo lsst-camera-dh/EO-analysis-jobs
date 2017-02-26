@@ -2,6 +2,7 @@
 Function to parallelize subcomponent analyses for an assembly such
 as raft or full focal plane.
 """
+import os
 import multiprocessing
 import siteUtils
 import camera_components
@@ -33,12 +34,16 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
     and are uncaught, a non-zero exit code will be generated for the
     overall process. Output to stdout or stderr from the subprocesses
     will be interleaved.
+
+    Users can override the default or keyword argument values by setting
+    the LCATR_PARALLEL_PROCESSES environment variable.
     """
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 
     if processes is None:
         processes = max(1, multiprocessing.cpu_count() - 1)
+    processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
     pool = multiprocessing.Pool(processes=processes)
