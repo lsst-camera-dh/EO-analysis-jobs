@@ -6,12 +6,9 @@ from __future__ import print_function
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_ptc_task(sensor_id):
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
@@ -28,3 +25,6 @@ for sensor_id in raft.sensor_names:
     siteUtils.make_png_file(plots.ptcs,
                             '%s_ptcs.png' % sensor_id,
                             ptc_file='%s_ptc.fits' % sensor_id)
+
+if __name__ == '__main__':
+    sensor_analyses(run_ptc_task)

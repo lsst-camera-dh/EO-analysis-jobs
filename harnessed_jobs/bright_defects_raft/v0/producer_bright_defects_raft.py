@@ -6,12 +6,9 @@ from __future__ import print_function
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_bright_pixels_task(sensor_id):
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
                                            description='Dark files:')
@@ -28,3 +25,6 @@ for sensor_id in raft.sensor_names:
                             '%s_medianed_dark.png' % sensor_id,
                             '%s_median_dark_bp.fits' % sensor_id,
                             title='%s, medianed dark for bright defects analysis' % sensor_id)
+
+if __name__ == '__main__':
+    sensor_analyses(run_bright_pixels_task)

@@ -6,12 +6,9 @@ from __future__ import print_function
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
+from multiprocessor_execution import sensor_analyses
 
-raft_id = siteUtils.getUnitId()
-raft = camera_components.Raft.create_from_etrav(raft_id)
-
-for sensor_id in raft.sensor_names:
+def run_dark_current_task(sensor_id):
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
                                            description='Dark files:')
@@ -23,3 +20,6 @@ for sensor_id in raft.sensor_names:
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = -100.
     task.run(sensor_id, dark_files, mask_files, gains)
+
+if __name__ == '__main__':
+    sensor_analyses(run_dark_current_task)
