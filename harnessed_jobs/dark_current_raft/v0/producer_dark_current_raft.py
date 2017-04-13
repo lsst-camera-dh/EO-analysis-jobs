@@ -2,7 +2,7 @@
 """
 Producer script for raft-level dark current analysis.
 """
-from __future__ import print_function
+from __future__ import absolute_import
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
@@ -19,7 +19,19 @@ def run_dark_current_task(sensor_id):
 
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = -100.
-    task.run(sensor_id, dark_files, mask_files, gains)
+    dark_curr_pixels, dark95s \
+        = task.run(sensor_id, dark_files, mask_files, gains)
+
+    eo_results \
+        = dependency_glob('%s_eotest_results.fits' % sensor_id,
+                          jobname=siteUtils.getProcessName('read_noise_raft'))
+    read_noise = dict(pair for pair in zip(eo_results['AMP'],
+                                           eo_results['TOTAL_NOISE']))
+
+    siteUtils.make_png_file(sensorTest.total_noise_histogram,
+                            '%s_total_noise_hists.png' % sensor_id,
+                            dark_curr_pixels, read_noise, dark95s,
+                            exptime=16, title=sensor_id)
 
 if __name__ == '__main__':
     sensor_analyses(run_dark_current_task)
