@@ -23,8 +23,8 @@ def run_dark_current_task(sensor_id):
         = task.run(sensor_id, dark_files, mask_files, gains)
 
     eo_results \
-        = dependency_glob('%s_eotest_results.fits' % sensor_id,
-                          jobname=siteUtils.getProcessName('read_noise_raft'))
+        = siteUtils.dependency_glob('S*/%s_eotest_results.fits' % sensor_id,
+                                    jobname=siteUtils.getProcessName('read_noise_raft'))[0]
     read_noise = dict(pair for pair in zip(eo_results['AMP'],
                                            eo_results['TOTAL_NOISE']))
 
