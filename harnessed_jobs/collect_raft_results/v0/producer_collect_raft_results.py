@@ -6,6 +6,7 @@ an eotest_report.fits file.  Also create raft-level mosaics.
 from __future__ import print_function
 import os
 from collections import OrderedDict
+import numpy as np
 import matplotlib.pyplot as plt
 import lsst.eotest.sensor as sensorTest
 import lsst.eotest.raft as raftTest
@@ -25,6 +26,10 @@ def slot_dependency_glob(pattern, jobname):
 bias_files = slot_dependency_glob('*_mean_bias_*.fits', 'fe55_raft_analysis')
 total_num, rolloff_mask = sensorTest.pixel_counts(bias_files.values()[0])
 
+# Exposure time (in seconds) for 95th percentile dark current shot
+# noise calculation.
+exptime = 16.
+
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
 summary_files = dependency_glob('summary.lims')
@@ -37,6 +42,16 @@ for slot, sensor_id in raft.items():
     repackager.eotest_results.add_ccd_result('ROLLOFF_MASK_PIXELS',
                                              rolloff_mask)
     repackager.process_files(summary_files, sensor_id=sensor_id)
+
+    # Add 95th percentile dark current shot noise and add in quadrature
+    # to read noise to produce updated total noise.
+    shot_noise = repackager.eotest_results['DARK_CURRENT_95']*exptime
+    total_noise = np.sqrt(repackager.eotest_results['READ_NOISE']**2
+                          + shot_noise**2)
+    for i, amp in repackager.eotest_results['AMP']:
+        repackager.eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
+                                                 np.float(shot_noise[i]))
+        repackager.eotest_results['TOTAL_NOISE'][i] = total_noise[i]
 
     outfile = '%s_eotest_results.fits' % sensor_id
     repackager.write(outfile)
@@ -87,33 +102,37 @@ for wl in (350, 500, 620, 750, 870, 1000):
         print(files)
         print(eobj)
 
-# Raft-level bar charts of read noise, nonlinearity, serial and parallel CTI,
+# Raft-level plots of read noise, nonlinearity, serial and parallel CTI,
 # charge diffusion PSF, and gains from Fe55 and PTC.
-bar_charts = raftTest.RaftBarCharts(results_files)
+spec_plots = raftTest.RaftSpecPlots(results_files)
 
-bar_charts.make_bar_chart('READ_NOISE', 'read noise (-e rms)', spec=9,
-                          title=raft_id)
-plt.savefig('%s_read_noise.png' % raft_id)
+# Add 95th percentile dark current shot noise for 16 second exposure for
+# total noise plots.
+spec_plots.results = raftTest.add_shot_noise(spec_plots.results, exptime=16)
 
-bar_charts.make_bar_chart('MAX_FRAC_DEV',
-                          'non-linearity (max. fractional deviation)',
-                          spec=0.02, title=raft_id)
+columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
+spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)', spec=9,
+                                  title=raft_id)
+plt.savefig('%s_total_noise.png' % raft_id)
+
+spec_plots.make_plot('MAX_FRAC_DEV',
+                     'non-linearity (max. fractional deviation)',
+                     spec=0.02, title=raft_id)
 plt.savefig('%s_linearity.png' % raft_id)
 
-bar_charts.make_multi_bar_chart(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
-                                'Serial CTI', spec=5e-6, ylog=True,
-                                title=raft_id, colors='br')
+spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
+                                  'Serial CTI', spec=5e-6, ylog=True,
+                                  title=raft_id, colors='br')
 plt.savefig('%s_serial_cti.png' % raft_id)
 
-bar_charts.make_multi_bar_chart(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
-                                'Parallel CTI', spec=3e-6, ylog=True,
-                                title=raft_id, colors='br')
+spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
+                                  'Parallel CTI', spec=3e-6, ylog=True,
+                                  title=raft_id, colors='br')
 plt.savefig('%s_parallel_cti.png' % raft_id)
 
-bar_charts.make_bar_chart('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                          title=raft_id)
+spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5., title=raft_id)
 plt.savefig('%s_psf_sigma.png' % raft_id)
 
-bar_charts.make_multi_bar_chart(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
-                                title=raft_id, colors='br', ylog=True)
+spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
+                                  title=raft_id, colors='br', ylog=True)
 plt.savefig('%s_system_gain.png' % raft_id)
