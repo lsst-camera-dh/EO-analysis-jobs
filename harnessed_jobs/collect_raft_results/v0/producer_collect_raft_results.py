@@ -21,6 +21,8 @@ def slot_dependency_glob(pattern, jobname):
                                              jobname=jobname))
     return OrderedDict([(fn.split('/')[-2], fn) for fn in files])
 
+run_number = siteUtils.getRunNumber()
+
 # Use a mean bias file to determine the maximum number of active
 # pixels for the image quality statistics.
 bias_files = slot_dependency_glob('*_mean_bias_*.fits', 'fe55_raft_analysis')
@@ -121,12 +123,14 @@ spec_plots.make_plot('MAX_FRAC_DEV',
 plt.savefig('%s_linearity.png' % raft_id)
 
 spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
-                                  'Serial CTI', spec=5e-6, ylog=True,
+                                  'Serial CTI (ppm)', spec=5e-6,
+                                  yscaling=1e6, yerrors=True,
                                   title=raft_id, colors='br')
 plt.savefig('%s_serial_cti.png' % raft_id)
 
 spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
-                                  'Parallel CTI', spec=3e-6, ylog=True,
+                                  'Parallel CTI (ppm)', spec=3e-6,
+                                  yscaling=1e6, yerrors=True,
                                   title=raft_id, colors='br')
 plt.savefig('%s_parallel_cti.png' % raft_id)
 
@@ -134,5 +138,6 @@ spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5., title=raft_id)
 plt.savefig('%s_psf_sigma.png' % raft_id)
 
 spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
+                                  yerrors=True,
                                   title=raft_id, colors='br', ylog=True)
 plt.savefig('%s_system_gain.png' % raft_id)
