@@ -77,7 +77,7 @@ dark_mosaic.plot(title='%s, medianed dark frames' % title,
 plt.savefig('%s_medianed_dark.png' % file_prefix)
 del dark_mosaic
 
-mean_bias = raftTest.RaftMosaic(bias_files)
+mean_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
 mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
 plt.savefig('%s_mean_bias.png' % file_prefix)
 del mean_bias
@@ -110,6 +110,13 @@ for wl in (350, 500, 620, 750, 870, 1000):
     except IndexError as eobj:
         print(files)
         print(eobj)
+
+# QE summary plot.
+qe_summary_lims = \
+    siteUtils.dependency_glob('summary.lims', jobname='qe_raft_analysis')[0]
+qe_fig = raftTest.qe_summary_plot(qe_summary_lims, title=title)
+plt.savefig('%s_QE_summary.png' % file_prefix)
+del qe_fig
 
 # Raft-level plots of read noise, nonlinearity, serial and parallel CTI,
 # charge diffusion PSF, and gains from Fe55 and PTC.
