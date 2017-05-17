@@ -156,5 +156,3 @@ spec_plots.make_plot('DARK_CURRENT_95',
                      '95th percentile dark current (e-/pixel/s)',
                      spec=0.2, title=title)
 plt.savefig('%s_dark_current.png' % file_prefix)
-
-raise RuntimeError("Raise an exception to enable a retry in eT.")
