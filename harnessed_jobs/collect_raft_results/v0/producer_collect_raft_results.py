@@ -86,14 +86,14 @@ sflat_high = raftTest.RaftMosaic(slot_dependency_glob('*superflat_high.fits',
                                                       'cte_raft'), gains=gains)
 sflat_high.plot(title='%s, high flux superflat' % title,
                 annotation='e-/pixel, gain-corrected, bias-subtracted')
-plt.savefig('%s_superflat_high.png' % raft_id)
+plt.savefig('%s_superflat_high.png' % file_prefix)
 del sflat_high
 
 sflat_low = raftTest.RaftMosaic(slot_dependency_glob('*superflat_low.fits',
                                                      'cte_raft'), gains=gains)
 sflat_low.plot(title='%s, low flux superflat' % title,
                annotation='e-/pixel, gain-corrected, bias-subtracted')
-plt.savefig('%s_superflat_low.png' % raft_id)
+plt.savefig('%s_superflat_low.png' % file_prefix)
 del sflat_low
 
 # QE images at 350, 500, 620, 750, 870, and 1000 nm.
