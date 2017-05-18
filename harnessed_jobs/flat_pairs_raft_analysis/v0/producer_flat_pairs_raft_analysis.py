@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_flat_pair_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
@@ -29,11 +30,11 @@ def run_flat_pair_task(sensor_id):
 
     detresp_file = '%s_det_response.fits' % sensor_id
     siteUtils.make_png_file(plots.linearity,
-                            '%s_linearity.png' % sensor_id,
+                            '%s_linearity.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
                             use_exptime=use_exptime, Ne_bounds=Ne_bounds)
     siteUtils.make_png_file(plots.linearity_resids,
-                            '%s_linearity_resids.png' % sensor_id,
+                            '%s_linearity_resids.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
                             Ne_bounds=Ne_bounds, use_exptime=use_exptime)
 

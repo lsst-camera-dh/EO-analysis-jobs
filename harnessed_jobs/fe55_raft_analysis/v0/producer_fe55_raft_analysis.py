@@ -10,6 +10,7 @@ import siteUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_fe55_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Fe55 files:')
@@ -26,7 +27,7 @@ def run_fe55_task(sensor_id):
     #
     print("processing fe55_zoom:", fe55_files[0])
     siteUtils.make_png_file(sensorTest.fe55_zoom,
-                            '%(sensor_id)s_fe55_zoom.png' % locals(),
+                            '%(file_prefix)s_fe55_zoom.png' % locals(),
                             fe55_files[0], size=250, amp=1)
 
     #
@@ -36,18 +37,18 @@ def run_fe55_task(sensor_id):
         pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=sensor_id)
 
         siteUtils.make_png_file(pixel_stats.pixel_hists,
-                                '%s_fe55_p3_p5_hists.png' % sensor_id,
+                                '%s_fe55_p3_p5_hists.png' % file_prefix,
                                 pix0='p3', pix1='p5')
 
         siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
-                                '%s_fe55_p3_p5_profiles.png' % sensor_id,
+                                '%s_fe55_p3_p5_profiles.png' % file_prefix,
                                 pixel_coord='x', pix0='p3', pix1='p5')
 
         siteUtils.make_png_file(pixel_stats.apflux_profile,
-                                '%s_fe55_apflux_serial.png' % sensor_id)
+                                '%s_fe55_apflux_serial.png' % file_prefix)
 
         siteUtils.make_png_file(pixel_stats.apflux_profile,
-                                '%s_fe55_apflux_parallel.png' % sensor_id,
+                                '%s_fe55_apflux_parallel.png' % file_prefix,
                                 pixel_coord='y')
 
     except Exception as eobj:
@@ -69,20 +70,20 @@ def run_fe55_task(sensor_id):
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
     siteUtils.make_png_file(plots.gains,
-                            '%s_gains.png' % sensor_id)
+                            '%s_gains.png' % file_prefix)
 
     siteUtils.make_png_file(sensorTest.plot_flat,
-                            '%s_mean_bias.png' % sensor_id,
+                            '%s_mean_bias.png' % file_prefix,
                             mean_bias_file,
                             title='%s, mean bias frame' % sensor_id)
 
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
-                            '%s_fe55_dists.png' % sensor_id,
+                            '%s_fe55_dists.png' % file_prefix,
                             fe55_file=fe55_file)
 
     siteUtils.make_png_file(plots.psf_dists,
-                            '%s_psf_dists.png' % sensor_id,
+                            '%s_psf_dists.png' % file_prefix,
                             fe55_file=fe55_file)
 
 if __name__ == '__main__':

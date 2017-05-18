@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_read_noise_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Fe55 files for read noise:')
@@ -28,7 +29,7 @@ def run_read_noise_task(sensor_id):
     results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
-    siteUtils.make_png_file(plots.noise, '%s_noise.png' % sensor_id)
+    siteUtils.make_png_file(plots.noise, '%s_noise.png' % file_prefix)
 
 if __name__ == '__main__':
     sensor_analyses(run_read_noise_task)

@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_ptc_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
@@ -23,7 +24,7 @@ def run_ptc_task(sensor_id):
     results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
     siteUtils.make_png_file(plots.ptcs,
-                            '%s_ptcs.png' % sensor_id,
+                            '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % sensor_id)
 
 if __name__ == '__main__':
