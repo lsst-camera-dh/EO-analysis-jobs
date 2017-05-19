@@ -10,6 +10,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_cte_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
@@ -49,18 +50,18 @@ def run_cte_task(sensor_id):
         if sflat_file.find('high') != -1:
             flux_level = 'high'
         siteUtils.make_png_file(sensorTest.plot_flat,
-                                sflat_file.replace('.fits', '.png'),
+                                sflat_file.replace('.fits', '.png').replace(sensor_id, file_prefix),
                                 sflat_file,
                                 title=('%s, CTE supeflat, %s flux '
                                        % (sensor_id, flux_level)))
         siteUtils.make_png_file(plots.cte_profiles,
                                 ('%s_serial_oscan_%s.png' %
-                                 (sensor_id, flux_level)),
+                                 (file_prefix, flux_level)),
                                 flux_level, sflat_file, mask_files, serial=True)
 
         siteUtils.make_png_file(plots.cte_profiles,
                                 ('%s_parallel_oscan_%s.png' %
-                                 (sensor_id, flux_level)),
+                                 (file_prefix, flux_level)),
                                 flux_level, sflat_file, mask_files, serial=False)
 
 if __name__ == '__main__':

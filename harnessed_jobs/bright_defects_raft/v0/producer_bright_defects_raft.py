@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_bright_pixels_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
                                            description='Dark files:')
@@ -22,7 +23,7 @@ def run_bright_pixels_task(sensor_id):
     task.run(sensor_id, dark_files, mask_files, gains)
 
     siteUtils.make_png_file(sensorTest.plot_flat,
-                            '%s_medianed_dark.png' % sensor_id,
+                            '%s_medianed_dark.png' % file_prefix,
                             '%s_median_dark_bp.fits' % sensor_id,
                             title='%s, medianed dark for bright defects analysis' % sensor_id)
 

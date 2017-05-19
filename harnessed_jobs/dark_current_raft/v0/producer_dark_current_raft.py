@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_dark_current_task(sensor_id):
+    file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
                                            description='Dark files:')
@@ -30,7 +31,7 @@ def run_dark_current_task(sensor_id):
                                            eo_results['TOTAL_NOISE']))
 
     siteUtils.make_png_file(sensorTest.total_noise_histograms,
-                            '%s_total_noise_hists.png' % sensor_id,
+                            '%s_total_noise_hists.png' % file_prefix,
                             dark_curr_pixels, read_noise, dark95s,
                             exptime=16, title=sensor_id)
 

@@ -4,6 +4,7 @@ QA plots for raft-level acquisitions.
 """
 from __future__ import print_function
 import os
+import glob
 from collections import OrderedDict
 from lcatr.harness.helpers import dependency_glob
 import siteUtils
@@ -44,3 +45,7 @@ for test_type, jobname in datasets.items():
     QA_trender.processDirectory(dirname, test_type)
 
 QA_trender.plot(raft_id)
+
+file_prefix = '%s_%s' % (raft_id, siteUtils.getRunNumber())
+for png_file in glob.glob('*QA*.png'):
+    os.rename(png_file, png_file.replace(raft_id, file_prefix))
