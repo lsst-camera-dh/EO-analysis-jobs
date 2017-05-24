@@ -9,6 +9,24 @@ import camera_components
 
 __all__ = ['sensor_analyses']
 
+def serial_sensor_analyses(run_task_func, raft_id=None):
+    """
+    Run a sensor-level analysis task serially over the sensors in a raft.
+
+    Parameters
+    ----------
+    run_task_func : function
+        A function that takes the sensor_id string as its argument.
+    raft_id : str, optional
+        The RTM (or RSA) LSST ID.  If None (default), the LCATR_UNIT_ID
+        is used.
+    """
+    if raft_id is None:
+        raft_id = siteUtils.getUnitId()
+    raft = camera_components.Raft.create_from_etrav(raft_id)
+    for sensor_id in raft.sensor_names:
+        run_task_func(sensor_id)
+
 def sensor_analyses(run_task_func, raft_id=None, processes=None):
     """
     Run a sensor-level analysis task implemented as a pickleable

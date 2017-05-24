@@ -6,10 +6,10 @@ from __future__ import absolute_import
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-import camera_components
-#from multiprocessor_execution import sensor_analyses
+from multiprocessor_execution import serial_sensor_analyses
 
 def run_dark_current_task(sensor_id):
+    "Run the single sensor dark current task in the raft-level context."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
@@ -35,13 +35,6 @@ def run_dark_current_task(sensor_id):
                             '%s_total_noise_hists.png' % file_prefix,
                             dark_curr_pixels, read_noise, dark95s,
                             exptime=16, title=sensor_id)
-
-def serial_sensor_analyses(task_func):
-    "Run the analysis of each sensor serially."
-    raft_id = siteUtils.getUnitId()
-    raft = camera_components.Raft.create_from_etrav(raft_id)
-    for sensor_id in raft.sensor_names:
-        task_func(sensor_id)
 
 if __name__ == '__main__':
     serial_sensor_analyses(run_dark_current_task)
