@@ -6,7 +6,8 @@ from __future__ import absolute_import
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-from multiprocessor_execution import sensor_analyses
+import camera_components
+#from multiprocessor_execution import sensor_analyses
 
 def run_dark_current_task(sensor_id):
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
@@ -35,5 +36,12 @@ def run_dark_current_task(sensor_id):
                             dark_curr_pixels, read_noise, dark95s,
                             exptime=16, title=sensor_id)
 
+def serial_sensor_analyses(task_func):
+    "Run the analysis of each sensor serially."
+    raft_id = siteUtils.getUnitId()
+    raft = camera_components.Raft.create_from_etrav(raft_id)
+    for sensor_id in raft.sensor_names:
+        task_func(sensor_id)
+
 if __name__ == '__main__':
-    sensor_analyses(run_dark_current_task)
+    serial_sensor_analyses(run_dark_current_task)
