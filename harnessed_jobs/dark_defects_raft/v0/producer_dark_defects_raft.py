@@ -9,6 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_dark_pixels_task(sensor_id):
+    "Single sensor execution of the dark pixels task."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     sflat_files = siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
                                             jobname=siteUtils.getProcessName('sflat_raft_acq'),
@@ -22,7 +23,8 @@ def run_dark_pixels_task(sensor_id):
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_superflat_dark_defects.png' % file_prefix,
                             '%s_median_sflat.fits' % sensor_id,
-                            title='%s, superflat for dark defects analysis' % sensor_id)
+                            title='%s, superflat for dark defects analysis' % sensor_id,
+                            annotation='ADU/pixel')
 
 if __name__ == '__main__':
     sensor_analyses(run_dark_pixels_task)

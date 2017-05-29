@@ -10,6 +10,7 @@ import siteUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_fe55_task(sensor_id):
+    "Single sensor execution of the Fe55 analysis task."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
@@ -28,7 +29,8 @@ def run_fe55_task(sensor_id):
     print("processing fe55_zoom:", fe55_files[0])
     siteUtils.make_png_file(sensorTest.fe55_zoom,
                             '%(file_prefix)s_fe55_zoom.png' % locals(),
-                            fe55_files[0], size=250, amp=1)
+                            fe55_files[0], size=250, amp=1,
+                            annotation='ADU/pixel')
 
     #
     # Perform analysis of 9-pixel statistics for Fe55 charge clusters.
@@ -51,7 +53,7 @@ def run_fe55_task(sensor_id):
                                 '%s_fe55_apflux_parallel.png' % file_prefix,
                                 pixel_coord='y')
 
-    except Exception as eobj:
+    except StandardError as eobj:
         print("Exception raised while creating pixel statistics plots:")
         print(str(eobj))
         print("Skipping these plots.")
@@ -75,7 +77,8 @@ def run_fe55_task(sensor_id):
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_mean_bias.png' % file_prefix,
                             mean_bias_file,
-                            title='%s, mean bias frame' % sensor_id)
+                            title='%s, mean bias frame' % sensor_id,
+                            annotation='ADU/pixel, overscan-subtracted')
 
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
