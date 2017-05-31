@@ -26,10 +26,5 @@ def run_read_noise_task(sensor_id):
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)
 
-    results_file = '%s_eotest_results.fits' % sensor_id
-    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
-
-    siteUtils.make_png_file(plots.noise, '%s_noise.png' % file_prefix)
-
 if __name__ == '__main__':
     sensor_analyses(run_read_noise_task)
