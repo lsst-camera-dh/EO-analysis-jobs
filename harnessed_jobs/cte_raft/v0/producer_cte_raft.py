@@ -10,6 +10,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_cte_task(sensor_id):
+    "Single sensor execution of the cte task."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
@@ -53,7 +54,8 @@ def run_cte_task(sensor_id):
                                 sflat_file.replace('.fits', '.png').replace(sensor_id, file_prefix),
                                 sflat_file,
                                 title=('%s, CTE supeflat, %s flux '
-                                       % (sensor_id, flux_level)))
+                                       % (sensor_id, flux_level)),
+                                annotation='ADU/pixel')
         siteUtils.make_png_file(plots.cte_profiles,
                                 ('%s_serial_oscan_%s.png' %
                                  (file_prefix, flux_level)),
