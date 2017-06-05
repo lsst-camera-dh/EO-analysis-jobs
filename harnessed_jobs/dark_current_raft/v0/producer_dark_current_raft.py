@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
-from multiprocessor_execution import serial_sensor_analyses
+from multiprocessor_execution import sensor_analyses
 
 def run_dark_current_task(sensor_id):
     "Run the single sensor dark current task in the raft-level context."
@@ -37,4 +37,4 @@ def run_dark_current_task(sensor_id):
                             exptime=16, title=sensor_id)
 
 if __name__ == '__main__':
-    serial_sensor_analyses(run_dark_current_task)
+    sensor_analyses(run_dark_current_task, processes=1)

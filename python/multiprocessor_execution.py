@@ -9,24 +9,6 @@ import camera_components
 
 __all__ = ['sensor_analyses']
 
-def serial_sensor_analyses(run_task_func, raft_id=None):
-    """
-    Run a sensor-level analysis task serially over the sensors in a raft.
-
-    Parameters
-    ----------
-    run_task_func : function
-        A function that takes the sensor_id string as its argument.
-    raft_id : str, optional
-        The RTM (or RSA) LSST ID.  If None (default), the LCATR_UNIT_ID
-        is used.
-    """
-    if raft_id is None:
-        raft_id = siteUtils.getUnitId()
-    raft = camera_components.Raft.create_from_etrav(raft_id)
-    for sensor_id in raft.sensor_names:
-        run_task_func(sensor_id)
-
 def sensor_analyses(run_task_func, raft_id=None, processes=None):
     """
     Run a sensor-level analysis task implemented as a pickleable
@@ -64,10 +46,19 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
-    pool = multiprocessing.Pool(processes=processes)
-    results = [pool.apply_async(run_task_func, (sensor_id,))
-               for sensor_id in raft.sensor_names]
-    pool.close()
-    pool.join()
-    for res in results:
-        res.get()
+
+    if processes == 1:
+        # For cases where only one process will be run at a time, it's
+        # faster to run serially instead of using a
+        # multiprocessing.Pool since the pickling that occurs can
+        # cause significant overhead.
+        for sensor_id in raft.sensor_names:
+            run_task_func(sensor_id)
+    else:
+        pool = multiprocessing.Pool(processes=processes)
+        results = [pool.apply_async(run_task_func, (sensor_id,))
+                   for sensor_id in raft.sensor_names]
+        pool.close()
+        pool.join()
+        for res in results:
+            res.get()
