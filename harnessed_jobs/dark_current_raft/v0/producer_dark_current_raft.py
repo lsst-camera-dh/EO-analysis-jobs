@@ -37,4 +37,4 @@ def run_dark_current_task(sensor_id):
                             exptime=16, title=sensor_id)
 
 if __name__ == '__main__':
-    sensor_analyses(run_dark_current_task, processes=1)
+    sensor_analyses(run_dark_current_task)
