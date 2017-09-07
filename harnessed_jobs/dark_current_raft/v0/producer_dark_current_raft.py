@@ -9,7 +9,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_dark_current_task(sensor_id):
-    "Run the single sensor dark current task in the raft-level context."
+    "Single sensor execution of dark current analysis."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
