@@ -46,10 +46,19 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
-    pool = multiprocessing.Pool(processes=processes)
-    results = [pool.apply_async(run_task_func, (sensor_id,))
-               for sensor_id in raft.sensor_names]
-    pool.close()
-    pool.join()
-    for res in results:
-        res.get()
+
+    if processes == 1:
+        # For cases where only one process will be run at a time, it's
+        # faster to run serially instead of using a
+        # multiprocessing.Pool since the pickling that occurs can
+        # cause significant overhead.
+        for sensor_id in raft.sensor_names:
+            run_task_func(sensor_id)
+    else:
+        pool = multiprocessing.Pool(processes=processes)
+        results = [pool.apply_async(run_task_func, (sensor_id,))
+                   for sensor_id in raft.sensor_names]
+        pool.close()
+        pool.join()
+        for res in results:
+            res.get()
