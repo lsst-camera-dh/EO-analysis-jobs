@@ -36,5 +36,9 @@ def run_dark_current_task(sensor_id):
                             dark_curr_pixels, read_noise, dark95s,
                             exptime=16, title=sensor_id)
 
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+    siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
+                            dark95s=dark95s)
+
 if __name__ == '__main__':
     sensor_analyses(run_dark_current_task)

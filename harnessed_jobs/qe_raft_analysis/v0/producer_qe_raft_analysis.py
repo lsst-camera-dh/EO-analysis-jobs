@@ -11,6 +11,7 @@ import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_qe_task(sensor_id):
+    "Single sensor execution of the QE task."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     lambda_files = siteUtils.dependency_glob('S*/%s_lambda_flat_*.fits' % sensor_id,
                                              jobname=siteUtils.getProcessName('qe_raft_acq'),
@@ -53,8 +54,9 @@ def run_qe_task(sensor_id):
                             qe_file='%s_QE.fits' % sensor_id)
 
     try:
-        plots.flat_fields(os.path.dirname(lambda_files[0]))
-    except Exception as eobj:
+        plots.flat_fields(os.path.dirname(lambda_files[0]),
+                          annotation='e-/pixel, gain-corrected, bias-subtracted')
+    except StandardError as eobj:
         print("Exception raised while creating flat fields:")
         print(str(eobj))
 
