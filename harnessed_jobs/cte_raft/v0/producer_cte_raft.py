@@ -3,6 +3,8 @@
 Producer script for raft-level CTE analysis.
 """
 from __future__ import print_function
+import os
+import shutil
 import glob
 import lsst.eotest.sensor as sensorTest
 import siteUtils
@@ -24,6 +26,12 @@ def run_cte_task(sensor_id):
     for mask_file in mask_files:
         print("  " + mask_file)
 
+    results_file \
+        = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,
+                                    jobname='fe55_raft_analysis',
+                                    description='Fe55 results file')[0]
+    shutil.copy(results_file, os.path.basename(results_file))
+    results_file = os.path.basename(results_file)
     sflat_high_files = \
         siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
                                   jobname=siteUtils.getProcessName('sflat_raft_acq'),
@@ -40,7 +48,6 @@ def run_cte_task(sensor_id):
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
              mask_files=mask_files)
 
-    results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
     superflat_files = sorted(glob.glob('%s_superflat_*.fits' % sensor_id))
