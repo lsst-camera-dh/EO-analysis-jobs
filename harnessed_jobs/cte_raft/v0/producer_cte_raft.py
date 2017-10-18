@@ -40,7 +40,10 @@ def run_cte_task(sensor_id):
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
              mask_files=mask_files)
 
-    results_file = '%s_eotest_results.fits' % sensor_id
+    results_file \
+        = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,
+                                    jobname='fe55_raft_analysis',
+                                    description='Fe55 results file')[0]
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
     superflat_files = sorted(glob.glob('%s_superflat_*.fits' % sensor_id))
