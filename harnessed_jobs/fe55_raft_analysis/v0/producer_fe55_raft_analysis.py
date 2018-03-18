@@ -22,6 +22,27 @@ def run_fe55_task(sensor_id):
     mean_bias_file = '%(sensor_id)s_mean_bias_%(nf)i.fits' % locals()
     imutils.fits_mean_file(bias_files, mean_bias_file)
 
+    # Roll-off defects mask needs an input file to get the vendor
+    # geometry, and will be used for all analyses.
+    rolloff_mask_file = '%s_rolloff_defects_mask.fits' % sensor_id
+    sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
+
+    if 'LCATR_FE55_GAIN_RUN' in os.environ:
+        # Copy eotest results files with gain values from a previous
+        # Fe55 analysis job.
+        fe55_gain_run = os.environ['LCATR_FE55_GAIN_RUN']
+        copy_fe55_gain_results(fe55_gain_run, sensor_id)
+        # Skip the png generation since any Fe55 data acquired for this
+        # run are not to be used.
+        return
+
+    # If no prior run was given, compute the gains (and psf properties)
+    # using data from the current run.
+    fe55_gain_run = siteUtils.getRunNumber()
+    task = sensorTest.Fe55Task()
+    task.config.temp_set_point = -100.
+    task.run(sensor_id, fe55_files, (rolloff_mask_file,), accuracy_req=0.01)
+
     #
     # Create a png zoom of the upper right corner of segment 1 for an Fe55
     # exposure for inclusion in the test report.
@@ -58,14 +79,6 @@ def run_fe55_task(sensor_id):
         print(str(eobj))
         print("Skipping these plots.")
 
-    # Roll-off defects mask needs an input file to get the vendor
-    # geometry, and will be used for all analyses.
-    rolloff_mask_file = '%s_rolloff_defects_mask.fits' % sensor_id
-    sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
-
-    task = sensorTest.Fe55Task()
-    task.config.temp_set_point = -100.
-    task.run(sensor_id, fe55_files, (rolloff_mask_file,), accuracy_req=0.01)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % sensor_id

@@ -10,7 +10,7 @@ from DataCatalog import DataCatalog
 
 __all__ = ['copy_fe55_gain_results']
 
-def copy_fe55_gain_results(fe55_run_number, dest='.', num_ccds=9,
+def copy_fe55_gain_results(fe55_run_number, sensor_id, dest='.',
                            job_name='fe55_raft_analysis'):
     """
     Copy eotest results files with Fe55 gain measurements
@@ -20,18 +20,16 @@ def copy_fe55_gain_results(fe55_run_number, dest='.', num_ccds=9,
     ----------
     fe55_run_number: str
         eTraveler run number of the EO acquisition.
+    sensor_id: str
+        LSST_NUM of the sensor for the corresponding eotest results file.
     dest: str ["."]
         Destination directory for copied files.
-    num_ccds: int [9]
-        Number of eotest results files to retrieve with a default of 9
-        per raft.
     job_name: str ['fe55_raft_analysis']
         Harnessed job name that produced the eotest results files.
 
     Raises
     ------
-    RuntimeError:  if the number of eotest results files does not
-        match num_ccds.
+    RuntimeError:  Raised if not exactly one eotest results file is returned.
     """
     site = siteUtils.getSiteName()
 
@@ -45,26 +43,18 @@ def copy_fe55_gain_results(fe55_run_number, dest='.', num_ccds=9,
 
     datacat = DataCatalog(folder=folder, site=site)
     query = ' && '.join(('TESTTYPE=="FE55"',
+                         'LSST_NUM=="%s"' % sensor_id
                          'LsstId=="%s"' % siteUtils.getUnitId()))
     datasets = datacat.find_datasets(query)
-    pattern = 'eotest_results.fits'
+    pattern = '%s_eotest_results.fits' % sensor_id
 
     file_paths = [item for item in datasets.full_paths()
                   if item.endswith(pattern)]
-    if len(file_paths) != num_ccds:
-        raise RuntimeError("Expected number of Fe55 gain results files "
-                           "were not found for run %s" % fe55_run_number)
-    print("copying Fe55 eotest results files to %s :" % dest)
+    if len(file_paths) != 1:
+        raise RuntimeError("Exactly 1 eotest results file should be "
+                           "found for run %s" % fe55_run_number)
+    print("copying Fe55 eotest results file to %s :" % dest)
     for item in file_paths:
         print("  ", item)
         shutil.copy(item, '.')
     return [os.path.basename(x) for x in file_paths]
-
-if __name__ == '__main__':
-    os.environ['SITENAME'] = 'SLAC'
-    os.environ['LCATR_LIMS_URL'] = 'Prod'
-    os.environ['LCATR_UNIT_ID'] = 'LCA-11021_RTM-002_ETU1'
-    os.environ['LCATR_UNIT_TYPE'] = 'LCA-11021_RTM'
-
-    fe55_run_number = 7167
-    copy_fe55_gain_results(fe55_run_number)

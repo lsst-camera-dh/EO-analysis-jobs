@@ -20,10 +20,8 @@ class CopyFe55GainResultsTestCase(unittest.TestCase):
                          "eotest results files directory not available")
     def test_copy_fe55_gain_results(self):
         run = 7167
-        files = copy_fe55_gain_results(run)
-        self.assertTrue('ITL-3800C-139_eotest_results.fits' in files)
+        sensor_id = 'ITL-3800C-139'
+        files = copy_fe55_gain_results(run, sensor_id)
+        self.assertTrue('%_eotest_results.fits' % sensor_id in files)
         for item in files:
             os.remove(item)
-
-        self.assertRaises(RuntimeError, copy_fe55_gain_results, run,
-                          num_ccds=10)
