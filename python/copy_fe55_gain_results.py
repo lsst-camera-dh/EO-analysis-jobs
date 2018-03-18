@@ -43,7 +43,7 @@ def copy_fe55_gain_results(fe55_run_number, sensor_id, dest='.',
 
     datacat = DataCatalog(folder=folder, site=site)
     query = ' && '.join(('TESTTYPE=="FE55"',
-                         'LSST_NUM=="%s"' % sensor_id
+                         'LSST_NUM=="%s"' % sensor_id,
                          'LsstId=="%s"' % siteUtils.getUnitId()))
     datasets = datacat.find_datasets(query)
     pattern = '%s_eotest_results.fits' % sensor_id

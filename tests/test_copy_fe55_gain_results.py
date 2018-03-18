@@ -22,6 +22,12 @@ class CopyFe55GainResultsTestCase(unittest.TestCase):
         run = 7167
         sensor_id = 'ITL-3800C-139'
         files = copy_fe55_gain_results(run, sensor_id)
-        self.assertTrue('%_eotest_results.fits' % sensor_id in files)
+        self.assertTrue('%s_eotest_results.fits' % sensor_id in files)
         for item in files:
             os.remove(item)
+
+        self.assertRaises(RuntimeError, copy_fe55_gain_results, run,
+                          sensor_id[:-1])
+
+if __name__ == '__main__':
+    unittest.main()
