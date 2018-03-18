@@ -19,6 +19,12 @@ def run_flat_pair_task(sensor_id):
                                        sensor_id=sensor_id)
 
     use_exptime = True
+    if siteUtils.getSiteName() == 'SLAC':
+        # Since slit-width can be set individually for each exposure
+        # on TS-8 at IR-2 (LSSTTD-1231), we need to use the MONDIODE
+        # keyword for computing the integrated incident flux.
+        use_exptime = False
+
     task = sensorTest.FlatPairTask()
     task.run(sensor_id, flat_files, mask_files, gains,
              linearity_spec_range=(1e4, 9e4), use_exptime=use_exptime)
