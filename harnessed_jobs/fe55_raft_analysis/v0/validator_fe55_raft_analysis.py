@@ -19,10 +19,16 @@ for slot, sensor_id in raft.items():
     ccd_vendor = sensor_id.split('-')[0].upper()
     # The output files from producer script.
     gain_file = '%(sensor_id)s_eotest_results.fits' % locals()
-    psf_results = glob.glob('%(sensor_id)s_psf_results*.fits' % locals())[0]
     rolloff_mask = '%(sensor_id)s_rolloff_defects_mask.fits' % locals()
 
-    output_files = gain_file, psf_results, rolloff_mask
+    output_files = [gain_file, rolloff_mask]
+    try:
+        # The psf_results file will be missing if gain results from a
+        # previous EO run were requested.
+        psf_results = glob.glob('%(sensor_id)s_psf_results*.fits' % locals())[0]
+        output_files.append(psf_results)
+    except IndexError:
+        pass
 
     # Add/update the metadata to the primary HDU of these files.
     for fitsfile in output_files:
