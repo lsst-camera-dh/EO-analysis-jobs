@@ -4,7 +4,6 @@ Validator script for raft-level read noise analysis.
 """
 from __future__ import print_function
 import glob
-import pickle
 import lsst.eotest.sensor as sensorTest
 import lcatr.schema
 import siteUtils
@@ -45,16 +44,6 @@ for slot, sensor_id in raft.items():
     data_products = [siteUtils.make_fileref(item, folder=slot)
                      for item in files]
     results.extend(data_products)
-
-    # Add the correlated_noise results.
-    cn_schema = lcatr.schema.get('correlated_noise')
-    with open('%s_noise_stats.pkl' % sensor_id, 'rb') as input_:
-        bias_stats = pickle.load(input_)
-        for amp in bias_stats:
-            results.append(
-                lcatr.schema.valid(cn_schema, amp=amp,
-                                   slot=slot, sensor_id=sensor_id,
-                                   cov_var_ratio=bias_stats.corr_factor))
 
     # Persist the png files.
     metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
