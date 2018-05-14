@@ -54,9 +54,7 @@ for slot, sensor_id in raft.items():
             results.append(
                 lcatr.schema.valid(cn_schema, amp=amp,
                                    slot=slot, sensor_id=sensor_id,
-                                   noise_rms_orig=bias_stats.noise_orig,
-                                   noise_rms_corrected=bias_stats.nosie_corr,
-                                   correction_factor=bias_stats.corr_factor))
+                                   cov_var_ratio=bias_stats.corr_factor))
 
     # Persist the png files.
     metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,

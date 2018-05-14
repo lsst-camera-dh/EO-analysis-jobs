@@ -1,0 +1,9 @@
+# -*- python -*-
+{
+    'schema_name' : 'correlated_noise',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'sensor_id' : str,
+    'cov_var_ratio' : float
+}
