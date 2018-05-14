@@ -3,9 +3,11 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
+import pickle
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
+from correlated_noise import correlated_noise
 from multiprocessor_execution import sensor_analyses
 
 
@@ -27,13 +29,14 @@ def run_read_noise_task(sensor_id):
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)
 
-    # Compute noise correlation statistics.
-    bias_stats, corr_fig, hist_fig \
-        = correlated_noise(bias_files, target=0, make_plots=True,
-                           title=sensor_id)
+    # Compute amp-amp correlated noise.
+    bias_stats, corr_fig, _ = correlated_noise(bias_files, target=0,
+                                               make_plots=True, title=sensor_id)
     plt.figure(corr_fig.number)
     plt.savefig('%s_correlated_noise.png' % file_prefix)
 
+    with open('%s_noise_stats.pkl' % sensor_id, 'wb') as output:
+        pickle.dump(bias_stats, output)
 
 if __name__ == '__main__':
     sensor_analyses(run_read_noise_task)

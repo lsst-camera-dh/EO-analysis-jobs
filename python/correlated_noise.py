@@ -69,9 +69,9 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     make_plots: bool [False]
         Flag to determine if the png plots will be generated.
     plot_corr: bool [True]
-        Flag to plot the histograms of correlated pixel values.  If False,
-        then plot histograms of the pixel values of the mean-subtracted
-        target frame.
+        Flag to plot the histograms of correlation-corrected pixel
+        values.  If False, then plot histograms of the uncorrected pixel
+        values.
     figsize: tuple [(8, 8)]
         Figure size (in inches) of 4x4 grid of correlation plots.
     title: str ['']
@@ -79,8 +79,13 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     Returns
     -------
-    (BiasStats, figure, figure):  tuple of bias stats results and matplotlib
-        figures.
+    (dict, figure, figure):  tuple of results and matplotlib
+        figures.  The first item is a dict of BiasStats objects,
+
+        BiasStats = namedtuple('BiasStats', \
+                    'noise_orig noise_corr corr_factor bias_oscan'.split())
+
+        that contain the results for each amplifier.
     """
     f1, f2 = None, None
     if make_plots:
