@@ -57,6 +57,30 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     """
     Compute the correlated noise statistics for the overscan regions
     of the list of files, optionally making plots of the distributions.
+
+    Parameters
+    ----------
+    bias_files: list
+        List of bias files to analyze.  This list must have at least as many
+        files as the target file index + 1.
+    target: int
+        Bias frame to compare to the mean biases constructed from the
+        remaining files.
+    make_plots: bool [False]
+        Flag to determine if the png plots will be generated.
+    plot_corr: bool [True]
+        Flag to plot the histograms of correlated pixel values.  If False,
+        then plot histograms of the pixel values of the mean-subtracted
+        target frame.
+    figsize: tuple [(8, 8)]
+        Figure size (in inches) of 4x4 grid of correlation plots.
+    title: str ['']
+        Title of 4x4 grid.
+
+    Returns
+    -------
+    (BiasStats, figure, figure):  tuple of bias stats results and matplotlib
+        figures.
     """
     f1, f2 = None, None
     if make_plots:
@@ -69,7 +93,6 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     # Extract the target filename and omit it from the list of bias files.
     target_file = bias_files.pop(target)
-
 
     # Get the target frame overscans.
     bias_oscans = get_overscans(target_file)

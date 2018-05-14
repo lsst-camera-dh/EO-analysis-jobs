@@ -8,6 +8,7 @@ import siteUtils
 import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
+
 def run_read_noise_task(sensor_id):
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
@@ -25,6 +26,14 @@ def run_read_noise_task(sensor_id):
     task.config.temp_set_point = -100.
     task.run(sensor_id, bias_files, gains, system_noise=system_noise,
              mask_files=mask_files, use_overscan=True)
+
+    # Compute noise correlation statistics.
+    bias_stats, corr_fig, hist_fig \
+        = correlated_noise(bias_files, target=0, make_plots=True,
+                           title=sensor_id)
+    plt.figure(corr_fig.number)
+    plt.savefig('%s_correlated_noise.png' % file_prefix)
+
 
 if __name__ == '__main__':
     sensor_analyses(run_read_noise_task)
