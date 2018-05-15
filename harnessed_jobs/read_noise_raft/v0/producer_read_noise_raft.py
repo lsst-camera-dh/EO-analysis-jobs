@@ -3,6 +3,7 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
+import matplotlib.pyplot as plt
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
