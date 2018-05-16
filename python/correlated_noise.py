@@ -158,7 +158,8 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     return bias_stats, f1, f2
 
-def raft_level_oscan_correlations(bias_files, buffer=10, title=''):
+def raft_level_oscan_correlations(bias_files, buffer=10, title='',
+                                  vmin=0, vmax=0.5):
     """
     Compute the correlation coefficients between the overscan pixels
     of the 144 amplifiers in raft.
@@ -166,14 +167,21 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title=''):
     Parameters
     ----------
     bias_files: dict
-       Dictionary of bias image files, indexed by sensor slot id.
+        Dictionary of bias image files, indexed by sensor slot id.
     buffer: int [10]
-       Buffer region around perimeter of serial overscan region to
-       avoid when computing the correlation coefficients.
+        Buffer region around perimeter of serial overscan region to
+        avoid when computing the correlation coefficients.
+    title: str ['']
+        Plot title.
+    vmin: float [0]
+        Minimum pixel value for color scale.
+    vmax: float [0.5]
+        Maximum pixel value for color scale.
 
     Returns
     -------
-    matplotlib.figure.Figure: The figure containing the plot.
+    (matplotlib.figure.Figure, np.array): The figure containing the plot and
+        the numpy array containing the correlation coefficients.
     """
     slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
     bbox = None
@@ -193,11 +201,11 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title=''):
     data = data.reshape((namps, namps))
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_title(title)
-    image = ax.imshow(data, interpolation='nearest')
+    ax.set_title(title, fontsize='medium')
+    image = ax.imshow(data, interpolation='nearest', vmin=vmin, vmax=vmax)
     plt.colorbar(image)
     set_ticks(ax, slots, amps=16)
-    return fig
+    return fig, data
 
 def set_ticks(ax, slots, amps=16):
     """Set the tick labels, centering the slot names between amps 1 and 16."""

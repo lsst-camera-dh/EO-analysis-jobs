@@ -59,5 +59,5 @@ if __name__ == '__main__':
     bias_files = get_bias_files(raft_id)
     title = 'Overscan correlations, {}, Run {}'.format(raft_id, run)
     plt.rcParams['figure.figsize'] = (8, 8)
-    fig = raft_level_oscan_correlations(bias_files, title=title)
+    raft_level_oscan_correlations(bias_files, title=title)
     plt.savefig('{}_{}_overscan_correlations.png'.format(raft_id, run))
