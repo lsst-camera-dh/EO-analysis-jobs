@@ -10,7 +10,6 @@ import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
 import camera_components
 
-plt.ion()
 plt.rcParams['xtick.labelsize'] = 'x-small'
 plt.rcParams['ytick.labelsize'] = 'x-small'
 
@@ -72,9 +71,9 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     make_plots: bool [False]
         Flag to determine if the png plots will be generated.
     plot_corr: bool [True]
-        Flag to plot the histograms of correlated pixel values.  If False,
-        then plot histograms of the pixel values of the mean-subtracted
-        target frame.
+        Flag to plot the histograms of correlation-corrected pixel
+        values.  If False, then plot histograms of the uncorrected pixel
+        values.
     figsize: tuple [(8, 8)]
         Figure size (in inches) of 4x4 grid of correlation plots.
     title: str ['']
@@ -82,8 +81,13 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     Returns
     -------
-    (BiasStats, figure, figure):  tuple of bias stats results and matplotlib
-        figures.
+    (dict, figure, figure):  tuple of results and matplotlib
+        figures.  The first item is a dict of BiasStats objects,
+
+        BiasStats = namedtuple('BiasStats', \
+                    'noise_orig noise_corr corr_factor bias_oscan'.split())
+
+        that contain the results for each amplifier.
     """
     f1, f2 = None, None
     if make_plots:
@@ -141,6 +145,10 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
             f2.suptitle(title)
             ax1[amp].hist2d(reduced_mean_oscan.flatten(), fdata1.flatten(),
                             bins=(100, 100), range=((-50, 50), (-50, 50)))
+            label = 'amp %i, cov/var = %.2f' \
+                    % (amp, bias_stats[amp].corr_factor)
+            ax1[amp].text(-40, 40, label, fontsize=6, color='w',
+                          fontweight='bold')
             if plot_corr:
                 ax2[amp].hist(fdiff.flatten(), bins=100, range=(-50, 50),
                               histtype='step')
@@ -203,12 +211,15 @@ def set_ticks(ax, slots, amps=16):
         axis.set_minor_formatter(ticker.FixedFormatter(slots))
 
 if __name__ == '__main__':
+    plt.ion()
     bias_files = sorted(glob.glob('/gpfs/slac/lsst/fs1/g/data/jobHarness/jh_archive-test/LCA-11021_RTM/LCA-11021_RTM-002_ETU1/5808D/sflat_raft_acq/v0/38318/S00/ITL-3800C-023-Dev_sflat_bias_*.fits'))
     etu1_stats, f1, f2 \
-        = correlated_noise(bias_files, make_plots=False, plot_corr=False,
+        = correlated_noise(bias_files, make_plots=True, plot_corr=False,
                            title='Run 5808D, ETU1, S00')
     for amp, stats in etu1_stats.items():
         print amp, stats
+    plt.figure(f1.number)
+    plt.savefig('ETU1_S00_noise_corr.png')
 
     bias_files = sorted(glob.glob('/gpfs/slac/lsst/fs1/g/data/jobHarness/jh_archive/LCA-11021_RTM/LCA-11021_RTM-005/6288/sflat_raft_acq/v0/37108/S00/*sflat_bias*.fits'))
     rtm005_stats, f1, f2 \
@@ -216,3 +227,5 @@ if __name__ == '__main__':
                            title='Run 6288, RTM-005, S00')
     for amp, stats in rtm005_stats.items():
         print amp, stats
+    plt.figure(f1.number)
+    plt.savefig('RTM-005_S00_noise_corr.png')
