@@ -5,6 +5,7 @@ import numpy as np
 import scipy
 import astropy.io.fits as fits
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
 import camera_components
@@ -149,7 +150,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     return bias_stats, f1, f2
 
-def raft_level_oscan_correlations(bias_files, buffer=10):
+def raft_level_oscan_correlations(bias_files, buffer=10, title=''):
     """
     Compute the correlation coefficients between the overscan pixels
     of the 144 amplifiers in raft.
@@ -166,7 +167,7 @@ def raft_level_oscan_correlations(bias_files, buffer=10):
     -------
     matplotlib.figure.Figure: The figure containing the plot.
     """
-    slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split():
+    slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
     bbox = None
     overscans = []
     for slot in slots:
@@ -184,6 +185,7 @@ def raft_level_oscan_correlations(bias_files, buffer=10):
     data = data.reshape((namps, namps))
     fig = plt.figure()
     ax = fig.add_subplot(111)
+    ax.set_title(title)
     image = ax.imshow(data, interpolation='nearest')
     plt.colorbar(image)
     set_ticks(ax, slots, amps=16)
