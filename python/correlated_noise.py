@@ -4,6 +4,8 @@ import itertools
 import numpy as np
 import scipy
 import astropy.io.fits as fits
+import astropy.visualization as viz
+from astropy.visualization.mpl_normalize import ImageNormalize
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import lsst.eotest.image_utils as imutils
@@ -159,7 +161,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     return bias_stats, f1, f2
 
 def raft_level_oscan_correlations(bias_files, buffer=10, title='',
-                                  vmin=0, vmax=0.5):
+                                  vrange=None, stretch=viz.AsinhStretch):
     """
     Compute the correlation coefficients between the overscan pixels
     of the 144 amplifiers in raft.
@@ -173,10 +175,11 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title='',
         avoid when computing the correlation coefficients.
     title: str ['']
         Plot title.
-    vmin: float [0]
-        Minimum pixel value for color scale.
-    vmax: float [0.5]
-        Maximum pixel value for color scale.
+    vrange: (float, float) [None]
+        Minimum and maximum values for color scale range. If None, then
+        the min and max of the data are used.
+    stretch: astropy.visualization.BaseStretch [AsinhStretch]
+        Stretch to use for the color scale.
 
     Returns
     -------
@@ -202,9 +205,16 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title='',
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title(title, fontsize='medium')
-    image = ax.imshow(data, interpolation='nearest', vmin=vmin, vmax=vmax)
+
+    interval = viz.MinMaxInterval()
+    if vrange is None:
+        vrange = interval.get_limits(data.flatten())
+    norm = ImageNormalize(vmin=vrange[0], vmax=vrange[1], stretch=stretch())
+    image = ax.imshow(data, interpolation='none', norm=norm)
     plt.colorbar(image)
+
     set_ticks(ax, slots, amps=16)
+
     return fig, data
 
 def set_ticks(ax, slots, amps=16):
