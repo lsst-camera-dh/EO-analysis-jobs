@@ -3,12 +3,14 @@
 Producer script for raft-level read noise analysis.
 """
 from __future__ import print_function
+import os
 import matplotlib.pyplot as plt
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from multiprocessor_execution import sensor_analyses
+import camera_components
 
 
 def run_read_noise_task(sensor_id):
@@ -30,8 +32,8 @@ def run_read_noise_task(sensor_id):
              mask_files=mask_files, use_overscan=True)
 
     # Compute amp-amp correlated noise.
-    bias_stats, corr_fig, _ = correlated_noise(bias_files, target=0,
-                                               make_plots=True, title=sensor_id)
+    _, corr_fig, _ = correlated_noise(bias_files, target=0,
+                                      make_plots=True, title=sensor_id)
     plt.figure(corr_fig.number)
     plt.savefig('%s_correlated_noise.png' % file_prefix)
 
