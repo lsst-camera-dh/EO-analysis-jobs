@@ -123,7 +123,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
         reduced_mean_oscan = np.zeros(oscan_shape)
         num_oscan = 0
         for oamp, oscan in bias_oscans.items():
-            if oamp == amp or not (4. < np.std(oscan) < 25):
+            if oamp == amp:
                 continue
             reduced_mean_oscan += (oscan - mean_oscans[oamp])
             num_oscan += 1
