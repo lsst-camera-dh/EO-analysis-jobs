@@ -66,7 +66,7 @@ def persist_tearing_png_files(png_files, folder=None, metadata=None):
         metadata = dict()
     md = siteUtils.DataCatalogMetadata(**metadata)
     png_filerefs = []
-    for png_file in pgn_files:
+    for png_file in png_files:
         dp = 'tearing_profiles'
         lsst_id = os.path.basename(png_file).split('_')[0]
         png_filerefs.append(siteUtils.make_fileref(png_file, folder=folder,
