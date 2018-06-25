@@ -1,0 +1,10 @@
+# -*- python -*-
+{
+    'schema_name' : 'tearing_detection',
+    'schema_version' : 0,
+    'job_name' : str,
+    'subset' : str,
+    'slot' : str,
+    'sensor_id' : str,
+    'detections': int
+}
