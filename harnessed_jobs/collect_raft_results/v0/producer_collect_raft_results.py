@@ -5,7 +5,6 @@ an eotest_report.fits file.  Also create raft-level mosaics.
 """
 from __future__ import print_function
 import os
-import pickle
 from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
@@ -70,54 +69,6 @@ for slot, res_file in results_files.items():
 
 title = '%s, %s' % (raft_id, run_number)
 file_prefix = '%s_%s' % (raft_id, run_number)
-
-
-# Run the tearing analysis on the datasets from the acquisition jobs
-# that produce flats:
-# * flat_pair_raft_acq
-# * qe_raft_acq
-# * sflat_raft_acq (These should be separated into low and high flux samples.)
-def get_tearing_stats(pattern, job_name, subset='N/A'):
-    """
-    Collect the tearing stats for each sensor in the raft.
-
-    Parameters
-    ----------
-    pattern: str
-        The file pattern to use in the dependency glob for finding the flats.
-    job_name: str
-        The name of the raft_acq job.
-
-    Returns
-    -------
-    list: list of tuples.  Each tuple contains
-        (job_name, subset, slot, sensor_id, #files with tearing).
-        The subset is "N/A", or for the superflat data, either "low" or "high".
-    """
-    tearing_stats = []
-    flats = slot_dependency_glob(pattern, job_name)
-    for slot, fitsfiles in flats.items():
-        files_with_tearing, _ = tearing_detection(fitsfiles)
-        tearing_stats.append((job_name, subset, slot, sensor_ids[slot],
-                              len(files_with_tearing)))
-    return tearing_stats
-
-tearing_stats = []
-tearing_stats.extend(
-    get_tearing_stats('*flat*flat*.fits', 'flat_pair_raft_acq'))
-tearing_stats.extend(
-    get_tearing_stats('*lambda_flat*.fits', 'qe_raft_acq'))
-tearing_stats.extend(
-    get_tearing_stats('*sflat*flat_L*.fits', 'sflat_raft_acq', 'low_flux'))
-tearing_stats.extend(
-    get_tearing_stats('*sflat*flat_H*.fits', 'sflat_raft_acq', 'high_flux'))
-
-# Pickle these data for the validator script to pick up.
-with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
-    pickle.dump(tearing_stats, output)
-
-
-# Make various plots for the web-based report.
 
 # Raft-level mosaics of median darks, bias, superflats high and low.
 dark_mosaic = raftTest.RaftMosaic(slot_dependency_glob('*median_dark_bp.fits',
