@@ -4,9 +4,7 @@ Producer script for raft-level flat pairs analysis.
 """
 from __future__ import print_function
 import pickle
-import lsst.eotest.sensor as sensorTest
 import siteUtils
-import eotestUtils
 from multiprocessor_execution import sensor_analyses
 from tearing_detection import tearing_detection
 
