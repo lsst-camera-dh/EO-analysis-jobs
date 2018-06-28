@@ -14,6 +14,7 @@ from lcatr.harness.helpers import dependency_glob
 import eotestUtils
 import siteUtils
 import camera_components
+from tearing_detection import tearing_detection
 
 def slot_dependency_glob(pattern, jobname):
     "Return an OrderedDict of files with the desired pattern, keyed by slot."
@@ -30,10 +31,11 @@ total_num, rolloff_mask = sensorTest.pixel_counts(bias_files.values()[0])
 
 # Exposure time (in seconds) for 95th percentile dark current shot
 # noise calculation.
-exptime = 16.
+exptime = 15.
 
 raft_id = siteUtils.getUnitId()
 raft = camera_components.Raft.create_from_etrav(raft_id)
+sensor_ids = {slot: sensor_id for slot, sensor_id in raft.items()}
 summary_files = dependency_glob('summary.lims')
 results_files = dict()
 for slot, sensor_id in raft.items():
@@ -49,7 +51,7 @@ for slot, sensor_id in raft.items():
     # to read noise to produce updated total noise.
     shot_noise = repackager.eotest_results['DARK_CURRENT_95']*exptime
     total_noise = np.sqrt(repackager.eotest_results['READ_NOISE']**2
-                          + shot_noise**2)
+                          + shot_noise)
     for i, amp in enumerate(repackager.eotest_results['AMP']):
         repackager.eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
                                                  np.float(shot_noise[i]))
