@@ -52,6 +52,11 @@ for slot, sensor_id in raft.items():
                                                sensor_id, folder=slot,
                                                metadata=metadata))
 
+# Persist the raft-level overscan correlation plot.
+metadata = dict(LSST_NUM=raft_id, TESTTYPE='FE55', TEST_CATEGORY='EO')
+results.extend(siteUtils.persist_png_files('%s*.png' % raft_id, raft_id,
+                                           metadata=metadata))
+
 results.extend(siteUtils.jobInfo())
 lcatr.schema.write_file(results)
 lcatr.schema.validate_file()

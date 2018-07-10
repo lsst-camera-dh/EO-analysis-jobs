@@ -1,15 +1,20 @@
 import glob
 from collections import namedtuple, defaultdict
+import itertools
 import numpy as np
 import scipy
 import astropy.io.fits as fits
+import astropy.visualization as viz
+from astropy.visualization.mpl_normalize import ImageNormalize
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
+import camera_components
 
 plt.rcParams['xtick.labelsize'] = 'x-small'
 plt.rcParams['ytick.labelsize'] = 'x-small'
-
+plt.rcParams['image.cmap'] = 'jet'
 
 def get_oscan_indices(target_file):
     "Return the pixel indices of the overscan region."
@@ -118,7 +123,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
         reduced_mean_oscan = np.zeros(oscan_shape)
         num_oscan = 0
         for oamp, oscan in bias_oscans.items():
-            if oamp == amp or not (4. < np.std(oscan) < 25):
+            if oamp == amp:
                 continue
             reduced_mean_oscan += (oscan - mean_oscans[oamp])
             num_oscan += 1
@@ -155,6 +160,74 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     return bias_stats, f1, f2
 
+def raft_level_oscan_correlations(bias_files, buffer=10, title='',
+                                  vrange=None, stretch=viz.LinearStretch):
+    """
+    Compute the correlation coefficients between the overscan pixels
+    of the 144 amplifiers in raft.
+
+    Parameters
+    ----------
+    bias_files: dict
+        Dictionary of bias image files, indexed by sensor slot id.
+    buffer: int [10]
+        Buffer region around perimeter of serial overscan region to
+        avoid when computing the correlation coefficients.
+    title: str ['']
+        Plot title.
+    vrange: (float, float) [None]
+        Minimum and maximum values for color scale range. If None, then
+        the range of the central 98th percentile of the absolute value
+        of the data is used.
+    stretch: astropy.visualization.BaseStretch [LinearStretch]
+        Stretch to use for the color scale.
+
+    Returns
+    -------
+    (matplotlib.figure.Figure, np.array): The figure containing the plot and
+        the numpy array containing the correlation coefficients.
+    """
+    slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
+    bbox = None
+    overscans = []
+    for slot in slots:
+        ccd = sensorTest.MaskedCCD(bias_files[slot])
+        if bbox is None:
+            bbox = ccd.amp_geom.serial_overscan
+            bbox.grow(-buffer)
+        for amp in ccd:
+            image = ccd[amp].getImage()
+            overscans.append(image.Factory(image, bbox).getArray())
+    namps = len(overscans)
+    data = np.array([np.corrcoef(overscans[i[0]].ravel(),
+                                 overscans[i[1]].ravel())[0, 1]
+                     for i in itertools.product(range(namps), range(namps))])
+    data = data.reshape((namps, namps))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_title(title, fontsize='medium')
+
+    interval = viz.PercentileInterval(98.)
+    if vrange is None:
+        vrange = interval.get_limits(np.abs(data.flatten()))
+    norm = ImageNormalize(vmin=vrange[0], vmax=vrange[1], stretch=stretch())
+    image = ax.imshow(data, interpolation='none', norm=norm)
+    plt.colorbar(image)
+
+    set_ticks(ax, slots, amps=16)
+
+    return fig, data
+
+def set_ticks(ax, slots, amps=16):
+    """Set the tick labels, centering the slot names between amps 1 and 16."""
+    major_locs = [i*amps - 0.5 for i in range(len(slots) + 1)]
+    minor_locs = [amps//2 + i*amps for i in range(len(slots))]
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_tick_params(which='minor', length=0)
+        axis.set_major_locator(ticker.FixedLocator(major_locs))
+        axis.set_major_formatter(ticker.FixedFormatter(['']*len(major_locs)))
+        axis.set_minor_locator(ticker.FixedLocator(minor_locs))
+        axis.set_minor_formatter(ticker.FixedFormatter(slots))
 
 if __name__ == '__main__':
     plt.ion()
