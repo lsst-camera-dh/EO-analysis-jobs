@@ -17,14 +17,41 @@ __all__ = ['run_fe55_task', 'run_read_noise_task', 'raft_overscan_correlations',
            'run_cte_task', 'run_flat_pair_task', 'run_ptc_task',
            'run_qe_task']
 
-def run_fe55_task(sensor_id):
+_default_job_map = {job: siteUtils.getProcessName(job) for job in
+                    ('fe55_raft_acq', 'dark_raft_acq', 'sflat_raft_acq',
+                     'ppump_raft_acq', 'flat_pair_raft_acq', 'qe_raft_acq')}
+
+def _check_job_map(job_map, *jobs):
+    if not job_map:
+        return _default_job_map
+    missing = []
+    for job in jobs:
+        if job not in job_map:
+            missing.append(job)
+        else:
+            if job != 'fe55_raft_analysis':
+                job_map[job] = siteUtils.getProcessName(job_map[job])
+    if missing:
+        raise RuntimeError("Expected jobs not found in job_map: %s" %
+                           ', '.join(missing))
+    return job_map
+
+def getSensorGains(jobname, sensor_id):
+    try:
+        eotestUtils.getSensorGains(jobname=jobname, sensor_id=sensor_id)
+    except RuntimeError:
+        data = sensorTest.EOTestResults('%s_eotest_results.fits' % sensor_id)
+        return dict(amp, gain for (amp, gain) in zip(data['AMP'], data['GAIN']))
+
+def run_fe55_task(sensor_id, **job_map):
     "Single sensor execution of the Fe55 analysis task."
+    job_map = _check_job_map(job_map, 'fe55_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                           jobname=job_map['fe55_raft_acq'],
                                            description='Fe55 files:')
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                           jobname=job_map['fe55_raft_acq'],
                                            description='Bias files:')
     nf = len(bias_files)
     mean_bias_file = '%(sensor_id)s_mean_bias_%(nf)i.fits' % locals()
@@ -98,13 +125,14 @@ def run_fe55_task(sensor_id):
                             fe55_file=fe55_file)
 
 
-def run_read_noise_task(sensor_id):
+def run_read_noise_task(sensor_id, **job_map):
+    """Single sensor execution of the read noise task."""
+    job_map = _check_job_map(job_map, 'fe55_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                           jobname=job_map['fe55_raft_acq'],
                                            description='Fe55 files for read noise:')
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = getSensorGains('fe55_raft_analysis', sensor_id)
 
     system_noise = None
 
@@ -123,10 +151,16 @@ def run_read_noise_task(sensor_id):
     plt.savefig('%s_correlated_noise.png' % file_prefix)
 
 
-def get_bias_files(raft_id=None):
+def get_bias_files(raft_id=None, **job_map):
     """Get the bias files from the Fe55 acquisition."""
+    if not job_map:
+        job_map = {'fe55_raft_acq': 'fe55_raft_acq'}
+    _check_job_map(job_map, 'fe55_raft_acq')
     if raft_id is None:
         raft_id = os.environ['LCATR_UNIT_ID']
+    if not job_map:
+        job_map = {'fe55_raft_acq': 'fe55_raft_acq'}
+    _check_job_map(job_map, 'fe55_raft_acq')
     raft = camera_components.Raft.create_from_etrav(raft_id)
     bias_files = dict()
     for slot, sensor_id in raft.items():
@@ -151,16 +185,16 @@ def raft_overscan_correlations():
     plt.savefig('{}_{}_overscan_correlations.png'.format(raft_id, run))
 
 
-def run_bright_pixels_task(sensor_id):
+def run_bright_pixels_task(sensor_id, **job_map):
     "Single sensor execution of the bright pixels task."
+    job_map = _check_job_map(job_map, 'fe55_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('dark_raft_acq'),
+                                           jobname=job_map['dark_raft_acq'],
                                            description='Dark files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = getSensorGains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
@@ -173,11 +207,12 @@ def run_bright_pixels_task(sensor_id):
                             annotation='e-/pixel, gain-corrected, bias-subtracted')
 
 
-def run_dark_pixels_task(sensor_id):
+def run_dark_pixels_task(sensor_id, **job_map):
     "Single sensor execution of the dark pixels task."
+    job_map = _check_job_map(job_map, 'fe55_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     sflat_files = siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
-                                            jobname=siteUtils.getProcessName('sflat_raft_acq'),
+                                            jobname=job_map['sflat_raft_acq'],
                                             description='Superflat files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
@@ -192,9 +227,10 @@ def run_dark_pixels_task(sensor_id):
                             annotation='ADU/pixel')
 
 
-def run_trap_task(sensor_id):
+def run_trap_task(sensor_id, **job_map):
+    job_map = _check_job_map(job_map, 'ppump_raft_acq')
     trap_file = siteUtils.dependency_glob('S*/%s_trap_ppump_*.fits' % sensor_id,
-                                          jobname=siteUtils.getProcessName('ppump_raft_acq'),
+                                          jobname=job_map['ppump_raft_acq'],
                                           description='Trap file:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
@@ -206,23 +242,22 @@ def run_trap_task(sensor_id):
     for mask_file in mask_files:
         print("  " + mask_file)
 
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = getSensorGains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.TrapTask()
     task.run(sensor_id, trap_file, mask_files, gains)
 
 
-def run_dark_current_task(sensor_id):
+def run_dark_current_task(sensor_id, **job_map):
     "Single sensor execution of dark current analysis."
+    job_map = _check_job_map(job_map, 'dark_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('dark_raft_acq'),
+                                           jobname=job_map['dark_raft_acq'],
                                            description='Dark files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = getSensorGains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = -100.
