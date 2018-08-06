@@ -1,8 +1,11 @@
 """
 Functions to run single sensor tasks for raft-level testing.
 """
-from __future__ import print_function
+from __future__ import print_function, absolute_import
+import os
+import sys
 import glob
+import shutil
 import matplotlib.pyplot as plt
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
@@ -28,20 +31,24 @@ def _check_job_map(job_map, *jobs):
     for job in jobs:
         if job not in job_map:
             missing.append(job)
-        else:
-            if job != 'fe55_raft_analysis':
-                job_map[job] = siteUtils.getProcessName(job_map[job])
     if missing:
         raise RuntimeError("Expected jobs not found in job_map: %s" %
                            ', '.join(missing))
     return job_map
 
-def getSensorGains(jobname, sensor_id):
+def get_sensor_gains(jobname, sensor_id):
+    """
+    Get the gains for the requested sensor, trying jobname first, then
+    if that fails with a RuntimeError, assume the gains have been computed
+    in the current process and so are available in the cwd.
+    """
     try:
-        eotestUtils.getSensorGains(jobname=jobname, sensor_id=sensor_id)
-    except RuntimeError:
+        return eotestUtils.getSensorGains(jobname=jobname, sensor_id=sensor_id)
+    except RuntimeError as eobj:
+        print(eobj)
         data = sensorTest.EOTestResults('%s_eotest_results.fits' % sensor_id)
-        return dict(amp, gain for (amp, gain) in zip(data['AMP'], data['GAIN']))
+        return dict([(amp, gain) for (amp, gain)
+                     in zip(data['AMP'], data['GAIN'])])
 
 def run_fe55_task(sensor_id, **job_map):
     "Single sensor execution of the Fe55 analysis task."
@@ -132,7 +139,8 @@ def run_read_noise_task(sensor_id, **job_map):
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=job_map['fe55_raft_acq'],
                                            description='Fe55 files for read noise:')
-    gains = getSensorGains('fe55_raft_analysis', sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
+    print(gains)
 
     system_noise = None
 
@@ -194,7 +202,7 @@ def run_bright_pixels_task(sensor_id, **job_map):
                                            description='Dark files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = getSensorGains('fe55_raft_analysis', sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
@@ -228,6 +236,7 @@ def run_dark_pixels_task(sensor_id, **job_map):
 
 
 def run_trap_task(sensor_id, **job_map):
+    """Single sensor execution of the trap task."""
     job_map = _check_job_map(job_map, 'ppump_raft_acq')
     trap_file = siteUtils.dependency_glob('S*/%s_trap_ppump_*.fits' % sensor_id,
                                           jobname=job_map['ppump_raft_acq'],
@@ -242,7 +251,7 @@ def run_trap_task(sensor_id, **job_map):
     for mask_file in mask_files:
         print("  " + mask_file)
 
-    gains = getSensorGains('fe55_raft_analysis', sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.TrapTask()
     task.run(sensor_id, trap_file, mask_files, gains)
@@ -257,7 +266,7 @@ def run_dark_current_task(sensor_id, **job_map):
                                            description='Dark files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = getSensorGains('fe55_raft_analysis', sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = -100.
@@ -281,13 +290,14 @@ def run_dark_current_task(sensor_id, **job_map):
                             dark95s=dark95s)
 
 
-def run_cte_task(sensor_id):
+def run_cte_task(sensor_id, **job_map):
     "Single sensor execution of the cte task."
+    job_map = _check_job_map(job_map, 'sflat_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
+
     # Omit rolloff defects mask since it would mask some of the edges used
     # in the eper method.
     mask_files = [item for item in mask_files if
@@ -304,7 +314,7 @@ def run_cte_task(sensor_id):
     results_file = os.path.basename(results_file)
     sflat_high_files = \
         siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
-                                  jobname=siteUtils.getProcessName('sflat_raft_acq'),
+                                  jobname=job_map['sflat_raft_acq'],
                                   description='Superflat high flux files:')
 
     task = sensorTest.CteTask()
@@ -313,7 +323,7 @@ def run_cte_task(sensor_id):
 
     sflat_low_files = \
         siteUtils.dependency_glob('S*/%s_sflat_500_flat_L*.fits' % sensor_id,
-                                  jobname=siteUtils.getProcessName('sflat_raft_acq'),
+                                  jobname=job_map['sflat_raft_acq'],
                                   description='Superflat low flux files:')
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
              mask_files=mask_files)
@@ -344,15 +354,16 @@ def run_cte_task(sensor_id):
                                 flux_level, sflat_file, mask_files, serial=False)
 
 
-def run_flat_pair_task(sensor_id):
+def run_flat_pair_task(sensor_id, **job_map):
+    """Single sensor execution of the flat pair analysis task."""
+    job_map = _check_job_map(job_map, 'flat_pair_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
+                                           jobname=job_map['flat_pair_raft_acq'],
                                            description='Flat files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     use_exptime = True
     if siteUtils.getSiteName() == 'SLAC':
@@ -368,28 +379,29 @@ def run_flat_pair_task(sensor_id):
     results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
-    Ne_bounds = (1e4, 9e4)
+    ne_bounds = (1e4, 9e4)
 
     detresp_file = '%s_det_response.fits' % sensor_id
     siteUtils.make_png_file(plots.linearity,
                             '%s_linearity.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
-                            use_exptime=use_exptime, Ne_bounds=Ne_bounds)
+                            use_exptime=use_exptime, Ne_bounds=ne_bounds)
     siteUtils.make_png_file(plots.linearity_resids,
                             '%s_linearity_resids.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
-                            Ne_bounds=Ne_bounds, use_exptime=use_exptime)
+                            Ne_bounds=ne_bounds, use_exptime=use_exptime)
 
 
-def run_ptc_task(sensor_id):
+def run_ptc_task(sensor_id, **job_map):
+    """Single sensor execution of the PTC task."""
+    job_map = _check_job_map(job_map, 'flat_pair_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
+                                           jobname=job_map['flat_pair_raft_acq'],
                                            description='Flat files:')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.PtcTask()
     task.run(sensor_id, flat_files, mask_files, gains)
@@ -401,11 +413,12 @@ def run_ptc_task(sensor_id):
                             ptc_file='%s_ptc.fits' % sensor_id)
 
 
-def run_qe_task(sensor_id):
+def run_qe_task(sensor_id, **job_map):
     "Single sensor execution of the QE task."
+    job_map = _check_job_map(job_map, 'qe_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     lambda_files = siteUtils.dependency_glob('S*/%s_lambda_flat_*.fits' % sensor_id,
-                                             jobname=siteUtils.getProcessName('qe_raft_acq'),
+                                             jobname=job_map['qe_raft_acq'],
                                              description='Lambda files:')
 
     pd_ratio_file = eotestUtils.getPhotodiodeRatioFile()
@@ -426,8 +439,7 @@ def run_qe_task(sensor_id):
 
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
-    gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
-                                       sensor_id=sensor_id)
+    gains = get_sensor_gains('fe55_raft_analysis', sensor_id)
 
     task = sensorTest.QeTask()
     task.config.temp_set_point = -100.
@@ -450,4 +462,3 @@ def run_qe_task(sensor_id):
     except StandardError as eobj:
         print("Exception raised while creating flat fields:")
         print(str(eobj))
-
