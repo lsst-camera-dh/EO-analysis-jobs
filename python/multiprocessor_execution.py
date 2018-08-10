@@ -9,7 +9,7 @@ import camera_components
 
 __all__ = ['sensor_analyses']
 
-def sensor_analyses(run_task_func, raft_id=None, processes=None):
+def sensor_analyses(run_task_func, raft_id=None, processes=None, **job_map):
     """
     Run a sensor-level analysis task implemented as a pickleable
     function that takes the desired sensor id as its single argument.
@@ -26,6 +26,9 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
         The maximum number of processes to have running at once.
         If None (default), then set to 1 or one less than
         the number of cores, whichever is larger.
+    **job_map: **dict [empty **dict]
+        keyword argument dict that maps individual acquistion job names
+        to the actual acquistion job name.
 
     Notes
     -----
@@ -53,10 +56,10 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
         # multiprocessing.Pool since the pickling that occurs can
         # cause significant overhead.
         for sensor_id in raft.sensor_names:
-            run_task_func(sensor_id)
+            run_task_func(sensor_id, **job_map)
     else:
         pool = multiprocessing.Pool(processes=processes)
-        results = [pool.apply_async(run_task_func, (sensor_id,))
+        results = [pool.apply_async(run_task_func, (sensor_id,), job_map)
                    for sensor_id in raft.sensor_names]
         pool.close()
         pool.join()
