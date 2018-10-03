@@ -27,7 +27,7 @@ run_number = siteUtils.getRunNumber()
 # Use a mean bias file to determine the maximum number of active
 # pixels for the image quality statistics.
 bias_files = slot_dependency_glob('*_mean_bias_*.fits', 'fe55_raft_analysis')
-total_num, rolloff_mask = sensorTest.pixel_counts(bias_files.values()[0])
+total_num, rolloff_mask = sensorTest.pixel_counts(list(bias_files.values())[0])
 
 # Exposure time (in seconds) for 95th percentile dark current shot
 # noise calculation.
