@@ -1,3 +1,4 @@
+from __future__ import print_function
 import glob
 from collections import namedtuple, defaultdict
 import itertools
@@ -236,7 +237,7 @@ if __name__ == '__main__':
         = correlated_noise(bias_files, make_plots=True, plot_corr=False,
                            title='Run 5808D, ETU1, S00')
     for amp, stats in etu1_stats.items():
-        print amp, stats
+        print(amp, stats)
     plt.figure(f1.number)
     plt.savefig('ETU1_S00_noise_corr.png')
 
@@ -245,6 +246,6 @@ if __name__ == '__main__':
         = correlated_noise(bias_files, make_plots=True, plot_corr=False,
                            title='Run 6288, RTM-005, S00')
     for amp, stats in rtm005_stats.items():
-        print amp, stats
+        print(amp, stats)
     plt.figure(f1.number)
     plt.savefig('RTM-005_S00_noise_corr.png')

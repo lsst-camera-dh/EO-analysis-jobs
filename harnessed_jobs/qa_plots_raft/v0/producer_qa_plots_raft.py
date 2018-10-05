@@ -16,7 +16,7 @@ def dirname_dependencyGlob(ccd_vendor, **kwds):
     Return the directory path with the FITS output files for the
     specified jobname.
     """
-    if kwds.has_key('jobname'):
+    if 'jobname' in kwds:
         kwds['jobname'] = siteUtils.getProcessName(kwds['jobname'])
     file0 = dependency_glob('S*/%(ccd_vendor)s*.fits' % locals(), **kwds)[0]
     # Apply os.path.dirname twice to omit both slot folder and file

@@ -53,7 +53,7 @@ def run_fe55_task(sensor_id):
                                 '%s_fe55_apflux_parallel.png' % file_prefix,
                                 pixel_coord='y')
 
-    except StandardError as eobj:
+    except Exception as eobj:
         print("Exception raised while creating pixel statistics plots:")
         print(str(eobj))
         print("Skipping these plots.")

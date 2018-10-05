@@ -56,7 +56,7 @@ def run_qe_task(sensor_id):
     try:
         plots.flat_fields(os.path.dirname(lambda_files[0]),
                           annotation='e-/pixel, gain-corrected, bias-subtracted')
-    except StandardError as eobj:
+    except Exception as eobj:
         print("Exception raised while creating flat fields:")
         print(str(eobj))
 
