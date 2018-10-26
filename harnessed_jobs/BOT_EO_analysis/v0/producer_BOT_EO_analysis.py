@@ -81,7 +81,8 @@ def fe55_task(det_name):
     siteUtils.make_png_file(plots.psf_dists, png_files[-1],
                             fe55_file=fe55_file)
 
-    with open('fe55_task_png_files.txt', 'w') as output:
+    png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
+    with open(png_file_list, 'w') as output:
         for item in png_files:
             output.write('{}\n'.format(item))
 
@@ -495,7 +496,8 @@ def raft_results_task(raft_name):
     # Mean bias mosaic.
     mean_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
     mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
-    plt.savefig('{}_mean_bias.png'.format(file_prefix))
+    png_files = ['{}_mean_bias.png'.format(file_prefix)]
+    plt.savefig(png_files[-1])
     del mean_bias
 
     # Dark mosaic
@@ -503,7 +505,8 @@ def raft_results_task(raft_name):
     dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains)
     dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
                      annotation='e-/pixel, gain-corrected, bias-subtracted')
-    plt.savefig('{}_medianed_dark.png'.format(file_prefix))
+    png_files.append('{}_medianed_dark.png'.format(file_prefix))
+    plt.savefig(png_files[-1])
     del dark_mosaic
 
     # High flux superflat mosaic.
@@ -511,7 +514,8 @@ def raft_results_task(raft_name):
     sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
     sflat_high.plot(title='%s, high flux superflat' % title,
                     annotation='e-/pixel, gain-corrected, bias-subtracted')
-    plt.savefig('{}_superflat_high.png'.format(file_prefix))
+    png_files.append('{}_superflat_high.png'.format(file_prefix))
+    plt.savefig(png_files[-1])
     del sflat_high
 
     # Low flux superflat mosaic.
@@ -519,7 +523,8 @@ def raft_results_task(raft_name):
     sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
     sflat_low.plot(title='%s, low flux superflat' % title,
                    annotation='e-/pixel, gain-corrected, bias-subtracted')
-    plt.savefig('{}_superflat_low.png'.format(file_prefix))
+    png_files.append('{}_superflat_low.png'.format(file_prefix))
+    plt.savefig(png_files[-1])
     del sflat_low
 
     # QE images at 350, 500, 620, 750, 870, and 1000nm.
@@ -535,7 +540,8 @@ def raft_results_task(raft_name):
             flat = raftTest.RaftMosaic(lambda_files, gains=gains)
             flat.plot(title='%s, %i nm' % (title, wl),
                       annotation='e-/pixel, gain-corrected, bias-subtracted')
-            plt.savefig('{}_{:04i}nm_flat.png'.format(file_prefix, wl))
+            png_files.append('{}_{:04i}nm_flat.png'.format(file_prefix, wl))
+            plt.savefig(png_files[-1])
             del flat
         except IndexError as eobj:
             print(lambda_files)
@@ -549,38 +555,50 @@ def raft_results_task(raft_name):
     columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
     spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)',
                                       spec=9, title=title)
-    plt.savefig('%s_total_noise.png' % file_prefix)
+    png_files.append('%s_total_noise.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_plot('MAX_FRAC_DEV',
                          'non-linearity (max. fractional deviation)',
                          spec=0.03, title=title)
-    plt.savefig('%s_linearity.png' % file_prefix)
+    png_files.append('%s_linearity.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
                                       'Serial CTI (ppm)', spec=(5e-6, 3e-5),
                                       title=title, yscaling=1e6, yerrors=True,
                                       colors='br', ymax=4e-5)
-    plt.savefig('%s_serial_cti.png' % file_prefix)
+    png_files.append('%s_serial_cti.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
                                       'Parallel CTI (ppm)', spec=3e-6,
                                       title=title, yscaling=1e6, yerrors=True,
                                       colors='br')
-    plt.savefig('%s_parallel_cti.png' % file_prefix)
+    png_files.append('%s_parallel_cti.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
                          title=title, ymax=5.2)
-    plt.savefig('%s_psf_sigma.png' % file_prefix)
+    png_files.append('%s_psf_sigma.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
                                       'System Gain (e-/ADU)',
                                       yerrors=True, title=title, colors='br')
-    plt.savefig('%s_system_gain.png' % file_prefix)
+    png_files.append('%s_system_gain.png' % file_prefix)
+    plt.savefig(png_files[-1])
 
     spec_plots.make_plot('DARK_CURRENT_95',
                          '95th percentile dark current (e-/pixel/s)',
                          spec=0.2, title=title)
-    plt.savefig('%s_dark_current.png' % file_prefix)
+    png_files.append('%s_dark_current.png' % file_prefix)
+    plt.savefig(png_files[-1])
+
+    png_file_list = '{}_raft_results_task_png_files.txt'.format(raft_name)
+    with open(png_file_list, 'w') as output:
+        for item in png_files:
+            output.write('{}\n'.format(item))
 
 
 def get_analysis_types(bot_eo_config_file=None):
