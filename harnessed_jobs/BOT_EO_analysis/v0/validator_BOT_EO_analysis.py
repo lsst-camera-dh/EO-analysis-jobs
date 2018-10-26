@@ -36,11 +36,11 @@ def validate_fe55(results, det_names):
         for fitsfile in output_files:
             eotestUtils.addHeaderData(fitsfile, TESTTYPE='FE55',
                                       DATE=eotestUtils.utc_now_isoformat())
+        results.extend([lcatr.schema.fileref.make(x) for x in output_files])
 
         # Persist the mean bias FITS file.
         bias_mean_file \
             = glob.glob('%(file_prefix)s_mean_bias.fits' % locals())[0]
-        print("make_fileref:", bias_mean_file)
         results.append(siteUtils.make_fileref(bias_mean_file))
 
         # Persist the png files.
@@ -61,7 +61,6 @@ def validate_fe55(results, det_names):
                 lcatr.schema.get('fe55_BOT_analysis'), amp=amp, gain=gain_value,
                 gain_error=gain_error, psf_sigma=sigma, slot=slot, raft=raft))
 
-        results.extend([lcatr.schema.fileref.make(x) for x in output_files])
     return results
 
 
@@ -145,9 +144,9 @@ def validate_bright_defects(results, det_names):
 if __name__ == '__main__':
     det_names = camera_info.get_det_names()
     results = []
-    results.extend(validate_fe55(results, det_names))
-    results.extend(validate_read_noise(results, det_names))
-    results.extend(validate_bright_defects(results, det_names))
+    results = validate_fe55(results, det_names)
+    results = validate_read_noise(results, det_names)
+    results = validate_bright_defects(results, det_names)
 
     results.extend(siteUtils.jobInfo())
 
