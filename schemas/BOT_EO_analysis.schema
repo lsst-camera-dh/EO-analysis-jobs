@@ -1,4 +1,5 @@
 # -*- python -*-
+[
 {
     'schema_name' : 'fe55_BOT_analysis',
     'schema_version' : 0,
@@ -8,7 +9,7 @@
     'psf_sigma' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'read_noise_BOT',
     'schema_version' : 0,
@@ -18,7 +19,7 @@
     'total_noise' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'bright_defects_BOT',
     'schema_version' : 0,
@@ -27,7 +28,7 @@
     'bright_columns' : int,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'dark_defects_BOT',
     'schema_version' : 0,
@@ -36,7 +37,7 @@
     'dark_columns' : int,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'dark_current_BOT',
     'schema_version' : 0,
@@ -44,7 +45,7 @@
     'dark_current_95CL' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'traps_BOT',
     'schema_version' : 0,
@@ -52,7 +53,7 @@
     'num_traps' : int,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'cte_BOT',
     'schema_version' : 0,
@@ -67,7 +68,7 @@
     'cti_low_parallel_error' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'flat_pairs_BOT',
     'schema_version' : 0,
@@ -76,7 +77,7 @@
     'max_frac_dev' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'ptc_BOT',
     'schema_version' : 0,
@@ -85,7 +86,7 @@
     'ptc_gain_error' : float,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'qe_BOT_analysis',
     'schema_version' : 0,
@@ -94,7 +95,7 @@
     'amp' : int,
     'slot' : str,
     'raft' : str
-}
+},
 {
     'schema_name' : 'tearing_detection_BOT',
     'schema_version' : 0,
@@ -104,3 +105,4 @@
     'sensor_id' : str,
     'detections': int
 }
+]

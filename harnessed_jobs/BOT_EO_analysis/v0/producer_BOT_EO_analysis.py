@@ -642,6 +642,8 @@ if __name__ == '__main__':
     # Detector-level analyses
     det_names = camera_info.get_det_names()
     for analysis_type in analysis_types:
+        if analysis_type not in task_mapping:
+            continue
         tasks = task_mapping[analysis_type]
         for task in tasks:
             run_device_analysis_pool(task, det_names, processes=processes)
