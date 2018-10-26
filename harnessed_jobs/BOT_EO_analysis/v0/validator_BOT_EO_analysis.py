@@ -5,7 +5,10 @@ Validator script for BOT-level Fe55 analysis.
 from __future__ import print_function
 import os
 import glob
+from collections import OrderedDict
+import pickle
 import numpy as np
+from astropy.io import fits
 import lcatr.schema
 import siteUtils
 import eotestUtils
@@ -45,7 +48,8 @@ def validate_fe55(results, det_names):
         results.append(siteUtils.make_fileref(bias_mean_file))
 
         # Persist the png files.
-        with open('fe55_task_png_files.txt', 'r') as input_:
+        png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
+        with open(png_file_list, 'r') as input_:
             png_files = input_.readlines().strip().split()
         metadata = dict(TESTTYPE='FE55', TEST_CATEGORY='EO',
                         DETECTOR=det_name, RUN=run)
@@ -158,6 +162,7 @@ def validate_dark_defects(results, det_names):
     """Validate and persist dark defects results."""
     run = siteUtils.getRunNumber()
     for det_name in det_names:
+        raft, slot = det_name.split('_')
         file_prefix = '{}_{}'.format(run, det_name)
         mask_file = '%s_dark_pixel_mask.fits' % det_name
         eotestUtils.addHeaderData(mask_file, TESTTYPE='SFLAT_500',
@@ -181,7 +186,7 @@ def validate_dark_defects(results, det_names):
                 slot=slot, raft=raft))
 
         # Persist the png files.
-        metadata = dict(DETECTOR=det_name, raft=raft,
+        metadata = dict(DETECTOR=det_name, RUN=run,
                         TESTTYPE='SFLAT_500', TEST_CATEGORY='EO')
         filename = '%s_superflat_dark_defects.png' % file_prefix
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
@@ -192,17 +197,18 @@ def validate_traps(results, det_names):
     """Validate and persist trap results."""
     run = siteUtils.getRunNumber()
     for det_name in det_names:
+        raft, slot = det_name.split('_')
         file_prefix = '{}_{}'.format(run, det_name)
-        trap_file = '%s_traps.fits' % det_name
+        trap_file = '%s_traps.fits' % file_prefix
         eotestUtils.addHeaderData(trap_file, TESTTYPE='TRAP',
                                   DATE=eotestUtils.utc_now_isoformat())
 
         results.append(siteUtils.make_fileref(trap_file))
 
-        mask_file = '%s_traps_mask.fits' % det_name
+        mask_file = '%s_traps_mask.fits' % file_prefix
         results.append(siteUtils.make_fileref(mask_file))
 
-        results_file = '%s_eotest_results.fits' % det_name
+        results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
         amps = data['AMP']
         num_traps = data['NUM_TRAPS']
@@ -218,6 +224,7 @@ def validate_dark_current(results, det_names):
     """Validate and persist dark current results."""
     run = siteUtils.getRunNumber()
     for det_name in det_names:
+        raft, slot = det_name.split('_')
         file_prefix = '{}_{}'.format(run, det_name)
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
@@ -236,10 +243,236 @@ def validate_dark_current(results, det_names):
         pattern = '{}_*noise*.png'.format(file_prefix)
         results.extend(siteUtils.persist_png_files(pattern, file_prefix,
                                                    metadata=metadata))
+    return results
+
+
+def validate_cte(results, det_names):
+    """Validate the CTE task results."""
+    run = siteUtils.getRunNumber()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = '{}_{}'.format(run, det_name)
+        superflats \
+            = sorted(glob.glob('{}_superflat_*.fits'.format(file_prefix)))
+        if not superflats:
+            print("superflat files not fould for", file_prefix)
+            continue
+        for item in superflats:
+            eotestUtils.addHeaderData(item, FILENAME=item,
+                                      DATE=eotestUtils.utc_now_isoformat())
+        results.extend([siteUtils.make_fileref(x, folder=slot)
+                        for x in superflats])
+
+        results_file = '%s_eotest_results.fits' % file_prefix
+        data = sensorTest.EOTestResults(results_file)
+        amps = data['AMP']
+
+        cti_high_serial = data['CTI_HIGH_SERIAL']
+        cti_high_serial_error = data['CTI_HIGH_SERIAL_ERROR']
+        cti_high_parallel = data['CTI_HIGH_PARALLEL']
+        cti_high_parallel_error = data['CTI_HIGH_PARALLEL_ERROR']
+
+        cti_low_serial = data['CTI_LOW_SERIAL']
+        cti_low_serial_error = data['CTI_LOW_SERIAL_ERROR']
+        cti_low_parallel = data['CTI_LOW_PARALLEL']
+        cti_low_parallel_error = data['CTI_LOW_PARALLEL_ERROR']
+
+        for values in zip(amps,
+                          cti_high_serial, cti_high_serial_error,
+                          cti_high_parallel, cti_high_parallel_error,
+                          cti_low_serial, cti_low_serial_error,
+                          cti_low_parallel, cti_low_parallel_error):
+            results.append(lcatr.schema.valid(lcatr.schema.get('cte_BOT'),
+                                              amp=values[0],
+                                              cti_high_serial=values[1],
+                                              cti_high_serial_error=values[2],
+                                              cti_high_parallel=values[3],
+                                              cti_high_parallel_error=values[4],
+                                              cti_low_serial=values[5],
+                                              cti_low_serial_error=values[6],
+                                              cti_low_parallel=values[7],
+                                              cti_low_parallel_error=values[8],
+                                              slot=slot, raft=raft))
+
+        # Persist the png files.
+        metadata = dict(DETECTOR=det_name, RUN=run,
+                        TESTTYPE='SFLAT_500', TEST_CATEGORY='EO')
+        results.extend(siteUtils.persist_png_files('%s*.png' % file_prefix,
+                                                   file_prefix,
+                                                   metadata=metadata))
+    return results
+
+
+def validate_flat_pairs(results, det_names):
+    """Validate the flat pair analysis results."""
+    run = siteUtils.getRunNumber()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = '{}_{}'.format(run, det_name)
+        det_resp_data = '%s_det_response.fits' % file_prefix
+        if not os.path.isfile(det_resp_data):
+            print("Detector response data not found for", det_name)
+            continue
+        eotestUtils.addHeaderData(det_resp_data, DETECTOR=det_name,
+                                  TESTTYPE='FLAT',
+                                  DATE=eotestUtils.utc_now_isoformat())
+        results.append(siteUtils.make_fileref(det_resp_data))
+
+        results_file = '%s_eotest_results.fits' % file_prefix
+        data = sensorTest.EOTestResults(results_file)
+        amps = data['AMP']
+        full_well_data = data['FULL_WELL']
+        max_frac_dev_data = data['MAX_FRAC_DEV']
+
+        for amp, full_well, max_frac_dev in zip(amps, full_well_data,
+                                                max_frac_dev_data):
+            results.append(lcatr.schema.valid(
+                lcatr.schema.get('flat_pairs_BOT'),
+                amp=amp, full_well=full_well, max_frac_dev=max_frac_dev,
+                slot=slot, raft=raft))
+
+        # Persist the png files.
+        metadata = dict(DETECTOR=det_name, RUN=run,
+                        TESTTYPE='FLAT', TEST_CATEGORY='EO')
+        results.extend(siteUtils.persist_png_files('%s*.png' % file_prefix,
+                                                   file_prefix,
+                                                   metadata=metadata))
+    return results
+
+
+def validate_ptc(results, det_names):
+    """Validate the PTC results."""
+    run = siteUtils.getRunNumber()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = '{}_{}'.format(run, det_name)
+        ptc_results = '%s_ptc.fits' % file_prefix
+        if not os.path.isfile(ptc_results):
+            print("PTC results file not found for", det_name)
+            continue
+        eotestUtils.addHeaderData(ptc_results, TESTTYPE='FLAT',
+                                  DATE=eotestUtils.utc_now_isoformat())
+
+        results.append(siteUtils.make_fileref(ptc_results))
+
+        results_file = '%s_eotest_results.fits' % file_prefix
+        data = sensorTest.EOTestResults(results_file)
+
+        amps = data['AMP']
+        ptc_gains = data['PTC_GAIN']
+        ptc_gain_errors = data['PTC_GAIN_ERROR']
+        for amp, gain, gain_error in zip(amps, ptc_gains, ptc_gain_errors):
+            results.append(lcatr.schema.valid(lcatr.schema.get('ptc_BOT'),
+                                              amp=amp, ptc_gain=gain,
+                                              ptc_gain_error=gain_error,
+                                              slot=slot, raft=raft))
+        # Persist the png files.
+        metadata = dict(DETECTOR=det_name, RUN=run,
+                        TESTTYPE='FLAT', TEST_CATEGORY='EO')
+
+    results.extend(siteUtils.persist_png_files('%s*.png' % file_prefix,
+                                               file_prefix,
+                                               metadata=metadata))
+    return results
+
+
+def validate_qe(results, det_names):
+    """Validate the QE results."""
+    run = siteUtils.getRunNumber()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = '{}_{}'.format(run, det_name)
+
+        qe_results_file = '%s_QE.fits' % file_prefix
+        if not os.path.isfile(qe_results_file):
+            print("QE results file not found for", det_name)
+            continue
+        with fits.open(qe_results_file) as qe_results:
+            qe_data = qe_results['QE_BANDS'].data
+            QE = OrderedDict((band, []) for band in qe_data.field('BAND'))
+            for amp in range(1, 17):
+                values = qe_data.field('AMP%02i' % amp)
+            for band, value in zip(QE, values):
+                QE[band].append(value)
+
+        for band in QE:
+            for amp in range(1, 17):
+                results.append(lcatr.schema.valid(
+                    lcatr.schema.get('qe_BOT_analysis'),
+                    band=band, QE=QE[band][amp-1],
+                    amp=amp, slot=slot, raft=raft))
+
+        qe_files = glob.glob('%s_*QE*.fits' % file_prefix)
+        for item in qe_files:
+            eotestUtils.addHeaderData(item, TESTTYPE='LAMBDA',
+                                      DATE=eotestUtils.utc_now_isoformat())
+        results.extend([siteUtils.make_fileref(item, folder=slot)
+                        for item in qe_files])
+
+        # Persist the png files.
+        metadata = dict(DETECTOR=det_name, RUN=run,
+                        TESTTYPE='LAMBDA', TEST_CATEGORY='EO')
+        results.extend(siteUtils.persist_png_files('%s*.png' % file_prefix,
+                                                   file_prefix,
+                                                   metadata=metadata))
+    return results
+
+
+def validate_tearing(results, det_names):
+    """Validate the tearing analysis results."""
+    run = siteUtils.getRunNumber()
+    schema = lcatr.schema.get('tearing_detection_BOT')
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = '{}_{}'.format(run, det_name)
+
+        tearing_results_file = '%s_tearing_stats.pkl' % file_prefix
+        if not os.path.isfile(tearing_results_file):
+            print("Tearing results not found for", det_name)
+            continue
+        with open(tearing_results_file, 'rb') as input_:
+            tearing_stats = pickle.load(input_)
+        for values in tearing_stats:
+            stats = dict(kv for kv in zip(('job_name', 'subset', 'sensor_id',
+                                           'detections', 'slot', 'raft'),
+                                          list(values) + [slot, raft]))
+            results.append(lcatr.schema.valid(schema, **stats))
+    return results
+
+
+def validate_raft_results(results, raft_names):
+    """Validate the raft level results."""
+    run = siteUtils.getRunNumber()
+    slot_names = camera_info.get_slot_names()
+    md = siteUtils.DataCatalogMetadata(ORIGIN=siteUtils.getSiteName(),
+                                       TEST_CATEGORY='EO',
+                                       DATA_PRODUCT='EOTEST_RESULTS')
+    for raft_name in raft_names:
+        for slot_name in slot_names:
+            det_name = '{}_{}'.format(raft_name, slot_name)
+            file_prefix = '{}_{}'.format(run, det_name)
+            results_file = '{}_eotest_results.fits'.format(file_prefix)
+            eotestUtils.addHeaderData(results_file, DETECTOR=det_name,
+                                      DATE=eotestUtils.utc_now_isoformat(),
+                                      RUNNUM=run)
+            results.append(lcatr.schema.fileref.make(
+                results_file, metadata=md(SLOT=slot_name, RAFT=raft_name)))
+
+        # Persist the png files.
+        png_file_list = '{}_raft_results_task_png_files.txt'.format(raft_name)
+        with open(png_file_list, 'r') as input_:
+            png_files = input_.readlines().strip().split()
+        metadata = dict(TEST_CATEGORY='EO', DETECTOR=det_name, RUN=run)
+        results.extend(siteUtils.persist_png_files('', file_prefix,
+                                                   png_files=png_files,
+                                                   metadata=metadata))
+    return results
 
 
 if __name__ == '__main__':
     det_names = camera_info.get_det_names()
+    raft_names = camera_info.get_raft_names()
+
     results = []
     results = validate_fe55(results, det_names)
     results = validate_read_noise(results, det_names)
@@ -247,6 +480,12 @@ if __name__ == '__main__':
     results = validate_dark_defects(results, det_names)
     results = validate_traps(results, det_names)
     results = validate_dark_current(results, det_names)
+    results = validate_cte(results, det_names)
+    results = validate_flat_pairs(results, det_names)
+    results = validate_ptc(results, det_names)
+    results = validate_qe(results, det_names)
+    results = validate_tearing(results, det_names)
+    results = validate_raft_results(results, raft_names)
 
     results.extend(siteUtils.jobInfo())
 
