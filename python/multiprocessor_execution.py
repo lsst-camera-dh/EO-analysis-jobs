@@ -7,13 +7,13 @@ import multiprocessing
 import siteUtils
 import camera_components
 
-__all__ = ['sensor_analyses', 'run_sensor_analysis_pool']
+__all__ = ['sensor_analyses', 'run_device_analysis_pool']
 
-def run_sensor_analysis_pool(task_func, det_names, processes=None):
+def run_device_analysis_pool(task_func, device_names, processes=None):
     """
-    Use a multiprocessing.Pool to run a sensor-level analysis task
-    over a collection of detector names.  The task_funcs should be
-    implemented as pickleable function that takes the desired detector
+    Use a multiprocessing.Pool to run a device-level analysis task
+    over a collection of device names.  The task_func should be
+    implemented as pickleable function that takes the desired device
     name as its single argument.
 
     Parameters
@@ -21,8 +21,8 @@ def run_sensor_analysis_pool(task_func, det_names, processes=None):
     task_func: function
         A pickleable function that takes the detector name string as
         its argument.
-    det_names: list
-        The list of detector names to run in the pool.
+    device_names: list
+        The list of device names to run in the pool.
     processes : int, optional
         The maximum number of processes to have running at once.
         If None (default), then set to 1 or one less than
@@ -38,9 +38,10 @@ def run_sensor_analysis_pool(task_func, det_names, processes=None):
 
     Users can override the default or keyword argument values by setting
     the LCATR_PARALLEL_PROCESSES environment variable.
-
     """
     if processes is None:
+        # Use the maximum number of cores available, reserving one for
+        # the parent process.
         processes = max(1, multiprocessing.cpu_count() - 1)
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
@@ -49,12 +50,12 @@ def run_sensor_analysis_pool(task_func, det_names, processes=None):
         # faster to run serially instead of using a
         # multiprocessing.Pool since the pickling that occurs can
         # cause significant overhead.
-        for det_name in det_names:
-            task_func(det_name)
+        for device_name in device_names:
+            task_func(device_name)
     else:
         with multiprocessing.Pool(processes=processes) as pool:
-            results = [pool.apply_async(task_func, (det_name,))
-                       for det_name in det_names]
+            results = [pool.apply_async(task_func, (device_name,))
+                       for device_name in device_names]
             pool.close()
             pool.join()
             for res in results:
@@ -83,5 +84,5 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
 
-    run_sensor_analysis_pool(run_task_func, raft.sensor_names,
+    run_device_analysis_pool(run_task_func, raft.sensor_names,
                              processes=processes)
