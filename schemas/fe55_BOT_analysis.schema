@@ -1,0 +1,11 @@
+# -*- python -*-
+{
+    'schema_name' : 'fe55_BOT_analysis',
+    'schema_version' : 0,
+    'amp' : int,
+    'gain' : float,
+    'gain_error' : float,
+    'psf_sigma' : float,
+    'slot' : str,
+    'raft' : str
+}
