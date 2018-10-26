@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 """
-Producer script for raft-level Fe55 analysis.
+Producer script for BOT analyses.
 """
 from __future__ import print_function
+import os
 import glob
+import pickle
+import configparser
 import matplotlib.pyplot as plt
+import numpy as np
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
+import lsst.eotest.raft as raftTest
+import eotestUtils
 import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
-from multiprocessor_execution import run_sensor_analysis_pool
+from multiprocessor_execution import run_device_analysis_pool
+from tearing_detection import tearing_detection
 
 
 def fe55_task(det_name):
@@ -155,7 +162,7 @@ def bright_defects_task(det_name):
     task.run(file_prefix, dark_files, mask_files, gains)
 
     title = '%s, medianed dark for bright defects analysis' % file_prefix
-    annotation='e-/pixel, gain-corrected, bias-subtracted'
+    annotation = 'e-/pixel, gain-corrected, bias-subtracted'
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_medianed_dark.png' % file_prefix,
                             '%s_median_dark_bp.fits' % file_prefix,
@@ -188,7 +195,7 @@ def traps_task(det_name):
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
     pattern = 'trap_ppump_000/*_{}.fits'.format(det_name)
-    trap_files = siteUtils.dependency_glob(pattern))
+    trap_files = siteUtils.dependency_glob(pattern)
     if not trap_files:
         print("No pocket pumping file found for run", run)
         return
@@ -213,7 +220,7 @@ def dark_current_task(det_name):
     file_prefix = '%s_%s' % (run, det_name)
 
     pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
-    dark_files = siteUtils.dependency_glob(pattern))
+    dark_files = siteUtils.dependency_glob(pattern)
     if not dark_files:
         print("No dark files found for run:", run)
         return
@@ -242,17 +249,388 @@ def dark_current_task(det_name):
                             dark95s=dark95s)
 
 
-if __name__ == '__main__':
-    det_names = camera_info.get_det_names()
-    raft_names = camera_info.get_raft_names()
+def cte_task(det_name):
+    """Single sensor execution of the CTE task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = '%s_%s' % (run, det_name)
 
+    pattern = 'sflat_500_flat_H/*_{}.fits'.format(det_name)
+    sflat_high_files = siteUtils.dependency_glob(pattern)
+
+    pattern = 'sflat_500_flat_L/*_{}.fits'.format(det_name)
+    sflat_low_files = siteUtils.dependency_glob(pattern)
+
+    if not sflat_high_files and not sflat_low_files:
+        print("Superflat files not available for run", run)
+        return
+
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    gains = get_amplifier_gains(eotest_results_file)
+
+    # Omit rolloff defects mask since it would mask some of the edges used
+    # in the eper method.
+    mask_files \
+        = [item for item in mask_files if item.find('edge_rolloff') == -1]
+
+    task = sensorTest.CteTask()
+    task.run(file_prefix, sflat_high_files, flux_level='high', gains=gains,
+             mask_files=mask_files)
+    task.run(file_prefix, sflat_low_files, flux_level='low', gains=gains,
+             mask_files=mask_files)
+
+    plots = sensorTest.EOTestPlots(file_prefix,
+                                   results_file=eotest_results_file)
+
+    superflat_files = sorted(glob.glob('%s_superflat_*.fits' % file_prefix))
+    for sflat_file in superflat_files:
+        flux_level = 'low'
+        if sflat_file.find('high') != -1:
+            flux_level = 'high'
+        siteUtils.make_png_file(sensorTest.plot_flat,
+                                sflat_file.replace('.fits', '.png'),
+                                sflat_file,
+                                title=('%s, CTE supeflat, %s flux '
+                                       % (file_prefix, flux_level)),
+                                annotation='ADU/pixel')
+
+        siteUtils.make_png_file(plots.cte_profiles,
+                                ('%s_serial_oscan_%s.png' %
+                                 (file_prefix, flux_level)),
+                                flux_level, sflat_file, mask_files, serial=True)
+
+        siteUtils.make_png_file(plots.cte_profiles,
+                                ('%s_parallel_oscan_%s.png' %
+                                 (file_prefix, flux_level)),
+                                flux_level, sflat_file, mask_files,
+                                serial=False)
+
+def flat_pairs_task(det_name):
+    """Single sensor execution of the flat pairs task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = '%s_%s' % (run, det_name)
+
+    pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
+    flat_files = siteUtils.dependency_glob(pattern)
+    if not flat_files:
+        print("Flat pairs files not found for run", run)
+        return
+
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    gains = get_amplifier_gains(eotest_results_file)
+
+    use_exptime = False
+
+    task = sensorTest.FlatPairTask()
+    task.run(file_prefix, flat_files, mask_files, gains,
+             linearity_spec_range=(1e4, 9e4), use_exptime=use_exptime)
+
+    results_file = '%s_eotest_results.fits' % file_prefix
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+
+    Ne_bounds = (1e4, 9e4)
+
+    detresp_file = '%s_det_response.fits' % file_prefix
+    siteUtils.make_png_file(plots.linearity,
+                            '%s_linearity.png' % file_prefix,
+                            detresp_file=detresp_file, max_dev=0.03,
+                            use_exptime=use_exptime, Ne_bounds=Ne_bounds)
+    siteUtils.make_png_file(plots.linearity_resids,
+                            '%s_linearity_resids.png' % file_prefix,
+                            detresp_file=detresp_file, max_dev=0.03,
+                            Ne_bounds=Ne_bounds, use_exptime=use_exptime)
+
+
+def ptc_task(det_name):
+    """Single sensor execution of the PTC task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = '%s_%s' % (run, det_name)
+    pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
+    flat_files = siteUtils.dependency_glob(pattern)
+    if not flat_files:
+        print("Flat pairs files not found for run", run)
+        return
+
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    gains = get_amplifier_gains(eotest_results_file)
+
+    task = sensorTest.PtcTask()
+    task.run(file_prefix, flat_files, mask_files, gains)
+
+    results_file = '%s_eotest_results.fits' % file_prefix
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    siteUtils.make_png_file(plots.ptcs,
+                            '%s_ptcs.png' % file_prefix,
+                            ptc_file='%s_ptc.fits' % file_prefix)
+
+
+def qe_task(det_name):
+    """Single sensor execution of the QE task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = '%s_%s' % (run, det_name)
+    pattern = 'lambda_flat_*/*_{}.fits'.format(det_name)
+    lambda_files = siteUtils.dependency_glob(pattern)
+    if not lambda_files:
+        print("QE scan files not found for run", run)
+        return
+
+    pd_ratio_file = eotestUtils.getPhotodiodeRatioFile()
+    if pd_ratio_file is None:
+        message = ("The BOT photodiode ratio file is " +
+                   "not given in config/%s/eotest_calibrations.cfg."
+                   % siteUtils.getSiteName())
+        raise RuntimeError(message)
+
+    correction_image = None
+#    correction_image = eotestUtils.getIlluminationNonUniformityImage()
+#    if correction_image is None:
+#        print()
+#        print("WARNING: The correction image file is not given in")
+#        print("config/%s/eotest_calibrations.cfg." % siteUtils.getSiteName())
+#        print("No correction for non-uniform illumination will be applied.")
+#        print()
+#        sys.stdout.flush()
+
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    gains = get_amplifier_gains(eotest_results_file)
+
+    task = sensorTest.QeTask()
+    task.config.temp_set_point = -100.
+    task.run(file_prefix, lambda_files, pd_ratio_file, mask_files, gains,
+             correction_image=correction_image)
+
+    results_file = '%s_eotest_results.fits' % file_prefix
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+
+    siteUtils.make_png_file(plots.qe,
+                            '%s_qe.png' % file_prefix,
+                            qe_file='%s_QE.fits' % file_prefix)
+
+    try:
+        plots.flat_fields(os.path.dirname(lambda_files[0]),
+                          annotation='e-/pixel, gain-corrected, bias-subtracted')
+    except Exception as eobj:
+        print("Exception raised while creating flat fields:")
+        print(str(eobj))
+
+
+def tearing_task(det_name):
+    """Single sensor execution of the tearing task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = '%s_%s' % (run, det_name)
+    pattern = '*_flat*_/*_{}.fits'.format(det_name)
+    flat_files = siteUtils.dependency_glob(pattern)
+    if not flat_files:
+        print("Flat files not found for run", run)
+        return
+
+    tearing_found, _ = tearing_detection(flat_files)
+    tearing_stats = [('BOT_EO_acq', 'N/A', det_name, len(tearing_found))]
+
+    with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
+        pickle.dump(tearing_stats, output)
+
+
+def get_raft_files_by_slot(raft_name, file_suffix):
+    """Return a dictionary of raft filenames, keyed by slot_name."""
+    run = siteUtils.getRunNumber()
+    template = '{}_{}_{}_' + file_suffix
+    raft_files = dict()
+    for slot_name in camera_info.get_slot_names():
+        filename = template.format(run, raft_name, slot_name)
+        if os.path.isfile(filename):
+            raft_files[slot_name] = filename
+    if not raft_files:
+        raise FileNotFoundError("no raft-level files found for %s"
+                                % file_suffix)
+    return raft_files
+
+
+def raft_results_task(raft_name):
+    """Task to aggregate data for raft-level plots and results."""
+    slot_names = camera_info.get_slot_names()
+
+    # Get results files for each CCD in the raft.
+    results_files = get_raft_files_by_slot(raft_name, 'eotest_results.fits')
+
+    # Determine the total number of pixels and number of edge rolloff
+    # pixels for the types of CCDs in this raft and update the results
+    # files.  This info will be used in computing the pixel defect
+    # compliance.  Use one of the mean bias files for this since they
+    # should be available no matter which analysis tasks are run.
+    try:
+        bias_files = get_raft_files_by_slot(raft_name, 'mean_bias.fits')
+    except FileNotFoundError:
+        print("No raft-level results for", raft_name)
+        return
+    total_num, rolloff_mask = sensorTest.pixel_counts(bias_files[slot_names[0]])
+
+    # Exposure time (in seconds) for 95th percentile dark current shot
+    # noise calculation.
+    exptime = 15.
+
+    # Update the eotest results files.
+    for filename in results_files.values():
+        eotest_results = sensorTest.EOTestResults(filename)
+        eotest_results.add_ccd_result('TOTAL_NUM_PIXELS', total_num)
+        eotest_results.add_ccd_result('ROLLOFF_MASK_PIXELS', rolloff_mask)
+        shot_noise = eotest_results['DARK_CURRENT_95']*exptime
+        total_noise = np.sqrt(eotest_results['READ_NOISE']**2 + shot_noise)
+        for i, amp in enumerate(eotest_results['AMP']):
+            eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
+                                          np.float(shot_noise[i]))
+            eotest_results['TOTAL_NOISE'][i] = total_noise[i]
+        eotest_results.write(filename)
+
+    run = siteUtils.getRunNumber()
+    file_prefix = '{}_{}'.format(run, raft_name)
+    title = '{}, {}'.format(run, raft_name)
+    gains = {slot_name: get_amplifier_gains(results_files[slot_name])
+             for slot_name in results_files}
+
+    # Mean bias mosaic.
+    mean_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
+    mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
+    plt.savefig('{}_mean_bias.png'.format(file_prefix))
+    del mean_bias
+
+    # Dark mosaic
+    dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
+    dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains)
+    dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
+                     annotation='e-/pixel, gain-corrected, bias-subtracted')
+    plt.savefig('{}_medianed_dark.png'.format(file_prefix))
+    del dark_mosaic
+
+    # High flux superflat mosaic.
+    sflat_high_files = get_raft_files_by_slot(raft_name, 'superflat_high.fits')
+    sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
+    sflat_high.plot(title='%s, high flux superflat' % title,
+                    annotation='e-/pixel, gain-corrected, bias-subtracted')
+    plt.savefig('{}_superflat_high.png'.format(file_prefix))
+    del sflat_high
+
+    # Low flux superflat mosaic.
+    sflat_low_files = get_raft_files_by_slot(raft_name, 'superflat_low.fits')
+    sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
+    sflat_low.plot(title='%s, low flux superflat' % title,
+                   annotation='e-/pixel, gain-corrected, bias-subtracted')
+    plt.savefig('{}_superflat_low.png'.format(file_prefix))
+    del sflat_low
+
+    # QE images at 350, 500, 620, 750, 870, and 1000nm.
+    for wl in (350, 500, 620, 750, 870, 1000):
+        print("Processing %i nm image" % wl)
+        pattern = 'lambda_flat_{:04d}/*_{}_*.fits'.format(wl, raft_name)
+        files = siteUtils.dependency_glob(pattern)
+        lambda_files = dict()
+        for item in files:
+            slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
+            lambda_files[slot_name] = item
+        try:
+            flat = raftTest.RaftMosaic(lambda_files, gains=gains)
+            flat.plot(title='%s, %i nm' % (title, wl),
+                      annotation='e-/pixel, gain-corrected, bias-subtracted')
+            plt.savefig('{}_{:04i}nm_flat.png'.format(file_prefix, wl))
+            del flat
+        except IndexError as eobj:
+            print(lambda_files)
+            print(eobj)
+
+    # TODO: QE summary plot
+
+    # Plots of read noise, nonlinearity, serial and parallel CTI,
+    # PSF size, and gains from Fe55 and PTC.
+    spec_plots = raftTest.RaftSpecPlots(results_files)
+    columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
+    spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)',
+                                      spec=9, title=title)
+    plt.savefig('%s_total_noise.png' % file_prefix)
+
+    spec_plots.make_plot('MAX_FRAC_DEV',
+                         'non-linearity (max. fractional deviation)',
+                         spec=0.03, title=title)
+    plt.savefig('%s_linearity.png' % file_prefix)
+
+    spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
+                                      'Serial CTI (ppm)', spec=(5e-6, 3e-5),
+                                      title=title, yscaling=1e6, yerrors=True,
+                                      colors='br', ymax=4e-5)
+    plt.savefig('%s_serial_cti.png' % file_prefix)
+
+    spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
+                                      'Parallel CTI (ppm)', spec=3e-6,
+                                      title=title, yscaling=1e6, yerrors=True,
+                                      colors='br')
+    plt.savefig('%s_parallel_cti.png' % file_prefix)
+
+    spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
+                         title=title, ymax=5.2)
+    plt.savefig('%s_psf_sigma.png' % file_prefix)
+
+    spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
+                                      'System Gain (e-/ADU)',
+                                      yerrors=True, title=title, colors='br')
+    plt.savefig('%s_system_gain.png' % file_prefix)
+
+    spec_plots.make_plot('DARK_CURRENT_95',
+                         '95th percentile dark current (e-/pixel/s)',
+                         spec=0.2, title=title)
+    plt.savefig('%s_dark_current.png' % file_prefix)
+
+
+def get_analysis_types(bot_eo_config_file=None):
+    """"Get the analysis types to be performed from the BOT-level EO config."""
+    if bot_eo_config_file is None:
+        # Find the BOT-level EO configuration file.
+        acq_cfg = os.path.join(os.environ['LCATR_CONFIG_DIR'], 'acq.cfg')
+        with open(acq_cfg, 'r') as fd:
+            for line in fd:
+                if line.startswith('bot_eo_acq_cfg'):
+                    bot_eo_config_file = line.strip().split('=')[1].strip()
+                    break
+
+    # Read in the analyses to be performed from the config file.
+    cp = configparser.ConfigParser(allow_no_value=True,
+                                   inline_comment_prefixes=("#", ))
+    cp.optionxform = str   # allow for case-sensitive keys
+    cp.read(bot_eo_config_file)
+
+    analysis_types = []
+    for analysis_type, _ in cp.items("ANALYZE"):
+        analysis_types.append(analysis_type)
+
+    return analysis_types
+
+
+if __name__ == '__main__':
+    # Use the all of the available cores for processing.
     processes = None
-    run_sensor_analysis_pool(fe55_task, det_names, processes=processes)
-    run_sensor_analysis_pool(read_noise_task, det_names, processes=processes)
-    for raft_name in raft_names:
-        raft_noise_correlations(raft_name)
-    run_sensor_analysis_pool(bright_defects_task, det_names,
-                             processes=processes)
-    run_sensor_analysis_pool(dark_defects_task, det_names, processes=processes)
-    run_sensor_analysis_pool(traps_task, det_names, processes=processes)
-    run_sensor_analysis_pool(dark_current_task, det_names, processes=processes)
+
+    task_mapping = {'gain': (fe55_task,),
+                    'biasnoise': (read_noise_task,),
+                    'dark': (dark_current_task,),
+                    'badpixel': (bright_defects_task, dark_defects_task),
+                    'ptc': (ptc_task,),
+                    'linearity': (flat_pairs_task,),
+                    'cti': (cte_task,)}
+
+    analysis_types = get_analysis_types()
+
+    # Detector-level analyses
+    det_names = camera_info.get_det_names()
+    for analysis_type in analysis_types:
+        tasks = task_mapping[analysis_type]
+        for task in tasks:
+            run_device_analysis_pool(task, det_names, processes=processes)
+
+    # Raft-level analyses
+    raft_names = camera_info.get_raft_names()
+    if 'biasnoise' in analysis_types:
+        run_device_analysis_pool(raft_noise_correlations, raft_names,
+                                 processes=processes)
+    run_device_analysis_pool(raft_results_task, raft_names, processes=processes)
