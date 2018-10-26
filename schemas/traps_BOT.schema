@@ -1,9 +1,0 @@
-# -*- python -*-
-{
-    'schema_name' : 'traps_BOT',
-    'schema_version' : 0,
-    'amp' : int,
-    'num_traps' : int,
-    'slot' : str,
-    'raft' : str
-}

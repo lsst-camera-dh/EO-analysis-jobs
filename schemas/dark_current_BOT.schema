@@ -1,9 +1,0 @@
-# -*- python -*-
-{
-    'schema_name' : 'dark_current_BOT',
-    'schema_version' : 0,
-    'amp' : int,
-    'dark_current_95CL' : float,
-    'slot' : str,
-    'raft' : str
-}

@@ -1,0 +1,55 @@
+# -*- python -*-
+{
+    'schema_name' : 'fe55_BOT_analysis',
+    'schema_version' : 0,
+    'amp' : int,
+    'gain' : float,
+    'gain_error' : float,
+    'psf_sigma' : float,
+    'slot' : str,
+    'raft' : str
+}
+{
+    'schema_name' : 'read_noise_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'read_noise' : float,
+    'system_noise' : float,
+    'total_noise' : float,
+    'slot' : str,
+    'raft' : str
+}
+{
+    'schema_name' : 'bright_defects_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'bright_pixels' : int,
+    'bright_columns' : int,
+    'slot' : str,
+    'raft' : str
+}
+{
+    'schema_name' : 'dark_defects_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'dark_pixels' : int,
+    'dark_columns' : int,
+    'slot' : str,
+    'raft' : str
+}
+{
+    'schema_name' : 'dark_current_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'dark_current_95CL' : float,
+    'slot' : str,
+    'raft' : str
+}
+{
+    'schema_name' : 'traps_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'num_traps' : int,
+    'slot' : str,
+    'raft' : str
+}
