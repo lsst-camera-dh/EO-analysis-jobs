@@ -103,8 +103,7 @@ def read_noise_task(det_name):
     bias_files \
         = siteUtils.dependency_glob('fe55_fe55_*/*_{}.fits'.format(det_name))
     if not bias_files:
-        print("Needed data files are missing for run {}, detector {}."
-              .format(run, det_name))
+        print("Needed data files are missing for detector", det_name)
         return
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
@@ -136,7 +135,7 @@ def raft_noise_correlations(raft_name):
         my_files \
             = siteUtils.dependency_glob('fe55_bias_*/*_{}.fits'.format(det_name))
         if not my_files:
-            print("Missing bias files for raft {}. Skipping.".format(raft_name))
+            print("Missing bias files for raft", raft_name)
             return
         bias_files[slot_name] = my_files[0]
     title = 'Overscan correlations, Run {}, {}'.format(raft_name, run)
@@ -151,8 +150,7 @@ def bright_defects_task(det_name):
     dark_files \
         = siteUtils.dependency_glob('dark_dark_*/*_{}.fits'.format(det_name))
     if not dark_files:
-        print("Needed data files missing for run {}, detector {}."
-              .format(run, det_name))
+        print("Needed data files missing for detector", det_name)
         return
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
@@ -178,7 +176,7 @@ def dark_defects_task(det_name):
     pattern = 'sflat_500_flat_H/*_{}.fits'.format(det_name)
     sflat_files = siteUtils.dependency_glob(pattern)
     if not sflat_files:
-        print("No high flux superflat files found for run", run)
+        print("No high flux superflat files found for detector", det_name)
         return
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
@@ -199,7 +197,7 @@ def traps_task(det_name):
     pattern = 'trap_ppump_000/*_{}.fits'.format(det_name)
     trap_files = siteUtils.dependency_glob(pattern)
     if not trap_files:
-        print("No pocket pumping file found for run", run)
+        print("No pocket pumping file found for detector", det_name)
         return
     trap_file = trap_files[0]
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
@@ -224,12 +222,12 @@ def dark_current_task(det_name):
     pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
     dark_files = siteUtils.dependency_glob(pattern)
     if not dark_files:
-        print("No dark files found for run:", run)
+        print("No dark files found for detector", det_name)
         return
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(det_name)))
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
-    eotest_results_file = '{}_eotest_results.fits'.format(det_name)
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
     task = sensorTest.DarkCurrentTask()
@@ -263,7 +261,7 @@ def cte_task(det_name):
     sflat_low_files = siteUtils.dependency_glob(pattern)
 
     if not sflat_high_files and not sflat_low_files:
-        print("Superflat files not available for run", run)
+        print("Superflat files not available for detector", det_name)
         return
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
@@ -316,7 +314,7 @@ def flat_pairs_task(det_name):
     pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
-        print("Flat pairs files not found for run", run)
+        print("Flat pairs files not found for detector", det_name)
         return
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
@@ -352,7 +350,7 @@ def ptc_task(det_name):
     pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
-        print("Flat pairs files not found for run", run)
+        print("Flat pairs files not found for detector", det_name)
         return
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
@@ -376,7 +374,7 @@ def qe_task(det_name):
     pattern = 'lambda_flat_*/*_{}.fits'.format(det_name)
     lambda_files = siteUtils.dependency_glob(pattern)
     if not lambda_files:
-        print("QE scan files not found for run", run)
+        print("QE scan files not found for detector", det_name)
         return
 
     pd_ratio_file = eotestUtils.getPhotodiodeRatioFile()
@@ -427,7 +425,7 @@ def tearing_task(det_name):
     pattern = '*_flat*_/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
-        print("Flat files not found for run", run)
+        print("Flat files not found for detector", det_name)
         return
 
     tearing_found, _ = tearing_detection(flat_files)
