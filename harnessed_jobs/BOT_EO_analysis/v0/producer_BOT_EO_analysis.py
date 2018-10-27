@@ -22,35 +22,36 @@ from tearing_detection import tearing_detection
 
 def fe55_task(det_name):
     "Single sensor execution of the Fe55 analysis task."
-    fe55_files \
-        = siteUtils.dependency_glob('fe55_fe55_*/*_{}.fits'.format(det_name))
-    bias_files \
-        = siteUtils.dependency_glob('fe55_bias_*/*_{}.fits'.format(det_name))
-    file_prefix = '{}_{}'.format(siteUtils.getRunNumber(), det_name)
+    run = siteUtils.getRunNumber()
+    file_prefix = '{}_{}'.format(run, det_name)
 
+    pattern = 'fe55_fe55_*/*_{}.fits'.format(det_name)
+    fe55_files = siteUtils.dependency_glob(pattern)
+    pattern = 'fe55_bias_*/*_{}.fits'.format(det_name)
+    bias_files = siteUtils.dependency_glob(pattern)
     if not fe55_files or not bias_files:
-        print("Needed data files missing for run {}, detector {}."
-              .format(siteUtils.getRunNumber(), det_name))
+        print("Needed data files missing for detector", det_name)
         return
 
     mean_bias_file = '{}_mean_bias.fits'.format(file_prefix)
     imutils.fits_mean_file(bias_files, mean_bias_file)
 
-    pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=det_name)
+    pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
 
-    siteUtils.make_png_file(pixel_stats.pixel_hists,
-                            '%s_fe55_p3_p5_hists.png' % file_prefix,
+    png_files = ['%s_fe55_p3_p5_hists.png' % file_prefix]
+    siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
                             pix0='p3', pix1='p5')
 
+    png_files.append('%s_fe55_p3_p5_profiles.png' % file_prefix)
     siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
-                            '%s_fe55_p3_p5_profiles.png' % file_prefix,
-                            pixel_coord='x', pix0='p3', pix1='p5')
+                            png_files[-1], pixel_coord='x',
+                            pix0='p3', pix1='p5')
 
-    siteUtils.make_png_file(pixel_stats.apflux_profile,
-                            '%s_fe55_apflux_serial.png' % file_prefix)
+    png_files.append('%s_fe55_apflux_serial.png' % file_prefix)
+    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1])
 
-    siteUtils.make_png_file(pixel_stats.apflux_profile,
-                            '%s_fe55_apflux_parallel.png' % file_prefix,
+    png_files.append('%s_fe55_apflux_parallel.png' % file_prefix)
+    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1],
                             pixel_coord='y')
 
     rolloff_mask_file = '%s_edge_rolloff_mask.fits' % file_prefix
@@ -64,7 +65,7 @@ def fe55_task(det_name):
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
 
-    png_files = ['%s_gains.png' % file_prefix]
+    png_files.append('%s_gains.png' % file_prefix)
     siteUtils.make_png_file(plots.gains, png_files[-1])
 
     png_files.append('%s_mean_bias.png' % file_prefix)
