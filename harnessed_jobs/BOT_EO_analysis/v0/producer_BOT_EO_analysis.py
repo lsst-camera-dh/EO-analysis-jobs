@@ -6,6 +6,7 @@ from __future__ import print_function
 import os
 import glob
 import pickle
+import warnings
 import configparser
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,6 +25,7 @@ def fe55_task(det_name):
     "Single sensor execution of the Fe55 analysis task."
     run = siteUtils.getRunNumber()
     file_prefix = '{}_{}'.format(run, det_name)
+    title = '{}, {}'.format(run, det_name)
 
     pattern = 'fe55_fe55_*/*_{}.fits'.format(det_name)
     fe55_files = siteUtils.dependency_glob(pattern)
@@ -70,7 +72,7 @@ def fe55_task(det_name):
 
     png_files.append('%s_mean_bias.png' % file_prefix)
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1], mean_bias_file,
-                            title='%s, mean bias frame' % det_name,
+                            title='%s, mean bias frame' % title,
                             annotation='ADU/pixel, overscan-subtracted')
 
     fe55_file = glob.glob('%s_psf_results*.fits' % file_prefix)[0]
@@ -100,6 +102,8 @@ def read_noise_task(det_name):
     """Run the single sesnor read noise task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
+    title = '{}, {}'.format(run, det_name)
+
     bias_files \
         = siteUtils.dependency_glob('fe55_fe55_*/*_{}.fits'.format(det_name))
     if not bias_files:
@@ -119,7 +123,7 @@ def read_noise_task(det_name):
 
     # Compute amp-amp correlated noise.
     _, corr_fig, _ = correlated_noise(bias_files, target=0,
-                                      make_plots=True, title=file_prefix)
+                                      make_plots=True, title=title)
     plt.figure(corr_fig.number)
     plt.savefig('%s_correlated_noise.png' % file_prefix)
 
@@ -128,6 +132,8 @@ def raft_noise_correlations(raft_name):
     """This is the raft-level noise-correlation analysis."""
     run = siteUtils.getRunNumber()
     file_prefix = '{}_{}'.format(run, raft_name)
+    title = '{}, {}'.format(run, raft_name)
+
     bias_files = dict()
     slot_names = camera_info.get_slot_names()
     for slot_name in slot_names:
@@ -147,6 +153,8 @@ def bright_defects_task(det_name):
     "Single sensor execution of the bright pixels task."
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
+    title = '{}, {}'.format(run, det_name)
+
     dark_files \
         = siteUtils.dependency_glob('dark_dark_*/*_{}.fits'.format(det_name))
     if not dark_files:
@@ -173,6 +181,8 @@ def dark_defects_task(det_name):
     """Single sensor execution of the dark defects task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
+    title = '{}, {}'.format(run, det_name)
+
     pattern = 'sflat_500_flat_H/*_{}.fits'.format(det_name)
     sflat_files = siteUtils.dependency_glob(pattern)
     if not sflat_files:
@@ -181,7 +191,7 @@ def dark_defects_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     task = sensorTest.DarkPixelsTask()
-    task.run(det_name, sflat_files, mask_files)
+    task.run(file_prefix, sflat_files, mask_files)
 
     title = '%s, superflat for dark defects analysis' % file_prefix
     siteUtils.make_png_file(sensorTest.plot_flat,
@@ -194,6 +204,7 @@ def traps_task(det_name):
     """Single sensor execution of the traps analysis task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
+
     pattern = 'trap_ppump_000/*_{}.fits'.format(det_name)
     trap_files = siteUtils.dependency_glob(pattern)
     if not trap_files:
@@ -211,7 +222,7 @@ def traps_task(det_name):
     gains = get_amplifier_gains(eotest_results_file)
 
     task = sensorTest.TrapTask()
-    task.run(det_name, trap_file, mask_files, gains)
+    task.run(file_prefix, trap_file, mask_files, gains)
 
 
 def dark_current_task(det_name):
@@ -233,7 +244,7 @@ def dark_current_task(det_name):
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = -100.
     dark_curr_pixels, dark95s \
-        = task.run(det_name, dark_files, mask_files, gains)
+        = task.run(file_prefix, dark_files, mask_files, gains)
 
     eo_results = sensorTest.EOTestResults(eotest_results_file)
     read_noise = dict(pair for pair in zip(eo_results['AMP'],
@@ -253,6 +264,7 @@ def cte_task(det_name):
     """Single sensor execution of the CTE task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
+    title = '{}, {}'.format(run, det_name)
 
     pattern = 'sflat_500_flat_H/*_{}.fits'.format(det_name)
     sflat_high_files = siteUtils.dependency_glob(pattern)
@@ -292,7 +304,7 @@ def cte_task(det_name):
                                 sflat_file.replace('.fits', '.png'),
                                 sflat_file,
                                 title=('%s, CTE supeflat, %s flux '
-                                       % (file_prefix, flux_level)),
+                                       % (title, flux_level)),
                                 annotation='ADU/pixel')
 
         siteUtils.make_png_file(plots.cte_profiles,
@@ -467,7 +479,10 @@ def raft_results_task(raft_name):
     except FileNotFoundError:
         print("No raft-level results for", raft_name)
         return
-    total_num, rolloff_mask = sensorTest.pixel_counts(bias_files[slot_names[0]])
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        total_num, rolloff_mask \
+            = sensorTest.pixel_counts(bias_files[slot_names[0]])
 
     # Exposure time (in seconds) for 95th percentile dark current shot
     # noise calculation.
@@ -480,7 +495,10 @@ def raft_results_task(raft_name):
         eotest_results.add_ccd_result('ROLLOFF_MASK_PIXELS', rolloff_mask)
         shot_noise = eotest_results['DARK_CURRENT_95']*exptime
         total_noise = np.sqrt(eotest_results['READ_NOISE']**2 + shot_noise)
+        add_max_frac_dev = 'MAX_FRAC_DEV' not in eotest_results.colnames
         for i, amp in enumerate(eotest_results['AMP']):
+            if add_max_frac_dev:
+                eotest_results.add_seg_result(amp, 'MAX_FRAC_DEV', 0.)
             eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
                                           np.float(shot_noise[i]))
             eotest_results['TOTAL_NOISE'][i] = total_noise[i]
@@ -489,6 +507,7 @@ def raft_results_task(raft_name):
     run = siteUtils.getRunNumber()
     file_prefix = '{}_{}'.format(run, raft_name)
     title = '{}, {}'.format(run, raft_name)
+
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
@@ -509,22 +528,32 @@ def raft_results_task(raft_name):
     del dark_mosaic
 
     # High flux superflat mosaic.
-    sflat_high_files = get_raft_files_by_slot(raft_name, 'superflat_high.fits')
-    sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
-    sflat_high.plot(title='%s, high flux superflat' % title,
-                    annotation='e-/pixel, gain-corrected, bias-subtracted')
-    png_files.append('{}_superflat_high.png'.format(file_prefix))
-    plt.savefig(png_files[-1])
-    del sflat_high
+    try:
+        sflat_high_files \
+            = get_raft_files_by_slot(raft_name, 'superflat_high.fits')
+    except FileNotFoundError as eobj:
+        print(eobj)
+    else:
+        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
+        sflat_high.plot(title='%s, high flux superflat' % title,
+                        annotation='e-/pixel, gain-corrected, bias-subtracted')
+        png_files.append('{}_superflat_high.png'.format(file_prefix))
+        plt.savefig(png_files[-1])
+        del sflat_high
 
     # Low flux superflat mosaic.
-    sflat_low_files = get_raft_files_by_slot(raft_name, 'superflat_low.fits')
-    sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
-    sflat_low.plot(title='%s, low flux superflat' % title,
-                   annotation='e-/pixel, gain-corrected, bias-subtracted')
-    png_files.append('{}_superflat_low.png'.format(file_prefix))
-    plt.savefig(png_files[-1])
-    del sflat_low
+    try:
+        sflat_low_files \
+            = get_raft_files_by_slot(raft_name, 'superflat_low.fits')
+    except FileNotFoundError as eobj:
+        print(eobj)
+    else:
+        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
+        sflat_low.plot(title='%s, low flux superflat' % title,
+                       annotation='e-/pixel, gain-corrected, bias-subtracted')
+        png_files.append('{}_superflat_low.png'.format(file_prefix))
+        plt.savefig(png_files[-1])
+        del sflat_low
 
     # QE images at 350, 500, 620, 750, 870, and 1000nm.
     for wl in (350, 500, 620, 750, 870, 1000):
@@ -535,16 +564,12 @@ def raft_results_task(raft_name):
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
-        try:
-            flat = raftTest.RaftMosaic(lambda_files, gains=gains)
-            flat.plot(title='%s, %i nm' % (title, wl),
-                      annotation='e-/pixel, gain-corrected, bias-subtracted')
-            png_files.append('{}_{:04i}nm_flat.png'.format(file_prefix, wl))
-            plt.savefig(png_files[-1])
-            del flat
-        except IndexError as eobj:
-            print(lambda_files)
-            print(eobj)
+        flat = raftTest.RaftMosaic(lambda_files, gains=gains)
+        flat.plot(title='%s, %i nm' % (title, wl),
+                  annotation='e-/pixel, gain-corrected, bias-subtracted')
+        png_files.append('{}_{:04i}nm_flat.png'.format(file_prefix, wl))
+        plt.savefig(png_files[-1])
+        del flat
 
     # TODO: QE summary plot
 
