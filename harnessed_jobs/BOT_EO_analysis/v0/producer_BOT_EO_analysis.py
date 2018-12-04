@@ -186,7 +186,7 @@ def dark_defects_task(det_name):
     file_prefix = '%s_%s' % (run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    pattern = 'sflat_500_flat_H*/*_{}.fits'.format(det_name)
+    pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
     sflat_files = siteUtils.dependency_glob(pattern)
     if not sflat_files:
         print("dark_defects_task: No high flux superflat files found for detector",
@@ -270,10 +270,10 @@ def cte_task(det_name):
     file_prefix = '%s_%s' % (run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    pattern = 'sflat_500_flat_H*/*_{}.fits'.format(det_name)
+    pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
     sflat_high_files = siteUtils.dependency_glob(pattern)
 
-    pattern = 'sflat_500_flat_L*/*_{}.fits'.format(det_name)
+    pattern = 'sflat_flat_*L*/*_{}.fits'.format(det_name)
     sflat_low_files = siteUtils.dependency_glob(pattern)
 
     if not sflat_high_files and not sflat_low_files:
@@ -335,7 +335,7 @@ def flat_pairs_task(det_name):
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
 
-    pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
+    pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("flat_pairs_task: Flat pairs files not found for detector",
@@ -372,7 +372,7 @@ def ptc_task(det_name):
     """Single sensor execution of the PTC task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
-    pattern = 'flat*flat?_/*_{}.fits'.format(det_name)
+    pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("ptc_task: Flat pairs files not found for detector", det_name)
@@ -573,8 +573,10 @@ def raft_results_task(raft_name):
     # QE images at 350, 500, 620, 750, 870, and 1000nm.
     for wl in (350, 500, 620, 750, 870, 1000):
         print("Processing %i nm image" % wl)
-        pattern = 'lambda_flat_{:04d}/*_{}_*.fits'.format(wl, raft_name)
+        pattern = 'lambda_flat_{:04d}*/*_{}_*.fits'.format(wl, raft_name)
         files = siteUtils.dependency_glob(pattern)
+        if not files:
+            continue
         lambda_files = dict()
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
