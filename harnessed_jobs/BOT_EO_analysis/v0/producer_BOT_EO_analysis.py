@@ -447,7 +447,7 @@ def tearing_task(det_name):
     """Single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
     file_prefix = '%s_%s' % (run, det_name)
-    pattern = '*_flat*_/*_{}.fits'.format(det_name)
+    pattern = 'sflat_flat_*[LH]*/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
@@ -681,7 +681,8 @@ if __name__ == '__main__':
                     'badpixel': (bright_defects_task, dark_defects_task),
                     'ptc': (ptc_task,),
                     'linearity': (flat_pairs_task,),
-                    'cti': (cte_task,)}
+                    'cti': (cte_task,),
+                    'tearing': (tearing_task,)}
 
     analysis_types = get_analysis_types()
 
