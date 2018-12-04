@@ -4,10 +4,24 @@ as raft or full focal plane.
 """
 import os
 import multiprocessing
+import traceback
 import siteUtils
 import camera_components
 
 __all__ = ['sensor_analyses', 'run_device_analysis_pool']
+
+
+class TracebackDecorator:
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwds):
+        try:
+            return self.func(*args, **kwds)
+        except Exception as eobj:
+            traceback.print_exc()
+            print('')
+            raise eobj
+
 
 def run_device_analysis_pool(task_func, device_names, processes=None):
     """
@@ -54,7 +68,7 @@ def run_device_analysis_pool(task_func, device_names, processes=None):
             task_func(device_name)
     else:
         with multiprocessing.Pool(processes=processes) as pool:
-            results = [pool.apply_async(task_func, (device_name,))
+            results = [pool.apply_async(TracebackDecorator(task_func), (device_name,))
                        for device_name in device_names]
             pool.close()
             pool.join()
