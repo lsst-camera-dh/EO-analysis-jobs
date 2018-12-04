@@ -15,6 +15,19 @@ import eotestUtils
 import lsst.eotest.sensor as sensorTest
 from camera_components import camera_info
 
+
+def report_missing_data(validator, missing_data, components='detectors',
+                        total=189):
+    """Summarize the missing data for the specified components."""
+    if len(missing_data) == total:
+        print("{}: missing data for all {} {}".format(validator, total,
+                                                      components))
+    else:
+        print("{}: missing data for {} {}".format(validator, len(missing_data),
+                                                  components))
+        print(missing_data)
+
+
 def validate_fe55(results, det_names):
     """Validate and persist fe55 gain and psf results."""
     run = siteUtils.getRunNumber()
@@ -73,8 +86,8 @@ def validate_fe55(results, det_names):
                 lcatr.schema.get('fe55_BOT_analysis'), amp=amp, gain=gain_value,
                 gain_error=gain_error, psf_sigma=sigma, slot=slot, raft=raft))
 
-    print("validate_fe55: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data('validate_fe55', missing_det_names)
+
     return results
 
 
@@ -127,8 +140,7 @@ def validate_read_noise(results, det_names):
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
 
-    print("validate_read_noise: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_read_noise", missing_det_names)
 
     return results
 
@@ -170,8 +182,7 @@ def validate_bright_defects(results, det_names):
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
 
-    print("validate_bright_defects: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_bright_defects", missing_det_names)
 
     return results
 
@@ -213,8 +224,7 @@ def validate_dark_defects(results, det_names):
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
 
-    print("validate_dark_defects: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_dark_defects", missing_det_names)
 
     return results
 
@@ -246,8 +256,7 @@ def validate_traps(results, det_names):
                 lcatr.schema.get('traps_BOT'), amp=amp, num_traps=ntrap,
                 slot=slot, raft=raft))
 
-    print("validate_traps: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_traps", missing_det_names)
 
     return results
 
@@ -283,8 +292,7 @@ def validate_dark_current(results, det_names):
         results.extend(siteUtils.persist_png_files(pattern, file_prefix,
                                                    metadata=metadata))
 
-    print("validate_dark_current: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_dark_current", missing_det_names)
 
     return results
 
@@ -348,8 +356,7 @@ def validate_cte(results, det_names):
                                                    png_files=png_files,
                                                    metadata=metadata))
 
-    print("validate_cte: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_cte", missing_det_names)
 
     return results
 
@@ -391,8 +398,7 @@ def validate_flat_pairs(results, det_names):
                                                    file_prefix,
                                                    metadata=metadata))
 
-    print("validate_flat_pairs: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_flat_pairs", missing_det_names)
 
     return results
 
@@ -432,8 +438,7 @@ def validate_ptc(results, det_names):
                                                    file_prefix,
                                                    metadata=metadata))
 
-    print("validate_ptc: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_ptc", missing_det_names)
 
     return results
 
@@ -482,8 +487,7 @@ def validate_qe(results, det_names):
                                                    file_prefix,
                                                    metadata=metadata))
 
-    print("validate_qe: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_qe", missing_det_names)
 
     return results
 
@@ -509,8 +513,7 @@ def validate_tearing(results, det_names):
                                           list(values) + [slot, raft]))
             results.append(lcatr.schema.valid(schema, **stats))
 
-    print("validate_tearing: Missing results for detectors")
-    print(missing_det_names)
+    report_missing_data("validate_tearing", missing_det_names)
 
     return results
 
@@ -549,8 +552,8 @@ def validate_raft_results(results, raft_names):
                                                    png_files=png_files,
                                                    metadata=metadata))
 
-    print("validate_raft_results: Missing results for rafts")
-    print(missing_raft_names)
+    report_missing_data("validate_raft_results", missing_raft_names,
+                        components='rafts', total=21)
 
     return results
 
