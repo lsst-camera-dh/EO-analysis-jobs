@@ -707,4 +707,7 @@ if __name__ == '__main__':
         run_device_analysis_pool(raft_noise_correlations, raft_names,
                                  processes=processes)
 
+    print("**************************************")
+    print("Running raft_results_task")
+    print("**************************************")
     run_device_analysis_pool(raft_results_task, raft_names, processes=processes)
