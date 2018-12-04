@@ -493,11 +493,11 @@ def raft_results_task(raft_name):
     # compliance.  Use one of the mean bias files for this since they
     # should be available no matter which analysis tasks are run.
     bias_files = get_raft_files_by_slot(raft_name, 'mean_bias.fits')
+    mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
 
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        total_num, rolloff_mask \
-            = sensorTest.pixel_counts(bias_files[slot_names[0]])
+    total_num, rolloff_mask \
+        = sensorTest.pixel_counts(bias_files[slot_names[0]],
+                                  input_mask=mask_files[slot_names[0]])
 
     # Exposure time (in seconds) for 95th percentile dark current shot
     # noise calculation.
