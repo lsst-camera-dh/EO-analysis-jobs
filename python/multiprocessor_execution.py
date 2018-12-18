@@ -4,10 +4,76 @@ as raft or full focal plane.
 """
 import os
 import multiprocessing
+import traceback
 import siteUtils
 import camera_components
 
-__all__ = ['sensor_analyses']
+__all__ = ['sensor_analyses', 'run_device_analysis_pool']
+
+
+class TracebackDecorator:
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwds):
+        try:
+            return self.func(*args, **kwds)
+        except Exception as eobj:
+            traceback.print_exc()
+            print('')
+            raise eobj
+
+
+def run_device_analysis_pool(task_func, device_names, processes=None):
+    """
+    Use a multiprocessing.Pool to run a device-level analysis task
+    over a collection of device names.  The task_func should be
+    implemented as pickleable function that takes the desired device
+    name as its single argument.
+
+    Parameters
+    ----------
+    task_func: function
+        A pickleable function that takes the detector name string as
+        its argument.
+    device_names: list
+        The list of device names to run in the pool.
+    processes : int, optional
+        The maximum number of processes to have running at once.
+        If None (default), then set to 1 or one less than
+        the number of cores, whichever is larger.
+
+    Notes
+    -----
+    Exceptions from subprocesses will be buffered until all of the
+    subprocesses have finished running.  If any exceptions are thrown
+    and are uncaught, a non-zero exit code will be generated for the
+    overall process. Output to stdout or stderr from the subprocesses
+    will be interleaved.
+
+    Users can override the default or keyword argument values by setting
+    the LCATR_PARALLEL_PROCESSES environment variable.
+    """
+    if processes is None:
+        # Use the maximum number of cores available, reserving one for
+        # the parent process.
+        processes = max(1, multiprocessing.cpu_count() - 1)
+    processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
+
+    if processes == 1:
+        # For cases where only one process will be run at a time, it's
+        # faster to run serially instead of using a
+        # multiprocessing.Pool since the pickling that occurs can
+        # cause significant overhead.
+        for device_name in device_names:
+            task_func(device_name)
+    else:
+        with multiprocessing.Pool(processes=processes) as pool:
+            results = [pool.apply_async(TracebackDecorator(task_func), (device_name,))
+                       for device_name in device_names]
+            pool.close()
+            pool.join()
+            for res in results:
+                res.get()
 
 def sensor_analyses(run_task_func, raft_id=None, processes=None):
     """
@@ -26,39 +92,11 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
         The maximum number of processes to have running at once.
         If None (default), then set to 1 or one less than
         the number of cores, whichever is larger.
-
-    Notes
-    -----
-    Exceptions from subprocesses will be buffered until all of the
-    subprocesses have finished running.  If any exceptions are thrown
-    and are uncaught, a non-zero exit code will be generated for the
-    overall process. Output to stdout or stderr from the subprocesses
-    will be interleaved.
-
-    Users can override the default or keyword argument values by setting
-    the LCATR_PARALLEL_PROCESSES environment variable.
     """
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 
-    if processes is None:
-        processes = max(1, multiprocessing.cpu_count() - 1)
-    processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
-
     raft = camera_components.Raft.create_from_etrav(raft_id)
 
-    if processes == 1:
-        # For cases where only one process will be run at a time, it's
-        # faster to run serially instead of using a
-        # multiprocessing.Pool since the pickling that occurs can
-        # cause significant overhead.
-        for sensor_id in raft.sensor_names:
-            run_task_func(sensor_id)
-    else:
-        pool = multiprocessing.Pool(processes=processes)
-        results = [pool.apply_async(run_task_func, (sensor_id,))
-                   for sensor_id in raft.sensor_names]
-        pool.close()
-        pool.join()
-        for res in results:
-            res.get()
+    run_device_analysis_pool(run_task_func, raft.sensor_names,
+                             processes=processes)

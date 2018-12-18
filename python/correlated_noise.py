@@ -1,17 +1,17 @@
 from __future__ import print_function
 import glob
+import copy
 from collections import namedtuple, defaultdict
 import itertools
 import numpy as np
 import scipy
-import astropy.io.fits as fits
 import astropy.visualization as viz
 from astropy.visualization.mpl_normalize import ImageNormalize
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+from matplotlib import ticker
+import lsst.afw.image as afw_image
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
-import camera_components
 
 plt.rcParams['xtick.labelsize'] = 'x-small'
 plt.rcParams['ytick.labelsize'] = 'x-small'
@@ -30,10 +30,10 @@ def get_overscans(infile, oscan_indices=None):
         y0, y1, x0, x1 = get_oscan_indices(infile)
     else:
         y0, y1, x0, x1 = oscan_indices
-    ccd = fits.open(infile)
     overscans = dict()
     for amp in imutils.allAmps():
-        overscans[amp] = ccd[amp].data[y0:y1, x0:x1]
+        oscan_data = afw_image.ImageF(infile, amp).array
+        overscans[amp] = copy.deepcopy(oscan_data[y0:y1, x0:x1])
     return overscans
 
 
@@ -45,9 +45,9 @@ def get_mean_overscans(infiles, oscan_indices=None):
         y0, y1, x0, x1 = oscan_indices
     mean_overscans = defaultdict(list)
     for infile in infiles:
-        ccd = fits.open(infile)
         for amp in imutils.allAmps():
-            mean_overscans[amp].append(ccd[amp].data[y0:y1, x0:x1])
+            oscan_data = afw_image.ImageF(infile, amp).array
+            mean_overscans[amp].append(copy.deepcopy(oscan_data[y0:y1, x0:x1]))
     for amp, images in mean_overscans.items():
         mean_overscans[amp] = sum(images)/float(len(images))
     return mean_overscans
@@ -111,10 +111,6 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     # Construct the mean bias overscans from the remaining files.
     mean_oscans = get_mean_overscans(bias_files)
 
-    # Compute the mean values of the mean bias overscans.
-    mean_oscan_values \
-        = {amp: np.mean(oscan) for amp, oscan in mean_oscans.items()}
-
     # Loop over amps in target frame and compute statistics.
     bias_stats = dict()
     for amp in bias_oscans:
@@ -162,7 +158,8 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
     return bias_stats, f1, f2
 
 def raft_level_oscan_correlations(bias_files, buffer=10, title='',
-                                  vrange=None, stretch=viz.LinearStretch):
+                                  vrange=None, stretch=viz.LinearStretch,
+                                  figsize=(8, 8)):
     """
     Compute the correlation coefficients between the overscan pixels
     of the 144 amplifiers in raft.
@@ -204,7 +201,7 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title='',
                                  overscans[i[1]].ravel())[0, 1]
                      for i in itertools.product(range(namps), range(namps))])
     data = data.reshape((namps, namps))
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
     ax.set_title(title, fontsize='medium')
 
