@@ -330,6 +330,13 @@ def cte_task(det_name):
             output.write('{}\n'.format(item))
 
 
+def find_flat2_bot(file1):
+    pattern = os.path.join(file1.split('flat1')[0], 'flat2',
+                           file1.split('_')[-1])
+    flat2 = glob.glob(pattern)[0]
+    return flat2
+
+
 def flat_pairs_task(det_name):
     """Single sensor execution of the flat pairs task."""
     run = siteUtils.getRunNumber()
@@ -350,7 +357,8 @@ def flat_pairs_task(det_name):
 
     task = sensorTest.FlatPairTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             linearity_spec_range=(1e4, 9e4), use_exptime=use_exptime)
+             linearity_spec_range=(1e4, 9e4), use_exptime=use_exptime,
+             flat2_finder=find_flat2_bot)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
