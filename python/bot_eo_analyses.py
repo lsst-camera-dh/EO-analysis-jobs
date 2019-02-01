@@ -25,12 +25,14 @@ __all__ = ['fe55_task', 'fe55_jh_task',
            'bright_defects_task', 'bright_defects_jh_task',
            'dark_defects_task', 'dark_defects_jh_task',
            'traps_task', 'traps_jh_task',
-           'dark_current_task',
-           'cte_task',
-           'flat_pairs_task',
-           'ptc_task',
-           'qe_task',
-           'tearing_task',
+           'dark_current_task', 'dark_current_jh_task',
+           'plot_ccd_total_noise',
+           'cte_task', 'cte_jh_task', 'plot_cte_results',
+           'find_flat2_bot',
+           'flat_pairs_task', 'flat_pairs_jh_task',
+           'ptc_task', 'ptc_jh_task',
+           'qe_task', 'qe_jh_task',
+           'tearing_task', 'tearing_jh_task',
            'raft_results_task',
            'get_analysis_types']
 
@@ -294,32 +296,43 @@ def dark_current_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    return dark_current_task(run, det_name, dark_files, gains,
-                             mask_files=mask_files,
-                             eotest_results_file=eotest_results_file)
+    dark_curr_pixels, dark95s \
+        = dark_current_task(run, det_name, dark_files, gains,
+                            mask_files=mask_files,
+                            eotest_results_file=eotest_results_file)
+    plot_ccd_total_noise(dark_curr_pixels, dark95s, eotest_results_file)
+    return dark_curr_pixels, dark95s
 
 
 def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
-                      eotest_results_file=None):
+                      temp_set_point=-100.):
     """Single sensor execution of the dark current task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.DarkCurrentTask()
-    task.config.temp_set_point = -100.
+    task.config.temp_set_point = temp_set_point
     dark_curr_pixels, dark95s \
         = task.run(file_prefix, dark_files, mask_files, gains)
+    return dark_curr_pixels, dark95s
 
-    if eotest_results_file is not None:
-        eo_results = sensorTest.EOTestResults(eotest_results_file)
-        read_noise = dict(pair for pair in zip(eo_results['AMP'],
-                                               eo_results['TOTAL_NOISE']))
-        siteUtils.make_png_file(sensorTest.total_noise_histograms,
-                                '%s_total_noise_hists.png' % file_prefix,
-                                dark_curr_pixels, read_noise, dark95s,
-                                exptime=16, title=det_name)
-        plots = sensorTest.EOTestPlots(det_name,
-                                       results_file=eotest_results_file)
-        siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
-                                dark95s=dark95s)
+
+def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
+                         eotest_results_file):
+    """
+    Make CCD-level total noise summary plots using the dark current
+    measurements and an existing eotest results file containing
+    the read noise measurements.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+    eo_results = sensorTest.EOTestResults(eotest_results_file)
+    read_noise = dict(pair for pair in zip(eo_results['AMP'],
+                                           eo_results['TOTAL_NOISE']))
+    siteUtils.make_png_file(sensorTest.total_noise_histograms,
+                            '%s_total_noise_hists.png' % file_prefix,
+                            dark_curr_pixels, read_noise, dark95s,
+                            exptime=16, title=det_name)
+    plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file)
+    siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
+                            dark95s=dark95s)
 
 
 def cte_jh_task(det_name):
@@ -344,45 +357,14 @@ def cte_jh_task(det_name):
     mask_files \
         = [item for item in mask_files if item.find('edge_rolloff') == -1]
 
-
-def cte_task(run, det_name, sflat_high_files, sflat):
-    """Single sensor execution of the CTE task."""
-    file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
-
-    task = sensorTest.CteTask()
-    task.run(file_prefix, sflat_high_files, flux_level='high', gains=gains,
-             mask_files=mask_files)
-    task.run(file_prefix, sflat_low_files, flux_level='low', gains=gains,
-             mask_files=mask_files)
-
-    plots = sensorTest.EOTestPlots(file_prefix,
-                                   results_file=eotest_results_file)
-
-    superflat_files = sorted(glob.glob('%s_superflat_*.fits' % file_prefix))
     png_files = []
-    for sflat_file in superflat_files:
-        flux_level = 'low'
-        if sflat_file.find('high') != -1:
-            flux_level = 'high'
-        png_files.append(sflat_file.replace('.fits', '.png'))
-        siteUtils.make_png_file(sensorTest.plot_flat,
-                                png_files[-1],
-                                sflat_file,
-                                title=('%s, CTE supeflat, %s flux '
-                                       % (title, flux_level)),
-                                annotation='ADU/pixel')
+    for flux_level, sflat_files in zip(('high', 'low'),
+                                       (sflat_high_files, sflat_low_files)):
+        superflat_file = cte_task(run, det_name, sflat_files, gains,
+                                  mask_files=mask_files, flux_level=flux_level)
 
-        png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
-        siteUtils.make_png_file(plots.cte_profiles,
-                                png_files[-1],
-                                flux_level, sflat_file, mask_files, serial=True)
-
-        png_files.append('%s_parallel_oscan_%s.png' % (file_prefix, flux_level))
-        siteUtils.make_png_file(plots.cte_profiles,
-                                png_files[-1],
-                                flux_level, sflat_file, mask_files,
-                                serial=False)
+        png_files.extend(plot_cte_results(run, det_name, superflat_file,
+                                          eotest_results_file))
 
     png_file_list = '{}_cte_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
@@ -390,7 +372,56 @@ def cte_task(run, det_name, sflat_high_files, sflat):
             output.write('{}\n'.format(item))
 
 
+def cte_task(run, det_name, sflat_files, gains, mask_files=mask_files,
+             flux_level='high'):
+    """Single sensor execution of the CTE task."""
+    file_prefix = make_file_prefix(run, det_name)
+    title = '{}, {}'.format(run, det_name)
+
+    task = sensorTest.CteTask()
+    task.run(file_prefix, sflat_files, flux_level=flux_level, gains=gains,
+             mask_files=mask_files)
+    # TODO: refactor CteTask to provide access to the superflat filename
+    # instead of recomputing it here.
+    superflat_file = '{}_superflat_{}.fits'.format(file_prefix, flux_level)
+    return superflat_file
+
+
+def plot_cte_results(run, det_name, superflat_file, eotest_results_file):
+    """
+    Create single CCD superflat mosaic plots and plots of the serial and
+    parallel CTE profiles.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+    flux_level = 'low' if 'low' in os.path.basename(superflat_file) else 'high'
+    plots \
+        = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file)
+
+    superflat_files = sorted(glob.glob('%s_superflat_*.fits' % file_prefix))
+    png_files = []
+    png_files.append(superflat_file.replace('.fits', '.png'))
+    siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
+                            superflat_file,
+                            title=('%s, CTE supeflat, %s flux '
+                                   % (title, flux_level)),
+                            annotation='ADU/pixel')
+
+    png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
+    siteUtils.make_png_file(plots.cte_profiles, png_files[-1], flux_level,
+                            superflat_file, mask_files, serial=True)
+
+    png_files.append('%s_parallel_oscan_%s.png' % (file_prefix, flux_level))
+    siteUtils.make_png_file(plots.cte_profiles, png_files[-1], flux_level,
+                            superflat_file, mask_files, serial=False)
+
+    return png_files
+
+
 def find_flat2_bot(file1):
+    """
+    Function to find the flat2 file corresponding to the flat1 frame
+    for BOT-level acquisitions.
+    """
     basename_pattern = '*_' + file1[-len('R22_S11.fits'):]
     pattern = os.path.join(file1.split('flat1')[0] + 'flat2',
                            basename_pattern)
@@ -398,11 +429,9 @@ def find_flat2_bot(file1):
     return flat2
 
 
-def flat_pairs_task(det_name):
-    """Single sensor execution of the flat pairs task."""
+def flat_pairs_jh_task(det_name):
+    """JH version of single sensor execution of the flat pairs task."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
-
     pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
@@ -414,17 +443,25 @@ def flat_pairs_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
-    use_exptime = False
+    return flat_pairs_task(run, det_name, flat_files, gains,
+                           mask_files=mask_files)
+
+
+def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
+                    flat2_finder=find_flat2_bot,
+                    linearity_spec_range=(1e4, 9e4), use_exptime=False):
+    """Single sensor execution of the flat pairs task."""
+    file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.FlatPairTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             linearity_spec_range=(1e4, 9e4), use_exptime=use_exptime,
-             flat2_finder=find_flat2_bot)
+             linearity_spec_range=linearity_spec_range,
+             use_exptime=use_exptime, flat2_finder=find2_finder)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
 
-    Ne_bounds = (1e4, 9e4)
+    Ne_bounds = linearity_spec_range
 
     detresp_file = '%s_det_response.fits' % file_prefix
     siteUtils.make_png_file(plots.linearity,
@@ -437,23 +474,30 @@ def flat_pairs_task(det_name):
                             Ne_bounds=Ne_bounds, use_exptime=use_exptime)
 
 
-def ptc_task(det_name):
-    """Single sensor execution of the PTC task."""
+def ptc_jh_task(det_name):
+    """JH version of single sensor execution of the PTC task."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
     pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("ptc_task: Flat pairs files not found for detector", det_name)
         return
-
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
+    return ptc_task(run, det_name, flat_files, gains,
+                    mask_files=mask_files)
+
+
+def ptc_task(run, det_name, flat_files, gains, mask_files=(),
+             flat2_finder=find_flat2_bot):
+    """Single sensor execution of the PTC task."""
+    file_prefix = make_file_prefix(run, det_name)
+
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             flat2_finder=find_flat2_bot)
+             flat2_finder=find2_finder)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -461,11 +505,9 @@ def ptc_task(det_name):
                             '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % file_prefix)
 
-
-def qe_task(det_name):
-    """Single sensor execution of the QE task."""
+def qe_jh_task(det_name):
+    """JH version of single sensor execution of the QE task."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
     pattern = 'lambda_flat_*/*_{}.fits'.format(det_name)
     lambda_files = siteUtils.dependency_glob(pattern)
     if not lambda_files:
@@ -479,7 +521,6 @@ def qe_task(det_name):
                    % siteUtils.getSiteName())
         raise RuntimeError(message)
 
-    correction_image = None
 #    correction_image = eotestUtils.getIlluminationNonUniformityImage()
 #    if correction_image is None:
 #        print()
@@ -488,13 +529,20 @@ def qe_task(det_name):
 #        print("No correction for non-uniform illumination will be applied.")
 #        print()
 #        sys.stdout.flush()
-
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
+    return qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
+                   mask_files=mask_files)
+
+def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
+            mask_files=(), correction_image=None, temp_set_point=-100):
+    """Single sensor execution of the QE task."""
+    file_prefix = make_file_prefix(run, det_name)
+
     task = sensorTest.QeTask()
-    task.config.temp_set_point = -100.
+    task.config.temp_set_point = temp_set_point
     task.run(file_prefix, lambda_files, pd_ratio_file, mask_files, gains,
              correction_image=correction_image)
 
@@ -513,15 +561,19 @@ def qe_task(det_name):
         print(str(eobj))
 
 
-def tearing_task(det_name):
-    """Single sensor execution of the tearing task."""
+def tearing_jh_task(det_name):
+    """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
     pattern = 'sflat_flat_*[LH]*/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
         return
+    return tearing_task(flat_files)
+
+def tearing_task(run, det_name, flat_files):
+    """Single sensor execution of the tearing task."""
+    file_prefix = make_file_prefix(run, det_name)
 
     tearing_found, _ = tearing_detection(flat_files)
     tearing_stats = [('BOT_EO_acq', 'N/A', det_name, len(tearing_found))]
