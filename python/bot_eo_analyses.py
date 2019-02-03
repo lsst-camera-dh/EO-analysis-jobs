@@ -5,7 +5,6 @@ from __future__ import print_function
 import os
 import glob
 import pickle
-import warnings
 import configparser
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +15,6 @@ import eotestUtils
 import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
-from multiprocessor_execution import run_device_analysis_pool
 from tearing_detection import tearing_detection
 
 __all__ = ['fe55_task', 'fe55_jh_task',
@@ -54,7 +52,7 @@ def fe55_jh_task(det_name):
     bias_files = siteUtils.dependency_glob(pattern)
     if not fe55_files or not bias_files:
         print("fe55_task: Needed data files missing for detector", det_name)
-        return
+        return None
     return fe55_task(run, det_name, fe55_files, bias_files)
 
 
@@ -137,7 +135,7 @@ def read_noise_jh_task(det_name):
     if not bias_files:
         print("read_noise_task: Needed data files are missing for detector",
               det_name)
-        return
+        return None
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
@@ -168,13 +166,12 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
 def raft_jh_noise_correlations(raft_name):
     """JH version of raft-level noise-correlation analysis."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
     pattern = 'fe55_bias_*/*_{}_S??.fits'.format(raft_name)
     bias_files = siteUtils.dependency_glob(pattern)
     if not bias_files:
         print("raft_noise_correlatiosn: Missing bias files for raft",
               raft_name)
-        return
+        return None
     return raft_noise_correlations(run, raft_name, bias_files)
 
 
@@ -204,7 +201,7 @@ def bright_defects_jh_task(det_name):
     if not dark_files:
         print("bright_defects_task: Needed data files missing for detector",
               det_name)
-        return
+        return None
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
@@ -238,7 +235,7 @@ def dark_defects_jh_task(det_name):
     if not sflat_files:
         print("dark_defects_task: No high flux superflat files found for",
               det_name)
-        return
+        return None
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     return dark_defects_task(run, det_name, sflat_files, mask_files=mask_files)
 
@@ -265,7 +262,7 @@ def traps_jh_task(det_name):
     trap_files = siteUtils.dependency_glob(pattern)
     if not trap_files:
         print("traps_task: No pocket pumping file found for detector", det_name)
-        return
+        return None
     trap_file = trap_files[0]
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
@@ -295,7 +292,7 @@ def dark_current_jh_task(det_name):
     dark_files = siteUtils.dependency_glob(pattern)
     if not dark_files:
         print("dark_current_task: No dark files found for detector", det_name)
-        return
+        return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
@@ -352,7 +349,7 @@ def cte_jh_task(det_name):
 
     if not sflat_high_files and not sflat_low_files:
         print("cte_task: Superflat files not found for detector", det_name)
-        return
+        return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
@@ -378,12 +375,13 @@ def cte_jh_task(det_name):
         for item in png_files:
             output.write('{}\n'.format(item))
 
+    return None
 
-def cte_task(run, det_name, sflat_files, gains, mask_files=mask_files,
+
+def cte_task(run, det_name, sflat_files, gains, mask_files=(),
              flux_level='high'):
     """Single sensor execution of the CTE task."""
     file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
 
     task = sensorTest.CteTask()
     task.run(file_prefix, sflat_files, flux_level=flux_level, gains=gains,
@@ -405,12 +403,11 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
     plots \
         = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file)
 
-    superflat_files = sorted(glob.glob('%s_superflat_*.fits' % file_prefix))
     png_files = []
     png_files.append(superflat_file.replace('.fits', '.png'))
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
                             superflat_file,
-                            title=('%s, %, CTE supeflat, %s flux '
+                            title=('%s, %s, CTE supeflat, %s flux '
                                    % (run, det_name, flux_level)),
                             annotation='ADU/pixel')
 
@@ -446,7 +443,7 @@ def flat_pairs_jh_task(det_name):
     if not flat_files:
         print("flat_pairs_task: Flat pairs files not found for detector",
               det_name)
-        return
+        return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
@@ -470,17 +467,17 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
 
-    Ne_bounds = linearity_spec_range
-
     detresp_file = '%s_det_response.fits' % file_prefix
     siteUtils.make_png_file(plots.linearity,
                             '%s_linearity.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
-                            use_exptime=use_exptime, Ne_bounds=Ne_bounds)
+                            use_exptime=use_exptime,
+                            Ne_bounds=linearity_spec_range)
     siteUtils.make_png_file(plots.linearity_resids,
                             '%s_linearity_resids.png' % file_prefix,
                             detresp_file=detresp_file, max_dev=0.03,
-                            Ne_bounds=Ne_bounds, use_exptime=use_exptime)
+                            Ne_bounds=linearity_spec_range,
+                            use_exptime=use_exptime)
 
 
 def ptc_jh_task(det_name):
@@ -491,7 +488,7 @@ def ptc_jh_task(det_name):
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("ptc_task: Flat pairs files not found for detector", det_name)
-        return
+        return None
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
@@ -507,7 +504,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
 
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             flat2_finder=find2_finder)
+             flat2_finder=flat2_finder)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -523,7 +520,7 @@ def qe_jh_task(det_name):
     lambda_files = siteUtils.dependency_glob(pattern)
     if not lambda_files:
         print("qe_task: QE scan files not found for detector", det_name)
-        return
+        return None
 
     pd_ratio_file = eotestUtils.getPhotodiodeRatioFile()
     if pd_ratio_file is None:
@@ -575,12 +572,11 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
 def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
     pattern = 'sflat_flat_*[LH]*/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
-        return
+        return None
     return tearing_task(run, det_name, flat_files)
 
 def tearing_task(run, det_name, flat_files):
@@ -600,7 +596,7 @@ def get_raft_files_by_slot(raft_name, file_suffix):
     template = '{}_{}_{}_' + file_suffix
     raft_files = dict()
     for slot_name in camera_info.get_slot_names():
-        filename = template.format(run, raft_name, slot_name)
+        filename = template.format(raft_name, slot_name, run)
         if os.path.isfile(filename):
             raft_files[slot_name] = filename
     if not raft_files:
@@ -619,7 +615,7 @@ def raft_results_task(raft_name):
             = get_raft_files_by_slot(raft_name, 'eotest_results.fits')
     except FileNotFoundError:
         print("No raft-level results for", raft_name)
-        return
+        return None
 
     # Determine the total number of pixels and number of edge rolloff
     # pixels for the types of CCDs in this raft and update the results
@@ -780,6 +776,8 @@ def raft_results_task(raft_name):
         for item in png_files:
             output.write('{}\n'.format(item))
 
+    return None
+
 
 def get_analysis_types(bot_eo_config_file=None):
     """"Get the analysis types to be performed from the BOT-level EO config."""
@@ -803,5 +801,3 @@ def get_analysis_types(bot_eo_config_file=None):
         analysis_types.append(analysis_type)
 
     return analysis_types
-
-

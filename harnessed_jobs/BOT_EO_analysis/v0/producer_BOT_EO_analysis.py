@@ -8,7 +8,7 @@ from camera_components import camera_info
 from bot_eo_analyses import fe55_jh_task, read_noise_jh_task, \
     dark_current_jh_task, bright_defects_jh_task, dark_defects_jh_task, \
     ptc_jh_task, flat_pairs_jh_task, cte_jh_task, tearing_jh_task, \
-    get_analysis_types
+    get_analysis_types, raft_jh_noise_correlations, raft_results_task
 
 # Use the all of the available cores for processing.
 processes = None
@@ -43,7 +43,7 @@ if 'biasnoise' in analysis_types:
     print("**************************************")
     print("Running analysis type biasnoise")
     print("**************************************")
-    run_device_analysis_pool(raft_noise_correlations, raft_names,
+    run_device_analysis_pool(raft_jh_noise_correlations, raft_names,
                              processes=processes)
 
 print("**************************************")
