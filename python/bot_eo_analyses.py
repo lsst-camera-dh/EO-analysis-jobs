@@ -130,6 +130,7 @@ def get_amplifier_gains(eotest_results_file):
 def read_noise_jh_task(det_name):
     """JH version of the single sensor read noise task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
 
     bias_files \
         = siteUtils.dependency_glob('fe55_fe55_*/*_{}.fits'.format(det_name))
@@ -167,6 +168,7 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
 def raft_jh_noise_correlations(raft_name):
     """JH version of raft-level noise-correlation analysis."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'fe55_bias_*/*_{}_S??.fits'.format(raft_name)
     bias_files = siteUtils.dependency_glob(pattern)
     if not bias_files:
@@ -189,13 +191,14 @@ def raft_noise_correlations(run, raft_name, bias_files):
             if det_name in os.path.basename(item):
                 bias_file_dict[slot_name] = item
     title = "Overscan correlations, Run {}, {}".format(run, raft_name)
-    raft_level_overscan_correlations(bias_file_dict, title=title)
+    raft_level_oscan_correlations(bias_file_dict, title=title)
     plt.savefig('{}_overscan_correlations.png'.format(file_prefix))
 
 
 def bright_defects_jh_task(det_name):
     """JH version of single sensor bright pixels task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
     dark_files = siteUtils.dependency_glob(pattern)
     if not dark_files:
@@ -229,6 +232,7 @@ def bright_defects_task(run, det_name, dark_files, gains, mask_files=()):
 def dark_defects_jh_task(det_name):
     """JH version of single sensor execution of the dark defects task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
     sflat_files = siteUtils.dependency_glob(pattern)
     if not sflat_files:
@@ -256,7 +260,7 @@ def dark_defects_task(run, det_name, sflat_files, mask_files=()):
 def traps_jh_task(det_name):
     """JH version of single sensor execution of the traps analysis task."""
     run = siteUtils.getRunNumber()
-
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'trap_ppump_000/*_{}.fits'.format(det_name)
     trap_files = siteUtils.dependency_glob(pattern)
     if not trap_files:
@@ -286,6 +290,7 @@ def traps_task(run, det_name, trap_file, gains, mask_files=()):
 def dark_current_jh_task(det_name):
     """JH version of single sensor execution of the dark current task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
     dark_files = siteUtils.dependency_glob(pattern)
     if not dark_files:
@@ -298,9 +303,9 @@ def dark_current_jh_task(det_name):
     gains = get_amplifier_gains(eotest_results_file)
     dark_curr_pixels, dark95s \
         = dark_current_task(run, det_name, dark_files, gains,
-                            mask_files=mask_files,
-                            eotest_results_file=eotest_results_file)
-    plot_ccd_total_noise(dark_curr_pixels, dark95s, eotest_results_file)
+                            mask_files=mask_files)
+    plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
+                         eotest_results_file)
     return dark_curr_pixels, dark95s
 
 
@@ -338,6 +343,7 @@ def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
 def cte_jh_task(det_name):
     """JH version of single sensor execution of the CTE task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
     sflat_high_files = siteUtils.dependency_glob(pattern)
 
@@ -364,7 +370,8 @@ def cte_jh_task(det_name):
                                   mask_files=mask_files, flux_level=flux_level)
 
         png_files.extend(plot_cte_results(run, det_name, superflat_file,
-                                          eotest_results_file))
+                                          eotest_results_file,
+                                          mask_files=mask_files))
 
     png_file_list = '{}_cte_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
@@ -387,7 +394,8 @@ def cte_task(run, det_name, sflat_files, gains, mask_files=mask_files,
     return superflat_file
 
 
-def plot_cte_results(run, det_name, superflat_file, eotest_results_file):
+def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
+                     mask_files=()):
     """
     Create single CCD superflat mosaic plots and plots of the serial and
     parallel CTE profiles.
@@ -402,8 +410,8 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file):
     png_files.append(superflat_file.replace('.fits', '.png'))
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
                             superflat_file,
-                            title=('%s, CTE supeflat, %s flux '
-                                   % (title, flux_level)),
+                            title=('%s, %, CTE supeflat, %s flux '
+                                   % (run, det_name, flux_level)),
                             annotation='ADU/pixel')
 
     png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
@@ -432,6 +440,7 @@ def find_flat2_bot(file1):
 def flat_pairs_jh_task(det_name):
     """JH version of single sensor execution of the flat pairs task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
@@ -456,7 +465,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     task = sensorTest.FlatPairTask()
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
-             use_exptime=use_exptime, flat2_finder=find2_finder)
+             use_exptime=use_exptime, flat2_finder=flat2_finder)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -477,6 +486,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
 def ptc_jh_task(det_name):
     """JH version of single sensor execution of the PTC task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'flat*flat?/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
@@ -508,6 +518,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
 def qe_jh_task(det_name):
     """JH version of single sensor execution of the QE task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'lambda_flat_*/*_{}.fits'.format(det_name)
     lambda_files = siteUtils.dependency_glob(pattern)
     if not lambda_files:
@@ -564,12 +575,13 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
 def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     pattern = 'sflat_flat_*[LH]*/*_{}.fits'.format(det_name)
     flat_files = siteUtils.dependency_glob(pattern)
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
         return
-    return tearing_task(flat_files)
+    return tearing_task(run, det_name, flat_files)
 
 def tearing_task(run, det_name, flat_files):
     """Single sensor execution of the tearing task."""

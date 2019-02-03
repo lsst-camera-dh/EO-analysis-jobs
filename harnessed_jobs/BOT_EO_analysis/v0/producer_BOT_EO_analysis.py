@@ -5,21 +5,22 @@ Producer script for BOT analyses.
 from __future__ import print_function
 from multiprocessor_execution import run_device_analysis_pool
 from camera_components import camera_info
-from bot_eo_analyses import fe55_task, read_noise_task, dark_current_task, \
-    bright_defects_task, dark_defects_task, ptc_task, flat_pairs_task, \
-    cte_task, tearing_task, get_analysis_types
+from bot_eo_analyses import fe55_jh_task, read_noise_jh_task, \
+    dark_current_jh_task, bright_defects_jh_task, dark_defects_jh_task, \
+    ptc_jh_task, flat_pairs_jh_task, cte_jh_task, tearing_jh_task, \
+    get_analysis_types
 
 # Use the all of the available cores for processing.
 processes = None
 
-task_mapping = {'gain': (fe55_task,),
-                'biasnoise': (read_noise_task,),
-                'dark': (dark_current_task,),
-                'badpixel': (bright_defects_task, dark_defects_task),
-                'ptc': (ptc_task,),
-                'linearity': (flat_pairs_task,),
-                'cti': (cte_task,),
-                'tearing': (tearing_task,)}
+task_mapping = {'gain': (fe55_jh_task,),
+                'biasnoise': (read_noise_jh_task,),
+                'dark': (dark_current_jh_task,),
+                'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
+                'ptc': (ptc_jh_task,),
+                'linearity': (flat_pairs_jh_task,),
+                'cti': (cte_jh_task,),
+                'tearing': (tearing_jh_task,)}
 
 analysis_types = get_analysis_types()
 
