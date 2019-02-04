@@ -17,7 +17,8 @@ from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
 
-__all__ = ['fe55_task', 'fe55_jh_task',
+__all__ = ['make_file_prefix',
+           'fe55_task', 'fe55_jh_task',
            'read_noise_task', 'read_noise_jh_task',
            'raft_noise_correlations', 'raft_jh_noise_correlations',
            'bright_defects_task', 'bright_defects_jh_task',
