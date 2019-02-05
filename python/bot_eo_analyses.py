@@ -4,6 +4,7 @@ Producer script for BOT analyses.
 from __future__ import print_function
 import os
 import glob
+import copy
 import pickle
 import configparser
 import matplotlib.pyplot as plt
@@ -158,7 +159,8 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
              mask_files=mask_files, use_overscan=True)
 
     # Compute amp-amp correlated noise.
-    _, corr_fig, _ = correlated_noise(bias_files, target=0,
+    my_bias_files = copy.deepcopy(bias_files)
+    _, corr_fig, _ = correlated_noise(my_bias_files, target=0,
                                       make_plots=True, title=title)
     plt.figure(corr_fig.number)
     plt.savefig('%s_correlated_noise.png' % file_prefix)
@@ -173,12 +175,6 @@ def raft_jh_noise_correlations(raft_name):
         print("raft_noise_correlatiosn: Missing bias files for raft",
               raft_name)
         return None
-    return raft_noise_correlations(run, raft_name, bias_files)
-
-
-def raft_noise_correlations(run, raft_name, bias_files):
-    """Raft-level noise-correlation analysis."""
-    file_prefix = make_file_prefix(run, raft_name)
     bias_file_dict = dict()
     slot_names = camera_info.get_slot_names()
     for item in bias_files:
@@ -188,6 +184,12 @@ def raft_noise_correlations(run, raft_name, bias_files):
             det_name = '{}_{}'.format(raft_name, slot_name)
             if det_name in os.path.basename(item):
                 bias_file_dict[slot_name] = item
+    return raft_noise_correlations(run, raft_name, bias_file_dict)
+
+
+def raft_noise_correlations(run, raft_name, bias_file_dict):
+    """Raft-level noise-correlation analysis."""
+    file_prefix = make_file_prefix(run, raft_name)
     title = "Overscan correlations, Run {}, {}".format(run, raft_name)
     raft_level_oscan_correlations(bias_file_dict, title=title)
     plt.savefig('{}_overscan_correlations.png'.format(file_prefix))
