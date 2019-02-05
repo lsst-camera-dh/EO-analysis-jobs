@@ -89,7 +89,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
 
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
-    task.run(file_prefix, fe55_files, (rolloff_mask_file,), accuracy_req=0.01)
+    task.run(file_prefix, fe55_files, (rolloff_mask_file,), bias_frame=mean_bias_file,
+             accuracy_req=0.01)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
