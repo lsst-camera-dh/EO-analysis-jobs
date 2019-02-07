@@ -35,23 +35,26 @@ __all__ = ['make_file_prefix',
            'tearing_task', 'tearing_jh_task',
            'raft_results_task',
            'get_analysis_types',
-           'get_glob_patterns']
+           'GlobPattern']
 
 
-def get_glob_patterns():
-    """
-    Return a dictionary with the glob patterns to use with
-    each EO task.
-    """
-    default_config = os.path.join(os.environ['EOANALYSISJOBSDIR'],
-                                  'data', 'BOT_jh_glob_patterns.ini')
-    config_file = os.environ.get('LCATR_JH_GLOB_PATTERN_FILE', default_config)
-    config = configparser.ConfigParser(inline_comment_prefixes=("#", ))
-    config.optionxform = str
-    config.read(config_file)
-    return {k: v for k, v in config.items('BOT_acq')}
+class GlobPattern:
+    """Functor class to return glob patterns for finding BOT_acq data."""
+    def __init__(self):
+        config = configparser.ConfigParser(inline_comment_prefixes=("#", ))
+        config.optionxform = str
+        default_config = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                                      'data', 'BOT_jh_glob_patterns.ini')
+        cfg_file = os.environ.get('LCATR_JH_GLOB_PATTERN_FILE', default_config)
+        config.read(cfg_file)
+        self.task_patterns = {k: v for k, v in config.items('BOT_acq')}
 
-patterns = get_glob_patterns()
+    def __call__(self, task, det_name):
+        pattern = self.task_patterns[task]
+        return '{}/*_{}.fits'.format(pattern, det_name)
+
+
+glob_pattern = GlobPattern()
 
 
 def make_file_prefix(run, component_name):
@@ -65,10 +68,8 @@ def make_file_prefix(run, component_name):
 def fe55_jh_task(det_name):
     "JH version of single sensor execution of the Fe55 analysis task."
     run = siteUtils.getRunNumber()
-    pattern = 'fe55_fe55_*/*_{}.fits'.format(det_name)
-    fe55_files = siteUtils.dependency_glob(pattern)
-    pattern = 'fe55_bias_*/*_{}.fits'.format(det_name)
-    bias_files = siteUtils.dependency_glob(pattern)
+    fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name))
+    bias_files = siteUtils.dependency_glob(glob_pattern('fe55_bias', det_name))
     if not fe55_files or not bias_files:
         print("fe55_task: Needed data files missing for detector", det_name)
         return None
@@ -106,8 +107,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
 
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
-    task.run(file_prefix, fe55_files, (rolloff_mask_file,), bias_frame=mean_bias_file,
-             accuracy_req=0.01)
+    task.run(file_prefix, fe55_files, (rolloff_mask_file,),
+             bias_frame=mean_bias_file, accuracy_req=0.01)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -151,7 +152,7 @@ def read_noise_jh_task(det_name):
     file_prefix = make_file_prefix(run, det_name)
 
     bias_files \
-        = siteUtils.dependency_glob('fe55_fe55_*/*_{}.fits'.format(det_name))
+        = siteUtils.dependency_glob(glob_pattern('read_noise', det_name))
     if not bias_files:
         print("read_noise_task: Needed data files are missing for detector",
               det_name)
@@ -187,8 +188,9 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
 def raft_jh_noise_correlations(raft_name):
     """JH version of raft-level noise-correlation analysis."""
     run = siteUtils.getRunNumber()
-    pattern = 'fe55_bias_*/*_{}_S??.fits'.format(raft_name)
-    bias_files = siteUtils.dependency_glob(pattern)
+    bias_files \
+        = siteUtils.dependency_glob(glob_pattern('raft_noise_correlations',
+                                                 '{}_S??'.format(raft_name)))
     if not bias_files:
         print("raft_noise_correlatiosn: Missing bias files for raft",
               raft_name)
@@ -217,15 +219,18 @@ def bright_defects_jh_task(det_name):
     """JH version of single sensor bright pixels task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
-    dark_files = siteUtils.dependency_glob(pattern)
+
+    dark_files \
+        = siteUtils.dependency_glob(glob_pattern('bright_defects', det_name))
     if not dark_files:
         print("bright_defects_task: Needed data files missing for detector",
               det_name)
         return None
+
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+
     return bright_defects_task(run, det_name, dark_files, gains,
                                mask_files=mask_files)
 
@@ -251,13 +256,16 @@ def dark_defects_jh_task(det_name):
     """JH version of single sensor execution of the dark defects task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
-    sflat_files = siteUtils.dependency_glob(pattern)
+
+    sflat_files \
+        = siteUtils.dependency_glob(glob_pattern('dark_defects', det_name))
     if not sflat_files:
         print("dark_defects_task: No high flux superflat files found for",
               det_name)
         return None
+
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+
     return dark_defects_task(run, det_name, sflat_files, mask_files=mask_files)
 
 
@@ -279,12 +287,14 @@ def traps_jh_task(det_name):
     """JH version of single sensor execution of the traps analysis task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'trap_ppump_000/*_{}.fits'.format(det_name)
-    trap_files = siteUtils.dependency_glob(pattern)
+
+    trap_files = siteUtils.dependency_glob(glob_pattern('traps', det_name))
     if not trap_files:
-        print("traps_task: No pocket pumping file found for detector", det_name)
+        print("traps_task: No pocket pumping file found for detector",
+              det_name)
         return None
     trap_file = trap_files[0]
+
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     # Omit rolloff defects mask since a trap in the rolloff edge region can
@@ -309,16 +319,17 @@ def dark_current_jh_task(det_name):
     """JH version of single sensor execution of the dark current task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'dark_dark_*/*_{}.fits'.format(det_name)
-    dark_files = siteUtils.dependency_glob(pattern)
+
+    dark_files \
+        = siteUtils.dependency_glob(glob_pattern('dark_current', det_name))
     if not dark_files:
         print("dark_current_task: No dark files found for detector", det_name)
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+
     dark_curr_pixels, dark95s \
         = dark_current_task(run, det_name, dark_files, gains,
                             mask_files=mask_files)
@@ -333,9 +344,7 @@ def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = temp_set_point
-    dark_curr_pixels, dark95s \
-        = task.run(file_prefix, dark_files, mask_files, gains)
-    return dark_curr_pixels, dark95s
+    return task.run(file_prefix, dark_files, mask_files, gains)
 
 
 def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
@@ -362,12 +371,11 @@ def cte_jh_task(det_name):
     """JH version of single sensor execution of the CTE task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'sflat_flat_*H*/*_{}.fits'.format(det_name)
-    sflat_high_files = siteUtils.dependency_glob(pattern)
 
-    pattern = 'sflat_flat_*L*/*_{}.fits'.format(det_name)
-    sflat_low_files = siteUtils.dependency_glob(pattern)
-
+    sflat_high_files \
+        = siteUtils.dependency_glob(glob_pattern('cte_high', det_name))
+    sflat_low_files \
+        = siteUtils.dependency_glob(glob_pattern('cte_low', det_name))
     if not sflat_high_files and not sflat_low_files:
         print("cte_task: Superflat files not found for detector", det_name)
         return None
@@ -376,6 +384,7 @@ def cte_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+
     # Omit rolloff defects mask since it would mask some of the edges used
     # in the eper method.
     mask_files \
@@ -459,8 +468,9 @@ def flat_pairs_jh_task(det_name):
     """JH version of single sensor execution of the flat pairs task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'flat*flat?/*_{}.fits'.format(det_name)
-    flat_files = siteUtils.dependency_glob(pattern)
+
+    flat_files \
+        = siteUtils.dependency_glob(glob_pattern('flat_pairs', det_name))
     if not flat_files:
         print("flat_pairs_task: Flat pairs files not found for detector",
               det_name)
@@ -505,11 +515,12 @@ def ptc_jh_task(det_name):
     """JH version of single sensor execution of the PTC task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'flat*flat?/*_{}.fits'.format(det_name)
-    flat_files = siteUtils.dependency_glob(pattern)
+
+    flat_files = siteUtils.dependency_glob(glob_pattern('ptc', det_name))
     if not flat_files:
         print("ptc_task: Flat pairs files not found for detector", det_name)
         return None
+
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
@@ -537,8 +548,8 @@ def qe_jh_task(det_name):
     """JH version of single sensor execution of the QE task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    pattern = 'lambda_flat_*/*_{}.fits'.format(det_name)
-    lambda_files = siteUtils.dependency_glob(pattern)
+
+    lambda_files = siteUtils.dependency_glob(glob_pattern('qe', det_name))
     if not lambda_files:
         print("qe_task: QE scan files not found for detector", det_name)
         return None
@@ -593,8 +604,7 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
 def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
-    pattern = 'sflat_flat_*[LH]*/*_{}.fits'.format(det_name)
-    flat_files = siteUtils.dependency_glob(pattern)
+    flat_files = siteUtils.dependency_glob(glob_pattern('tearing', det_name))
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
         return None
