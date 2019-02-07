@@ -8,7 +8,7 @@ import siteUtils
 
 __all__ = ['tearing_detection', 'persist_tearing_png_files']
 
-def tearing_detection(fitsfiles, make_png_files=False):
+def tearing_detection(fitsfiles, make_png_files=False, bias_frame=None):
     """
     Run the tearing detection code over a collection of single
     sensor flats.
@@ -21,6 +21,8 @@ def tearing_detection(fitsfiles, make_png_files=False):
         be later persisted by slot number.
     make_png_files: bool [False]
         Flag to make png files of the tearing profiles.
+    bias_frame: str [None]
+        Name of bias frame file. If None, then overscan region will be used.
 
     Returns
     -------
@@ -31,7 +33,7 @@ def tearing_detection(fitsfiles, make_png_files=False):
     files_with_tearing = []
     png_files = []
     for filename in fitsfiles:
-        ts = sensorTest.TearingStats(filename)
+        ts = sensorTest.TearingStats(filename, bias_frame=bias_frame)
         if ts.has_tearing():
             files_with_tearing.append(filename)
             if make_png_files:

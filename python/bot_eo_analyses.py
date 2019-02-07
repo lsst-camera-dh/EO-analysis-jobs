@@ -65,6 +65,16 @@ def make_file_prefix(run, component_name):
     return "{}_{}".format(component_name, run)
 
 
+def bias_filename(file_prefix, check_is_file=True):
+    """
+    Name of bias frame file derived from stacked bias files.
+    """
+    filename = '{}_median_bias.fits'.format(file_prefix)
+    if check_is_file and not os.path.isfile(filename):
+        return None
+    return filename
+
+
 def fe55_jh_task(det_name):
     "JH version of single sensor execution of the Fe55 analysis task."
     run = siteUtils.getRunNumber()
@@ -81,8 +91,10 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    mean_bias_file = '{}_mean_bias.fits'.format(file_prefix)
-    imutils.fits_mean_file(bias_files, mean_bias_file)
+    bias_frame = bias_filename('{}_{}'.format(file_prefix, 'fe55'),
+                               check_is_file=False)
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
     pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
 
@@ -108,7 +120,7 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
     task.run(file_prefix, fe55_files, (rolloff_mask_file,),
-             bias_frame=mean_bias_file, accuracy_req=0.01)
+             bias_frame=bias_frame, accuracy_req=0.01)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -117,10 +129,9 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     png_files.append('%s_gains.png' % file_prefix)
     siteUtils.make_png_file(plots.gains, png_files[-1])
 
-    png_files.append('%s_mean_bias.png' % file_prefix)
-    siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
-                            mean_bias_file,
-                            title='%s, mean bias frame' % title,
+    png_files.append('%s_fe55_median_bias.png' % file_prefix)
+    siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1], bias_frame,
+                            title='%s, median bias frame' % title,
                             annotation='ADU/pixel, overscan-subtracted')
 
     fe55_file = glob.glob('%s_psf_results*.fits' % file_prefix)[0]
@@ -171,6 +182,11 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
     """Run the read noise tasks on a single detector."""
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
+
+    # Create a median bias file for use by downstream tasks.
+    bias_frame = bias_filename(file_prefix, check_is_file=False)
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
     task = sensorTest.ReadNoiseTask()
     task.config.temp_set_point = -100.
@@ -231,18 +247,21 @@ def bright_defects_jh_task(det_name):
     gains = get_amplifier_gains(eotest_results_file)
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
+    bias_frame = bias_filename(file_prefix)
+
     return bright_defects_task(run, det_name, dark_files, gains,
-                               mask_files=mask_files)
+                               mask_files=mask_files, bias_frame=bias_frame)
 
 
-def bright_defects_task(run, det_name, dark_files, gains, mask_files=()):
+def bright_defects_task(run, det_name, dark_files, gains, mask_files=(),
+                        bias_frame=None):
     "Single sensor execution of the bright pixels task."
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
-    task.run(file_prefix, dark_files, mask_files, gains)
+    task.run(file_prefix, dark_files, mask_files, gains, bias_frame=bias_frame)
 
     title = '%s, medianed dark for bright defects analysis' % file_prefix
     annotation = 'e-/pixel, gain-corrected, bias-subtracted'
@@ -265,17 +284,20 @@ def dark_defects_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    bias_frame = bias_filename(file_prefix)
 
-    return dark_defects_task(run, det_name, sflat_files, mask_files=mask_files)
+    return dark_defects_task(run, det_name, sflat_files, mask_files=mask_files,
+                             bias_frame=bias_frame)
 
 
-def dark_defects_task(run, det_name, sflat_files, mask_files=()):
+def dark_defects_task(run, det_name, sflat_files, mask_files=(),
+                      bias_frame=None):
     """Single sensor execution of the dark defects task."""
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
     task = sensorTest.DarkPixelsTask()
-    task.run(file_prefix, sflat_files, mask_files)
+    task.run(file_prefix, sflat_files, mask_files, bias_frame=bias_frame)
 
     title = '%s, superflat for dark defects analysis' % file_prefix
     siteUtils.make_png_file(sensorTest.plot_flat,
@@ -305,14 +327,17 @@ def traps_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
-    return traps_task(run, det_name, trap_file, gains, mask_files=mask_files)
+    bias_frame = bias_filename(file_prefix)
+
+    return traps_task(run, det_name, trap_file, gains, mask_files=mask_files,
+                      bias_frame=bias_frame)
 
 
-def traps_task(run, det_name, trap_file, gains, mask_files=()):
+def traps_task(run, det_name, trap_file, gains, mask_files=(), bias_frame=None):
     """Single sensor execution of the traps analysis task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.TrapTask()
-    task.run(file_prefix, trap_file, mask_files, gains)
+    task.run(file_prefix, trap_file, mask_files, gains, bias_frame=bias_frame)
 
 
 def dark_current_jh_task(det_name):
@@ -329,22 +354,24 @@ def dark_current_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+    bias_frame = bias_filename(file_prefix)
 
     dark_curr_pixels, dark95s \
         = dark_current_task(run, det_name, dark_files, gains,
-                            mask_files=mask_files)
+                            mask_files=mask_files, bias_frame=bias_frame)
     plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
                          eotest_results_file)
     return dark_curr_pixels, dark95s
 
 
 def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
-                      temp_set_point=-100.):
+                      temp_set_point=-100., bias_frame=None):
     """Single sensor execution of the dark current task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = temp_set_point
-    return task.run(file_prefix, dark_files, mask_files, gains)
+    return task.run(file_prefix, dark_files, mask_files, gains,
+                    bias_frame=bias_frame)
 
 
 def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
@@ -385,6 +412,8 @@ def cte_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
+    bias_frame = bias_filename(file_prefix)
+
     # Omit rolloff defects mask since it would mask some of the edges used
     # in the eper method.
     mask_files \
@@ -394,7 +423,8 @@ def cte_jh_task(det_name):
     for flux_level, sflat_files in zip(('high', 'low'),
                                        (sflat_high_files, sflat_low_files)):
         superflat_file = cte_task(run, det_name, sflat_files, gains,
-                                  mask_files=mask_files, flux_level=flux_level)
+                                  mask_files=mask_files, flux_level=flux_level,
+                                  bias_frame=bias_frame)
 
         png_files.extend(plot_cte_results(run, det_name, superflat_file,
                                           eotest_results_file,
@@ -409,13 +439,13 @@ def cte_jh_task(det_name):
 
 
 def cte_task(run, det_name, sflat_files, gains, mask_files=(),
-             flux_level='high'):
+             flux_level='high', bias_frame=None):
     """Single sensor execution of the CTE task."""
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.CteTask()
     task.run(file_prefix, sflat_files, flux_level=flux_level, gains=gains,
-             mask_files=mask_files)
+             mask_files=mask_files, bias_frame=bias_frame)
     # TODO: refactor CteTask to provide access to the superflat filename
     # instead of recomputing it here.
     superflat_file = '{}_superflat_{}.fits'.format(file_prefix, flux_level)
@@ -479,21 +509,24 @@ def flat_pairs_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+    bias_frame = bias_filename(file_prefix)
 
     return flat_pairs_task(run, det_name, flat_files, gains,
-                           mask_files=mask_files)
+                           mask_files=mask_files, bias_frame=bias_frame)
 
 
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
-                    linearity_spec_range=(1e4, 9e4), use_exptime=False):
+                    linearity_spec_range=(1e4, 9e4), use_exptime=False,
+                    bias_frame=None):
     """Single sensor execution of the flat pairs task."""
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.FlatPairTask()
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
-             use_exptime=use_exptime, flat2_finder=flat2_finder)
+             use_exptime=use_exptime, flat2_finder=flat2_finder,
+             bias_frame=bias_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -524,19 +557,20 @@ def ptc_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+    bias_frame = bias_filename(file_prefix)
 
     return ptc_task(run, det_name, flat_files, gains,
-                    mask_files=mask_files)
+                    mask_files=mask_files, bias_frame=bias_frame)
 
 
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
-             flat2_finder=find_flat2_bot):
+             flat2_finder=find_flat2_bot, bias_frame=None):
     """Single sensor execution of the PTC task."""
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             flat2_finder=flat2_finder)
+             flat2_finder=flat2_finder, bias_frame=bias_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -572,19 +606,21 @@ def qe_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+    bias_frame = bias_filename(file_prefix)
 
     return qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
-                   mask_files=mask_files)
+                   mask_files=mask_files, bias_frame=bias_frame)
 
 def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
-            mask_files=(), correction_image=None, temp_set_point=-100):
+            mask_files=(), correction_image=None, temp_set_point=-100,
+            bias_frame=None):
     """Single sensor execution of the QE task."""
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.QeTask()
     task.config.temp_set_point = temp_set_point
     task.run(file_prefix, lambda_files, pd_ratio_file, mask_files, gains,
-             correction_image=correction_image)
+             correction_image=correction_image, bias_frame=bias_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -604,17 +640,19 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
 def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
     flat_files = siteUtils.dependency_glob(glob_pattern('tearing', det_name))
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
         return None
-    return tearing_task(run, det_name, flat_files)
+    bias_frame = bias_filename(file_prefix)
+    return tearing_task(run, det_name, flat_files, bias_frame=bias_frame)
 
-def tearing_task(run, det_name, flat_files):
+def tearing_task(run, det_name, flat_files, bias_frame=None):
     """Single sensor execution of the tearing task."""
     file_prefix = make_file_prefix(run, det_name)
 
-    tearing_found, _ = tearing_detection(flat_files)
+    tearing_found, _ = tearing_detection(flat_files, bias_frame=bias_frame)
     tearing_stats = [('BOT_EO_acq', 'N/A', det_name, len(tearing_found))]
 
     with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
@@ -651,9 +689,9 @@ def raft_results_task(raft_name):
     # Determine the total number of pixels and number of edge rolloff
     # pixels for the types of CCDs in this raft and update the results
     # files.  This info will be used in computing the pixel defect
-    # compliance.  Use one of the mean bias files for this since they
+    # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
-    bias_files = get_raft_files_by_slot(raft_name, 'mean_bias.fits')
+    bias_files = get_raft_files_by_slot(raft_name, 'median_bias.fits')
     mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
 
     total_num, rolloff_mask \
@@ -688,11 +726,11 @@ def raft_results_task(raft_name):
              for slot_name in results_files}
 
     # Mean bias mosaic.
-    mean_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
-    mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
-    png_files = ['{}_mean_bias.png'.format(file_prefix)]
+    median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
+    median_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
+    png_files = ['{}_median_bias.png'.format(file_prefix)]
     plt.savefig(png_files[-1])
-    del mean_bias
+    del median_bias
 
     # Dark mosaic
     dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
