@@ -34,7 +34,24 @@ __all__ = ['make_file_prefix',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
            'raft_results_task',
-           'get_analysis_types']
+           'get_analysis_types',
+           'get_glob_patterns']
+
+
+def get_glob_patterns():
+    """
+    Return a dictionary with the glob patterns to use with
+    each EO task.
+    """
+    default_config = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                                  'data', 'BOT_jh_glob_patterns.ini')
+    config_file = os.environ.get('LCATR_JH_GLOB_PATTERN_FILE', default_config)
+    config = configparser.ConfigParser(inline_comment_prefixes=("#", ))
+    config.optionxform = str
+    config.read(config_file)
+    return {k: v for k, v in config.items('BOT_acq')}
+
+patterns = get_glob_patterns()
 
 
 def make_file_prefix(run, component_name):
