@@ -58,10 +58,10 @@ def validate_fe55(results, det_names):
                                       DATE=eotestUtils.utc_now_isoformat())
         results.extend([lcatr.schema.fileref.make(x) for x in output_files])
 
-        # Persist the mean bias FITS file.
-        bias_mean_file \
-            = glob.glob('%(file_prefix)s_mean_bias.fits' % locals())[0]
-        results.append(siteUtils.make_fileref(bias_mean_file))
+        # Persist the median bias FITS file.
+        bias_frame \
+            = glob.glob('%(file_prefix)s_median_bias.fits' % locals())[0]
+        results.append(siteUtils.make_fileref(bias_frame))
 
         # Persist the png files.
         png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
