@@ -421,13 +421,19 @@ def validate_ptc(results, det_names):
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
 
-        amps = data['AMP']
-        ptc_gains = data['PTC_GAIN']
-        ptc_gain_errors = data['PTC_GAIN_ERROR']
-        for amp, gain, gain_error in zip(amps, ptc_gains, ptc_gain_errors):
+        columns = (data['AMP'], data['PTC_GAIN'], data['PTC_GAIN_ERROR'],
+                   data['PTC_A00'], data['PTC_A00_ERROR'], data['PTC_NOISE'],
+                   data['PTC_NOISE_ERROR'], data['PTC_TURNOFF'])
+        for amp, gain, gain_error, a00, a00_error,\
+            noise, noise_error, turnoff in zip(*columns):
             results.append(lcatr.schema.valid(lcatr.schema.get('ptc_BOT'),
                                               amp=amp, ptc_gain=gain,
                                               ptc_gain_error=gain_error,
+                                              ptc_a00=a00,
+                                              ptc_a00_error=a00_error,
+                                              ptc_noise=noise,
+                                              ptc_noise_error=noise_error,
+                                              ptc_turnoff=turnoff,
                                               slot=slot, raft=raft))
         # Persist the png files.
         metadata = dict(DETECTOR=det_name, RUN=run,
