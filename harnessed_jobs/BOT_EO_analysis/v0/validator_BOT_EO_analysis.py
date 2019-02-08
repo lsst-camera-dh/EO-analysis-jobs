@@ -14,7 +14,7 @@ import siteUtils
 import eotestUtils
 import lsst.eotest.sensor as sensorTest
 from camera_components import camera_info
-
+from bot_eo_analyses import make_file_prefix
 
 def report_missing_data(validator, missing_data, components='detectors',
                         total=189):
@@ -34,7 +34,7 @@ def validate_fe55(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
 
         # The output files from producer script.
         gain_file = '%(file_prefix)s_eotest_results.fits' % locals()
@@ -58,10 +58,10 @@ def validate_fe55(results, det_names):
                                       DATE=eotestUtils.utc_now_isoformat())
         results.extend([lcatr.schema.fileref.make(x) for x in output_files])
 
-        # Persist the mean bias FITS file.
-        bias_mean_file \
-            = glob.glob('%(file_prefix)s_mean_bias.fits' % locals())[0]
-        results.append(siteUtils.make_fileref(bias_mean_file))
+        # Persist the median bias FITS file.
+        bias_frame \
+            = glob.glob('%(file_prefix)s_median_bias.fits' % locals())[0]
+        results.append(siteUtils.make_fileref(bias_frame))
 
         # Persist the png files.
         png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
@@ -97,7 +97,7 @@ def validate_read_noise(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
 
         read_noise_file = '%s_eotest_results.fits' % file_prefix
         if not os.path.isfile(read_noise_file):
@@ -135,7 +135,7 @@ def validate_read_noise(results, det_names):
     # Persist the raft-level overscan correlation plots.
     for raft in camera_info.get_raft_names():
         metadata = dict(TESTTYPE='FE55', TEST_CATEGORY='EO', RAFT=raft, RUN=run)
-        file_prefix = '{}_{}'.format(run, raft)
+        file_prefix = make_file_prefix(run, raft)
         filename = '%s_overscan_correlations.png' % file_prefix
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
@@ -151,7 +151,7 @@ def validate_bright_defects(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         mask_file = '%s_bright_pixel_mask.fits' % file_prefix
         if not os.path.isfile(mask_file):
             missing_det_names.append(det_name)
@@ -192,7 +192,7 @@ def validate_dark_defects(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         mask_file = '%s_dark_pixel_mask.fits' % file_prefix
         if not os.path.isfile(mask_file):
             missing_det_names.append(det_name)
@@ -234,7 +234,7 @@ def validate_traps(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         trap_file = '%s_traps.fits' % file_prefix
         if not os.path.isfile(trap_file):
             missing_det_names.append(det_name)
@@ -267,7 +267,7 @@ def validate_dark_current(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         results_file = '%s_eotest_results.fits' % file_prefix
         if not os.path.isfile(results_file):
             missing_det_names.append(det_name)
@@ -303,7 +303,7 @@ def validate_cte(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         superflats \
             = sorted(glob.glob('{}_superflat_*.fits'.format(file_prefix)))
         if not superflats:
@@ -312,8 +312,7 @@ def validate_cte(results, det_names):
         for item in superflats:
             eotestUtils.addHeaderData(item, FILENAME=item,
                                       DATE=eotestUtils.utc_now_isoformat())
-        results.extend([siteUtils.make_fileref(x, folder=slot)
-                        for x in superflats])
+        results.extend([siteUtils.make_fileref(x) for x in superflats])
 
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
@@ -367,7 +366,7 @@ def validate_flat_pairs(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         det_resp_data = '%s_det_response.fits' % file_prefix
         if not os.path.isfile(det_resp_data):
             missing_det_names.append(det_name)
@@ -409,7 +408,7 @@ def validate_ptc(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
         ptc_results = '%s_ptc.fits' % file_prefix
         if not os.path.isfile(ptc_results):
             missing_det_names.append(det_name)
@@ -422,13 +421,19 @@ def validate_ptc(results, det_names):
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
 
-        amps = data['AMP']
-        ptc_gains = data['PTC_GAIN']
-        ptc_gain_errors = data['PTC_GAIN_ERROR']
-        for amp, gain, gain_error in zip(amps, ptc_gains, ptc_gain_errors):
+        columns = (data['AMP'], data['PTC_GAIN'], data['PTC_GAIN_ERROR'],
+                   data['PTC_A00'], data['PTC_A00_ERROR'], data['PTC_NOISE'],
+                   data['PTC_NOISE_ERROR'], data['PTC_TURNOFF'])
+        for amp, gain, gain_error, a00, a00_error,\
+            noise, noise_error, turnoff in zip(*columns):
             results.append(lcatr.schema.valid(lcatr.schema.get('ptc_BOT'),
                                               amp=amp, ptc_gain=gain,
                                               ptc_gain_error=gain_error,
+                                              ptc_a00=a00,
+                                              ptc_a00_error=a00_error,
+                                              ptc_noise=noise,
+                                              ptc_noise_error=noise_error,
+                                              ptc_turnoff=turnoff,
                                               slot=slot, raft=raft))
         # Persist the png files.
         metadata = dict(DETECTOR=det_name, RUN=run,
@@ -449,7 +454,7 @@ def validate_qe(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
 
         qe_results_file = '%s_QE.fits' % file_prefix
         if not os.path.isfile(qe_results_file):
@@ -474,8 +479,7 @@ def validate_qe(results, det_names):
         for item in qe_files:
             eotestUtils.addHeaderData(item, TESTTYPE='LAMBDA',
                                       DATE=eotestUtils.utc_now_isoformat())
-        results.extend([siteUtils.make_fileref(item, folder=slot)
-                        for item in qe_files])
+        results.extend([siteUtils.make_fileref(item) for item in qe_files])
 
         # Persist the png files.
         metadata = dict(DETECTOR=det_name, RUN=run,
@@ -499,7 +503,7 @@ def validate_tearing(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
-        file_prefix = '{}_{}'.format(run, det_name)
+        file_prefix = make_file_prefix(run, det_name)
 
         tearing_results_file = '%s_tearing_stats.pkl' % file_prefix
         if not os.path.isfile(tearing_results_file):
@@ -528,8 +532,8 @@ def validate_raft_results(results, raft_names):
     missing_raft_names = []
     for raft_name in raft_names:
         for slot_name in slot_names:
-            det_name = '{}_{}'.format(raft_name, slot_name)
-            file_prefix = '{}_{}'.format(run, det_name)
+            det_name = make_file_prefix(raft_name, slot_name)
+            file_prefix = make_file_prefix(run, det_name)
             results_file = '{}_eotest_results.fits'.format(file_prefix)
             if not os.path.isfile(results_file):
                 if raft_name not in missing_raft_names:

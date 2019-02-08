@@ -84,6 +84,11 @@
     'amp' : int,
     'ptc_gain' : float,
     'ptc_gain_error' : float,
+    'ptc_a00': float,
+    'ptc_a00_error': float,
+    'ptc_noise': float,
+    'ptc_noise_error': float,
+    'ptc_turnoff': float,
     'slot' : str,
     'raft' : str
 },
