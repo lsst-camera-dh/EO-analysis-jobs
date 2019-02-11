@@ -34,7 +34,7 @@ __all__ = ['make_file_prefix',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
            'raft_results_task',
-           'get_analysis_types',
+           'get_analysis_types', 'mondiode_value',
            'GlobPattern']
 
 
@@ -526,7 +526,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
              use_exptime=use_exptime, flat2_finder=flat2_finder,
-             bias_frame=bias_frame)
+             bias_frame=bias_frame, mondiode_func=mondiode_value)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -620,7 +620,8 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
     task = sensorTest.QeTask()
     task.config.temp_set_point = temp_set_point
     task.run(file_prefix, lambda_files, pd_ratio_file, mask_files, gains,
-             correction_image=correction_image, bias_frame=bias_frame)
+             correction_image=correction_image, bias_frame=bias_frame,
+             mondiode_func=mondiode_value)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -870,3 +871,36 @@ def get_analysis_types(bot_eo_config_file=None):
         analysis_types.append(analysis_type)
 
     return analysis_types
+
+
+def mondiode_value(flat_file, exptime, factor=5,
+                   pd_filename='Photodiode_Readings.txt'):
+    """
+    Compute the mean current measured by the monitoring photodiode.
+
+    Parameters
+    ----------
+    flat_file: str
+        Path to the flat frame FITS file.   The pd data file
+        is assumed to be in the same directory.
+    exptime: float
+        Exposure time in seconds.
+    factor: float [5]
+        Factor to use to extract the baseline current values from the
+        data using ythresh = (min(y) + max(y))/factor + min(y)
+    pd_filename: str ['Photodiode_Readings.txt']
+        Basename of photodiode readings file.
+
+    Returns
+    -------
+    float: The mean current.
+    """
+    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
+    x, y = np.recfromtxt(pd_file).transpose()
+    # Threshold for finding baseline current values:
+    ythresh = (min(y) + max(y))/factor + min(y)
+    # Subtract the median of the baseline values to get a calibrated
+    # current.
+    y -= np.median(y[np.where(y < ythresh)])
+    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
+    return integral/exptime
