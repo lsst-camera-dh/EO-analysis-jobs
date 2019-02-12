@@ -20,6 +20,7 @@ from tearing_detection import tearing_detection
 
 __all__ = ['make_file_prefix',
            'fe55_task', 'fe55_jh_task',
+           'bias_frame_task', 'bias_frame_jh_task',
            'read_noise_task', 'read_noise_jh_task',
            'raft_noise_correlations', 'raft_jh_noise_correlations',
            'bright_defects_task', 'bright_defects_jh_task',
@@ -157,6 +158,26 @@ def get_amplifier_gains(eotest_results_file):
     return {amp: gain for amp, gain in zip(amps, gains)}
 
 
+def bias_frame_jh_task(det_name):
+    """JH version of the bias_frame_task."""
+    run = siteUtils.getRunNumber()
+    bias_files \
+        = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name))
+    if not bias_files:
+        print("bias_frame_task: Needed data files are missing for detector",
+              det_name)
+        return None
+    return bias_frame_task(run, det_name, bias_files)
+
+
+def bias_frame_task(run, det_name, bias_files):
+    """Create a median bias file for use by downstream tasks."""
+    file_prefix = make_file_prefix(run, det_name)
+    bias_frame = bias_filename(file_prefix, check_is_file=False)
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+
+
 def read_noise_jh_task(det_name):
     """JH version of the single sensor read noise task."""
     run = siteUtils.getRunNumber()
@@ -182,11 +203,6 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
     """Run the read noise tasks on a single detector."""
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
-
-    # Create a median bias file for use by downstream tasks.
-    bias_frame = bias_filename(file_prefix, check_is_file=False)
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
     task = sensorTest.ReadNoiseTask()
     task.config.temp_set_point = -100.
@@ -488,7 +504,7 @@ def find_flat2_bot(file1):
     for BOT-level acquisitions.
     """
     basename_pattern = '*_' + file1[-len('R22_S11.fits'):]
-    pattern = os.path.join(file1.split('flat1')[0] + 'flat2',
+    pattern = os.path.join(file1.split('flat1')[0] + 'flat0*',
                            basename_pattern)
     flat2 = glob.glob(pattern)[0]
     return flat2
@@ -726,9 +742,10 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
-    # Mean bias mosaic.
+    # Median bias mosaic.
     median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
-    median_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
+    median_bias.plot(title='%s, median bias frames' % title,
+                     annotation='ADU/pixel')
     png_files = ['{}_median_bias.png'.format(file_prefix)]
     plt.savefig(png_files[-1])
     del median_bias
