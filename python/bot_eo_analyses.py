@@ -528,13 +528,14 @@ def flat_pairs_jh_task(det_name):
     bias_frame = bias_filename(file_prefix)
 
     return flat_pairs_task(run, det_name, flat_files, gains,
-                           mask_files=mask_files, bias_frame=bias_frame)
+                           mask_files=mask_files, bias_frame=bias_frame,
+                           mondiode_func=mondiode_value)
 
 
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
-                    bias_frame=None):
+                    bias_frame=None, mondiode_func=None):
     """Single sensor execution of the flat pairs task."""
     file_prefix = make_file_prefix(run, det_name)
 
@@ -542,7 +543,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
              use_exptime=use_exptime, flat2_finder=flat2_finder,
-             bias_frame=bias_frame, mondiode_func=mondiode_value)
+             bias_frame=bias_frame, mondiode_func=mondiode_func)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -625,11 +626,12 @@ def qe_jh_task(det_name):
     bias_frame = bias_filename(file_prefix)
 
     return qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
-                   mask_files=mask_files, bias_frame=bias_frame)
+                   mask_files=mask_files, bias_frame=bias_frame,
+                   mondiode_func=mondiode_value)
 
 def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
             mask_files=(), correction_image=None, temp_set_point=-100,
-            bias_frame=None):
+            bias_frame=None, mondiode_func=None):
     """Single sensor execution of the QE task."""
     file_prefix = make_file_prefix(run, det_name)
 
@@ -637,7 +639,7 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
     task.config.temp_set_point = temp_set_point
     task.run(file_prefix, lambda_files, pd_ratio_file, mask_files, gains,
              correction_image=correction_image, bias_frame=bias_frame,
-             mondiode_func=mondiode_value)
+             mondiode_func=mondiode_func)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
