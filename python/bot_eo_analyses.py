@@ -32,6 +32,7 @@ __all__ = ['make_file_prefix',
            'find_flat2_bot',
            'flat_pairs_task', 'flat_pairs_jh_task',
            'ptc_task', 'ptc_jh_task',
+           'bf_task', 'bf_jh_task',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
            'raft_results_task',
@@ -594,6 +595,44 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
     siteUtils.make_png_file(plots.ptcs,
                             '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % file_prefix)
+
+
+def bf_jh_task(det_name):
+    """JH version of single sensor execution of the brighter-fatter task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
+
+    flat_files \
+        = siteUtils.dependency_glob(glob_pattern('brighter_fatter', det_name))
+
+    if not flat_files:
+        print("bf_jh_task: Flat pairs files not found for detector", det_name)
+        return None
+
+    flat_files = [_ for _ in flat_files if 'flat1' in _]
+
+    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    bias_frame = bias_filename(file_prefix)
+
+    return bf_task(run, det_name, flat_files, mask_files=mask_files,
+                   flat2_finder=find_flat2_bot, bias_frame=bias_frame)
+
+
+def bf_task(run, det_name, flat_files, mask_files=(),
+            flat2_finder=None, bias_frame=None):
+    """Single sensor execution of the brighter-fatter task."""
+    file_prefix = make_file_prefix(run, det_name)
+
+    task = sensorTest.BFTask()
+    task.run(file_prefix, flat_files, mask_files=mask_files,
+             flat2_finder=flat2_finder, bias_frame=bias_frame)
+
+    results_file = '%s_eotest_results.fits' % file_prefix
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    siteUtils.make_png_file(plots.bf_curves,
+                            '%s_brighter-fatter.png' % file_prefix,
+                            bf_file='%s_bf.fits' % file_prefix)
 
 def qe_jh_task(det_name):
     """JH version of single sensor execution of the QE task."""
