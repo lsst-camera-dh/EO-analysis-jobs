@@ -14,6 +14,7 @@ import siteUtils
 import eotestUtils
 import lsst.eotest.sensor as sensorTest
 from camera_components import camera_info
+from tearing_detection import persist_tearing_png_files
 from bot_eo_analyses import make_file_prefix
 
 def report_missing_data(validator, missing_data, components='detectors',
@@ -516,6 +517,9 @@ def validate_tearing(results, det_names):
                                            'detections', 'slot', 'raft'),
                                           list(values) + [slot, raft]))
             results.append(lcatr.schema.valid(schema, **stats))
+
+    png_files = sorted(glob.glob('*_tearing.png'))
+    results.extend(persist_tearing_png_files(png_files))
 
     report_missing_data("validate_tearing", missing_det_names)
 

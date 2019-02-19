@@ -32,7 +32,7 @@ def get_overscans(infile, oscan_indices=None):
         y0, y1, x0, x1 = oscan_indices
     overscans = dict()
     for amp in imutils.allAmps():
-        oscan_data = afw_image.ImageF(infile, amp).array
+        oscan_data = afw_image.ImageF(infile, imutils.dm_hdu(amp)).getArray()
         overscans[amp] = copy.deepcopy(oscan_data[y0:y1, x0:x1])
     return overscans
 
@@ -46,7 +46,8 @@ def get_mean_overscans(infiles, oscan_indices=None):
     mean_overscans = defaultdict(list)
     for infile in infiles:
         for amp in imutils.allAmps():
-            oscan_data = afw_image.ImageF(infile, amp).array
+            oscan_data \
+                = afw_image.ImageF(infile, imutils.dm_hdu(amp)).getArray()
             mean_overscans[amp].append(copy.deepcopy(oscan_data[y0:y1, x0:x1]))
     for amp, images in mean_overscans.items():
         mean_overscans[amp] = sum(images)/float(len(images))
