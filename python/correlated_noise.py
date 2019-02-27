@@ -93,15 +93,6 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
         that contain the results for each amplifier.
     """
-    f1, f2 = None, None
-    if make_plots:
-        f1, ax1 = plt.subplots(4, 4, figsize=figsize)
-        ax1 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                    ax1.flatten())}
-        f2, ax2 = plt.subplots(4, 4, figsize=figsize)
-        ax2 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                    ax2.flatten())}
-
     # Extract the target filename and omit it from the list of bias files.
     target_file = bias_files.pop(target)
 
@@ -114,6 +105,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 
     # Loop over amps in target frame and compute statistics.
     bias_stats = dict()
+    correlation_data = dict()
     for amp in bias_oscans:
         # Loop over other amps and construct the mean image of the
         # bias-subtracted overscans.  Require included amps to have
@@ -138,25 +130,42 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
         bias_stats[amp] = BiasStats(np.sqrt(covmat[1, 1]), np.std(fdiff),
                                     corr_factor,
                                     np.mean(bias_oscans[amp]))
-                                    #fmean1)
+        correlation_data[amp] = reduced_mean_oscan, fdata1, fdiff
 
-        if make_plots:
-            f1.suptitle(title)
-            f2.suptitle(title)
-            ax1[amp].hist2d(reduced_mean_oscan.flatten(), fdata1.flatten(),
-                            bins=(100, 100), range=((-50, 50), (-50, 50)))
-            label = 'amp %i, cov/var = %.2f' \
-                    % (amp, bias_stats[amp].corr_factor)
-            ax1[amp].text(-40, 40, label, fontsize=6, color='w',
-                          fontweight='bold')
-            if plot_corr:
-                ax2[amp].hist(fdiff.flatten(), bins=100, range=(-50, 50),
-                              histtype='step')
-            else:
-                ax2[amp].hist(fdata1.flatten(), bins=100, range=(-50, 50),
-                              histtype='step')
+    f1 = None
+    f2 = None
+    if make_plots:
+        f1, f2 = plot_correlated_noise(correlation_data, bias_stats,
+                                       plot_corr=plot_corr, title=title,
+                                       figsize=figsize)
 
-    return bias_stats, f1, f2
+    return (correlation_data, bias_stats), f1, f2
+
+def plot_correlated_noise(correlation_data, bias_stats, plot_corr=True,
+                          title='', figsize=(8, 8)):
+    f1, ax1 = plt.subplots(4, 4, figsize=figsize)
+    ax1 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
+                                                ax1.flatten())}
+    f1.suptitle(title)
+    f2, ax2 = plt.subplots(4, 4, figsize=figsize)
+    ax2 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
+                                                ax2.flatten())}
+    f2.suptitle(title)
+    for amp, corr_data in correlation_data.items():
+        reduced_mean_oscan, fdata1, fdiff = corr_data
+        ax1[amp].hist2d(reduced_mean_oscan.flatten(), fdata1.flatten(),
+                        bins=(100, 100), range=((-50, 50), (-50, 50)))
+        label = 'amp %i, cov/var = %.2f' \
+                % (amp, bias_stats[amp].corr_factor)
+        ax1[amp].text(-40, 40, label, fontsize=6, color='w',
+                      fontweight='bold')
+        if plot_corr:
+            ax2[amp].hist(fdiff.flatten(), bins=100, range=(-50, 50),
+                          histtype='step')
+        else:
+            ax2[amp].hist(fdata1.flatten(), bins=100, range=(-50, 50),
+                          histtype='step')
+    return f1, f2
 
 def raft_level_oscan_correlations(bias_files, buffer=10, title='',
                                   vrange=None, stretch=viz.LinearStretch,
@@ -234,7 +243,7 @@ if __name__ == '__main__':
     etu1_stats, f1, f2 \
         = correlated_noise(bias_files, make_plots=True, plot_corr=False,
                            title='Run 5808D, ETU1, S00')
-    for amp, stats in etu1_stats.items():
+    for amp, stats in etu1_stats[1].items():
         print(amp, stats)
     plt.figure(f1.number)
     plt.savefig('ETU1_S00_noise_corr.png')
@@ -243,7 +252,7 @@ if __name__ == '__main__':
     rtm005_stats, f1, f2 \
         = correlated_noise(bias_files, make_plots=True, plot_corr=False,
                            title='Run 6288, RTM-005, S00')
-    for amp, stats in rtm005_stats.items():
+    for amp, stats in rtm005_stats[1].items():
         print(amp, stats)
     plt.figure(f1.number)
     plt.savefig('RTM-005_S00_noise_corr.png')
