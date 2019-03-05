@@ -3,6 +3,8 @@
 Producer script for raft-level Fe55 analysis.
 """
 from __future__ import print_function
+import os
+import sys
 import glob
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
@@ -90,4 +92,7 @@ def run_fe55_task(sensor_id):
                             fe55_file=fe55_file)
 
 if __name__ == '__main__':
+    if os.environ.get("LCATR_SKIP_FE55_ANALYSIS", "False") == "True":
+        sys.exit(0)
+
     sensor_analyses(run_fe55_task)
