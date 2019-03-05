@@ -12,7 +12,25 @@ import eotestUtils
 import lsst.eotest.sensor as sensorTest
 import camera_components
 
+
+def persist_fe55_gains():
+    """Persist only the Fe55 gains from the results file."""
+    raft_id = siteUtils.getUnitId()
+    raft = camera_components.Raft.create_from_etrav(raft_id)
+    results = []
+    for _, sensor_id in raft.items():
+        ccd_vendor = sensor_id.split('-')[0].upper()
+        results_file = '%s_eotest_results.fits' % sensor_id
+        eotestUtils.addHeaderData(results_file, LSST_NUM=sensor_id,
+                                  TESTTYPE='FE55',
+                                  DATE=eotestUtils.utc_now_isoformat(),
+                                  CCD_MANU=ccd_vendor)
+        results.append(lcatr.schema.fileref.make(results_file))
+    return results
+
+
 def persist_fe55_analysis_results():
+    """Persist the results from the full analysis."""
     raft_id = siteUtils.getUnitId()
     raft = camera_components.Raft.create_from_etrav(raft_id)
 
@@ -67,8 +85,11 @@ def persist_fe55_analysis_results():
         results.extend([lcatr.schema.fileref.make(x) for x in output_files])
     return results
 
+
 if __name__ == '__main__':
-    if os.environ.get("LCATR_SKIP_FE55_ANALYSIS", "False") != "True":
+    if os.environ.get("LCATR_SKIP_FE55_ANALYSIS", "False") == "True":
+        results = persist_fe55_gains()
+    else:
         results = persist_fe55_analysis_results()
 
     results.extend(siteUtils.jobInfo())
