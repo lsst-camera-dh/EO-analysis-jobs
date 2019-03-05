@@ -3,12 +3,14 @@
 Producer script for raft-level traps analysis.
 """
 from __future__ import print_function
+import os
 import lsst.eotest.sensor as sensorTest
 import siteUtils
 import eotestUtils
 from multiprocessor_execution import sensor_analyses
 
 def run_trap_task(sensor_id):
+    """Run the traps analysis for a single sensor."""
     trap_file = siteUtils.dependency_glob('S*/%s_trap_ppump_*.fits' % sensor_id,
                                           jobname=siteUtils.getProcessName('ppump_raft_acq'),
                                           description='Trap file:')[0]
@@ -29,4 +31,7 @@ def run_trap_task(sensor_id):
     task.run(sensor_id, trap_file, mask_files, gains)
 
 if __name__ == '__main__':
-    sensor_analyses(run_trap_task)
+    if os.environ.get('LCATR_SKIP_TRAPS_ANALYSIS', 'False') == 'True':
+        pass
+    else:
+        sensor_analyses(run_trap_task)
