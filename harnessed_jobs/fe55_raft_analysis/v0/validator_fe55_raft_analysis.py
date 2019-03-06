@@ -10,6 +10,7 @@ import lcatr.schema
 import siteUtils
 import eotestUtils
 import lsst.eotest.sensor as sensorTest
+import lsst.eotest.image_utils as imutils
 import camera_components
 
 
@@ -18,7 +19,8 @@ def persist_fe55_gains():
     raft_id = siteUtils.getUnitId()
     raft = camera_components.Raft.create_from_etrav(raft_id)
     results = []
-    for _, sensor_id in raft.items():
+    for slot, sensor_id in raft.items():
+        # Save eotest results file with nominal gains.
         ccd_vendor = sensor_id.split('-')[0].upper()
         results_file = '%s_eotest_results.fits' % sensor_id
         eotestUtils.addHeaderData(results_file, LSST_NUM=sensor_id,
@@ -26,6 +28,24 @@ def persist_fe55_gains():
                                   DATE=eotestUtils.utc_now_isoformat(),
                                   CCD_MANU=ccd_vendor)
         results.append(lcatr.schema.fileref.make(results_file))
+
+        # Persist nominal values to eT results database.
+        amps = imutils.allAmps()
+        gain_data = np.ones(len(amps))
+        gain_errors = np.zeros(len(amps))
+        sigmas = np.zeros(len(amps))
+        for amp, gain_value, gain_error, sigma in zip(amps, gain_data,
+                                                      gain_errors, sigmas):
+            if not np.isfinite(gain_error):
+                gain_error = -1
+            results.append(lcatr.schema.valid(
+                    lcatr.schema.get('fe55_raft_analysis'),
+                    amp=amp, gain=gain_value,
+                    gain_error=gain_error,
+                    psf_sigma=sigma,
+                    slot=slot,
+                    sensor_id=sensor_id))
+
     return results
 
 
