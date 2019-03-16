@@ -3,6 +3,7 @@
 Producer script for raft-level Fe55 analysis.
 """
 from __future__ import print_function
+import os
 import glob
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
@@ -89,5 +90,16 @@ def run_fe55_task(sensor_id):
                             '%s_psf_dists.png' % file_prefix,
                             fe55_file=fe55_file)
 
+def write_nominal_gains(sensor_id, gain=1):
+    """Write nominal gains in lieu of doing the Fe55 analysis."""
+    results_file = '%s_eotest_results.fits' % sensor_id
+    results = sensorTest.EOTestResults(results_file)
+    for amp in range(1, 17):
+        results.add_seg_result(amp, 'GAIN', gain)
+    results.write(clobber=True)
+
 if __name__ == '__main__':
-    sensor_analyses(run_fe55_task)
+    if os.environ.get("LCATR_SKIP_FE55_ANALYSIS", "False") == "True":
+        sensor_analyses(write_nominal_gains)
+    else:
+        sensor_analyses(run_fe55_task)

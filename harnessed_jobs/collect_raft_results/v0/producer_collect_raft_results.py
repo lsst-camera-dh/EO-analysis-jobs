@@ -26,7 +26,8 @@ run_number = siteUtils.getRunNumber()
 
 # Use a mean bias file to determine the maximum number of active
 # pixels for the image quality statistics.
-bias_files = slot_dependency_glob('*_mean_bias_*.fits', 'fe55_raft_analysis')
+bias_files = slot_dependency_glob('*bias*.fits',
+                                  siteUtils.getProcessName('qe_raft_acq'))
 total_num, rolloff_mask = sensorTest.pixel_counts(list(bias_files.values())[0])
 
 # Exposure time (in seconds) for 95th percentile dark current shot
@@ -146,9 +147,13 @@ spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
                                   colors='br')
 plt.savefig('%s_parallel_cti.png' % file_prefix)
 
-spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5., title=title,
-                     ymax=5.2)
-plt.savefig('%s_psf_sigma.png' % file_prefix)
+try:
+    spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
+                         title=title, ymax=5.2)
+except KeyError:
+    pass
+else:
+    plt.savefig('%s_psf_sigma.png' % file_prefix)
 
 spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
                                   yerrors=True, title=title, colors='br')
