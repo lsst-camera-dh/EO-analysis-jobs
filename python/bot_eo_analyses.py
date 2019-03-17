@@ -9,6 +9,7 @@ import pickle
 import configparser
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.io import fits
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
 import lsst.eotest.raft as raftTest
@@ -507,7 +508,12 @@ def find_flat2_bot(file1):
     basename_pattern = '*_' + file1[-len('R22_S11.fits'):]
     pattern = os.path.join(file1.split('flat1')[0] + 'flat0*',
                            basename_pattern)
-    flat2 = glob.glob(pattern)[0]
+    try:
+        flat2 = glob.glob(pattern)[0]
+    except IndexError:
+        pattern = os.path.join(file1.split('flat1')[0] + 'flat2*',
+                               basename_pattern)
+        flat2 = glob.glob(pattern)[0]
     return flat2
 
 
@@ -953,6 +959,12 @@ def mondiode_value(flat_file, exptime, factor=5,
     -------
     float: The mean current.
     """
+    # Try reading the MONDIODE keyword first.
+    with fits.open(flat_file) as hdulist:
+        if 'MONDIODE' in hdulist[0].header:
+            return hdulist[0].header['MONDIODE']
+
+    # Compute the value from the photodiode readings file.
     pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
     x, y = np.recfromtxt(pd_file).transpose()
     # Threshold for finding baseline current values:
