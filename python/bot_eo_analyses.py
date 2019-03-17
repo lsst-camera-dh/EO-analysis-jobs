@@ -154,6 +154,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
 
 def get_amplifier_gains(eotest_results_file):
     """Extract the gains for each amp in an eotest_results file."""
+    if os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True':
+        return {amp: 1 for amp in range(1, 17)}
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
     gains = data['GAIN']
