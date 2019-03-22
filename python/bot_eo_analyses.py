@@ -18,8 +18,9 @@ import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
+from multiprocessor_execution import run_device_analysis_pool
 
-__all__ = ['make_file_prefix',
+__all__ = ['run_det_task_analysis', 'make_file_prefix',
            'fe55_task', 'fe55_jh_task',
            'bias_frame_task', 'bias_frame_jh_task',
            'read_noise_task', 'read_noise_jh_task',
@@ -976,3 +977,28 @@ def mondiode_value(flat_file, exptime, factor=5,
     y -= np.median(y[np.where(y < ythresh)])
     integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
     return integral/exptime
+
+
+det_task_mapping = {'gain': (fe55_jh_task,),
+                    'bias': (bias_frame_jh_task,),
+                    'biasnoise': (read_noise_jh_task,),
+                    'dark': (dark_current_jh_task,),
+                    'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
+                    'ptc': (ptc_jh_task,),
+                    'brighterfatter': (bf_jh_task,),
+                    'linearity': (flat_pairs_jh_task,),
+                    'cti': (cte_jh_task,),
+                    'tearing': (tearing_jh_task,),
+                    'traps': (traps_jh_task,)}
+
+
+def run_det_task_analysis(det_task_name, det_names=None, processes=None):
+    """Run the desired detector-level task using multiprocessing."""
+    tasks = det_task_mapping[det_task_name]
+
+    if det_names is None:
+        det_names = camera_info.get_det_names()
+
+    if det_task_name in get_analysis_types():
+        for task in tasks:
+            run_device_analysis_pool(task, det_names, processes=processes)

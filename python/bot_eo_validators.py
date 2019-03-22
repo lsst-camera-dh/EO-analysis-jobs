@@ -13,14 +13,29 @@ import siteUtils
 import eotestUtils
 import lsst.eotest.sensor as sensorTest
 from camera_components import camera_info
-from .tearing_detection import persist_tearing_png_files
-from .bot_eo_analyses import make_file_prefix
+from tearing_detection import persist_tearing_png_files
+from bot_eo_analyses import make_file_prefix
 
-__all__ = ['validate_fe55', 'validate_read_noise',
-           'validate_bright_defects', 'validate_dark_defects',
-           'validate_traps', 'validate_dark_current', 'validate_cte',
-           'validate_flat_pairs', 'validate_ptc', 'validate_qe',
-           'validate_tearing', 'validate_raft_results']
+
+__all__ = ['run_validator', 'validate_bias_frame', 'validate_fe55',
+           'validate_read_noise', 'validate_bright_defects',
+           'validate_dark_defects', 'validate_traps', 'validate_dark_current',
+           'validate_cte', 'validate_flat_pairs', 'validate_ptc',
+           'validate_brighter_fatter',
+           'validate_qe', 'validate_tearing', 'validate_raft_results']
+
+
+def run_validator(det_task_name):
+    """
+    Driver function to run the validator function for the desired
+    detector-level EO task.
+    """
+    validator = eval('validate_{}'.format(det_task_name))
+    results = []
+    results = validator(results, camera_info.get_det_names())
+    results.extend(siteUtils.jobInfo())
+    lcatr.schema.write_file(results)
+    lcatr.schema.validate_file()
 
 
 def report_missing_data(validator, missing_data, components='detectors',
@@ -35,7 +50,7 @@ def report_missing_data(validator, missing_data, components='detectors',
         print(missing_data)
 
 
-def validate_bias_frames(results, det_names):
+def validate_bias_frame(results, det_names):
     """Validate and persist medianed bias frames."""
     run = siteUtils.getRunNumber()
     missing_det_names = []
@@ -463,6 +478,48 @@ def validate_ptc(results, det_names):
     report_missing_data("validate_ptc", missing_det_names)
 
     return results
+
+def validate_brighter_fatter(results, det_names):
+    """Validate the brighter-fatter results."""
+    run = siteUtils.getRunNumber()
+    missing_det_names = []
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = make_file_prefix(run, det_name)
+        bf_results = '%s_bf.fits' % file_prefix
+        if not os.path.isfile(bf_results):
+            missing_det_names.append(det_name)
+            continue
+        eotestUtils.addHeaderData(bf_results, TESTTYPE='FLAT',
+                                  DATE=eotestUtils.utc_now_isoformat())
+
+        results.append(siteUtils.make_fileref(bf_results))
+
+        results_file = '%s_eotest_results.fits' % file_prefix
+        data = sensorTest.EOTestResults(results_file)
+
+        columns = (data['AMP'], data['PTC_GAIN'], data['PTC_GAIN_ERROR'],
+                   data['PTC_A00'], data['PTC_A00_ERROR'], data['PTC_NOISE'],
+                   data['PTC_NOISE_ERROR'], data['PTC_TURNOFF'])
+        for amp, gain, gain_error, a00, a00_error,\
+            noise, noise_error, turnoff in zip(*columns):
+            results.append(lcatr.schema.valid(
+                lcatr.schema.get('brighter_fatter_BOT'),
+                amp=amp, ptc_gain=gain,
+                ptc_gain_error=gain_error,
+                ptc_a00=a00,
+                ptc_a00_error=a00_error,
+                ptc_noise=noise,
+                ptc_noise_error=noise_error,
+                ptc_turnoff=turnoff,
+                slot=slot, raft=raft))
+        # Persist the png files.
+        metadata = dict(DETECTOR=det_name, RUN=run,
+                        TESTTYPE='FLAT', TEST_CATEGORY='EO')
+
+        results.extend(siteUtils.persist_png_files('%s*ptcs.png' % file_prefix,
+                                                   file_prefix,
+                                                   metadata=metadata))
 
 
 def validate_qe(results, det_names):
