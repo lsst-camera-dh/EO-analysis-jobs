@@ -75,7 +75,8 @@ def bias_filename(file_prefix, check_is_file=True):
     """
     filename = '{}_median_bias.fits'.format(file_prefix)
     if check_is_file and not os.path.isfile(filename):
-        return None
+        # Look for bias file from prerequisite job.
+        return siteUtils.dependency_glob(filename)[0]
     return filename
 
 
@@ -95,11 +96,7 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    bias_frame = bias_filename('{}_{}'.format(file_prefix, 'fe55'),
-                               check_is_file=False)
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
-
+    bias_frame = bias_filename(file_prefix)
     pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
 
     png_files = ['%s_fe55_p3_p5_hists.png' % file_prefix]
@@ -735,6 +732,10 @@ def get_raft_files_by_slot(raft_name, file_suffix):
         filename = template.format(raft_name, slot_name, run)
         if os.path.isfile(filename):
             raft_files[slot_name] = filename
+        else:
+            # Use dependency glob to find the file from a previous
+            # acquisition
+            pass
     if not raft_files:
         raise FileNotFoundError("no files found for raft %s with suffix %s"
                                 % (raft_name, file_suffix))
