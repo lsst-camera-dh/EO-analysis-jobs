@@ -150,9 +150,10 @@ def fe55_task(run, det_name, fe55_files, bias_files):
             output.write('{}\n'.format(item))
 
 
-def get_amplifier_gains(eotest_results_file):
+def get_amplifier_gains(eotest_results_file=None):
     """Extract the gains for each amp in an eotest_results file."""
-    if os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True':
+    if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
+        or eotest_results_file is None):
         return {amp: 1 for amp in range(1, 17)}
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
@@ -370,7 +371,9 @@ def dark_current_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    eotest_results_file \
+        = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
+                                    jobname='read_noise_BOT')[0]
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(file_prefix)
 
@@ -428,7 +431,14 @@ def cte_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
-    gains = get_amplifier_gains(eotest_results_file)
+    results_files = siteUtils.dependency_glob(eotest_results_file,
+                                              jobname='fe55_analysis_BOT')
+    if results_files:
+        gains = get_amplifier_gains(results_files[0])
+    else:
+        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
+              file_prefix, ".  Using unit gains.")
+        gains = get_amplifier_gains()
 
     bias_frame = bias_filename(file_prefix)
 
@@ -530,7 +540,14 @@ def flat_pairs_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    try:
+        eotest_results_file \
+            = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
+                                        jobname='fe55_analysis_BOT')[0]
+    except IndexError:
+        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
+              file_prefix, ".  Using unit gains.")
+        eotest_results_file = None
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(file_prefix)
 
