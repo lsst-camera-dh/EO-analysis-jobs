@@ -515,6 +515,7 @@ def validate_brighter_fatter(results, det_names):
         results.extend(siteUtils.persist_png_files(
             '%s*brighter-fatter.png' % file_prefix, file_prefix,
             metadata=metadata))
+    return results
 
 
 def validate_qe(results, det_names):
