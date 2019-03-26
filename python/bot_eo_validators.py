@@ -498,28 +498,23 @@ def validate_brighter_fatter(results, det_names):
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
 
-        columns = (data['AMP'], data['PTC_GAIN'], data['PTC_GAIN_ERROR'],
-                   data['PTC_A00'], data['PTC_A00_ERROR'], data['PTC_NOISE'],
-                   data['PTC_NOISE_ERROR'], data['PTC_TURNOFF'])
-        for amp, gain, gain_error, a00, a00_error,\
-            noise, noise_error, turnoff in zip(*columns):
+        columns = (data['AMP'], data['BF_XCORR'], data['BF_XCORR_ERR'],
+                   data['BF_YCORR'], data['BF_YCORR_ERR'], data['BF_MEAN'])
+        for amp, bf_xcorr, bf_xcorr_err, bf_ycorr, bf_ycorr_err, bf_mean \
+            in zip(*columns):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('brighter_fatter_BOT'),
-                amp=amp, ptc_gain=gain,
-                ptc_gain_error=gain_error,
-                ptc_a00=a00,
-                ptc_a00_error=a00_error,
-                ptc_noise=noise,
-                ptc_noise_error=noise_error,
-                ptc_turnoff=turnoff,
-                slot=slot, raft=raft))
+                amp=amp, bf_xcorr=bf_xcorr, bf_xcorr_err=bf_xcorr_err,
+                bf_ycorr=bf_ycorr, bf_ycorr_err=bf_ycorr_err,
+                bf_mean=bf_mean, slot=slot, raft=raft))
+
         # Persist the png files.
         metadata = dict(DETECTOR=det_name, RUN=run,
                         TESTTYPE='FLAT', TEST_CATEGORY='EO')
 
-        results.extend(siteUtils.persist_png_files('%s*ptcs.png' % file_prefix,
-                                                   file_prefix,
-                                                   metadata=metadata))
+        results.extend(siteUtils.persist_png_files(
+            '%s*brighter-fatter.png' % file_prefix, file_prefix,
+            metadata=metadata))
 
 
 def validate_qe(results, det_names):

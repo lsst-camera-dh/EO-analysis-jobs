@@ -93,6 +93,16 @@
     'raft' : str
 },
 {
+    'schema_name' : 'brighter_fatter_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'bf_xcorr' : float,
+    'bf_xcorr_err' : float,
+    'bf_ycorr' : float,
+    'bf_ycorr_err' : float,
+    'bf_mean' : float
+},
+{
     'schema_name' : 'qe_BOT_analysis',
     'schema_version' : 0,
     'band' : str,
