@@ -100,7 +100,9 @@
     'bf_xcorr_err' : float,
     'bf_ycorr' : float,
     'bf_ycorr_err' : float,
-    'bf_mean' : float
+    'bf_mean' : float,
+    'slot' : str,
+    'raft' : str
 },
 {
     'schema_name' : 'qe_BOT_analysis',
