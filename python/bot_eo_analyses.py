@@ -37,7 +37,7 @@ __all__ = ['run_det_task_analysis', 'make_file_prefix',
            'bf_task', 'bf_jh_task',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
-           'raft_results_task',
+           'raft_results_task', 'repackage_summary_files',
            'get_analysis_types', 'mondiode_value',
            'GlobPattern']
 
@@ -750,13 +750,28 @@ def get_raft_files_by_slot(raft_name, file_suffix):
         if os.path.isfile(filename):
             raft_files[slot_name] = filename
         else:
-            # Use dependency glob to find the file from a previous
-            # acquisition
-            pass
+            filenames = siteUtils.dependency_glob(filename)
+            if filenames:
+                raft_files[slot_name] = filenames[0]
     if not raft_files:
         raise FileNotFoundError("no files found for raft %s with suffix %s"
                                 % (raft_name, file_suffix))
     return raft_files
+
+
+def repackage_summary_files():
+    """
+    Repackage summary.lims files from prior jobs as eotest results
+    files.
+    """
+    run = siteUtils.getRunNumber()
+    summary_files = siteUtils.dependency_glob('summary.lims')
+    for det_name in camera_info.get_det_names():
+        file_prefix = make_file_prefix(run, det_name)
+        raft, slot = det_name.split('_')
+        repackager = eotestUtils.JsonRepackager()
+        repackager.process_files(summary_files, slot=slot, raft=raft)
+        repackager.write('{}_eotest_results.fits'.format(file_prefix))
 
 
 def raft_results_task(raft_name):
