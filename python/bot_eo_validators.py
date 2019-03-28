@@ -605,7 +605,7 @@ def validate_raft_results(results, raft_names):
     missing_raft_names = []
     for raft_name in raft_names:
         for slot_name in slot_names:
-            det_name = make_file_prefix(raft_name, slot_name)
+            det_name = '_'.join((raft_name, slot_name))
             file_prefix = make_file_prefix(run, det_name)
             results_file = '{}_eotest_results.fits'.format(file_prefix)
             if not os.path.isfile(results_file):
