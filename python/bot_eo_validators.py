@@ -17,7 +17,8 @@ from tearing_detection import persist_tearing_png_files
 from bot_eo_analyses import make_file_prefix
 
 
-__all__ = ['run_validator', 'validate_bias_frame', 'validate_fe55',
+__all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
+           'validate_fe55',
            'validate_read_noise', 'validate_bright_defects',
            'validate_dark_defects', 'validate_traps', 'validate_dark_current',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
@@ -62,6 +63,12 @@ def validate_bias_frame(results, det_names):
         else:
             missing_det_names.append(det_name)
     report_missing_data('validate_bias_frames', missing_det_names)
+    return results
+
+
+def validate_scan(results, det_names):
+    """Validate scan mode analysis results."""
+    # TODO: implement validate task for scan mode results.
     return results
 
 
