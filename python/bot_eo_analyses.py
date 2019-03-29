@@ -18,8 +18,9 @@ import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
+from multiprocessor_execution import run_device_analysis_pool
 
-__all__ = ['make_file_prefix',
+__all__ = ['run_det_task_analysis', 'make_file_prefix',
            'fe55_task', 'fe55_jh_task',
            'bias_frame_task', 'bias_frame_jh_task',
            'read_noise_task', 'read_noise_jh_task',
@@ -36,7 +37,7 @@ __all__ = ['make_file_prefix',
            'bf_task', 'bf_jh_task',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
-           'raft_results_task',
+           'raft_results_task', 'repackage_summary_files',
            'get_analysis_types', 'mondiode_value',
            'GlobPattern']
 
@@ -74,7 +75,8 @@ def bias_filename(file_prefix, check_is_file=True):
     """
     filename = '{}_median_bias.fits'.format(file_prefix)
     if check_is_file and not os.path.isfile(filename):
-        return None
+        # Look for bias file from prerequisite job.
+        return siteUtils.dependency_glob(filename)[0]
     return filename
 
 
@@ -94,11 +96,7 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    bias_frame = bias_filename('{}_{}'.format(file_prefix, 'fe55'),
-                               check_is_file=False)
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
-
+    bias_frame = bias_filename(file_prefix)
     pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
 
     png_files = ['%s_fe55_p3_p5_hists.png' % file_prefix]
@@ -152,9 +150,10 @@ def fe55_task(run, det_name, fe55_files, bias_files):
             output.write('{}\n'.format(item))
 
 
-def get_amplifier_gains(eotest_results_file):
+def get_amplifier_gains(eotest_results_file=None):
     """Extract the gains for each amp in an eotest_results file."""
-    if os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True':
+    if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
+        or eotest_results_file is None):
         return {amp: 1 for amp in range(1, 17)}
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
@@ -372,7 +371,9 @@ def dark_current_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    eotest_results_file \
+        = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
+                                    jobname='read_noise_BOT')[0]
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(file_prefix)
 
@@ -430,7 +431,14 @@ def cte_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
-    gains = get_amplifier_gains(eotest_results_file)
+    results_files = siteUtils.dependency_glob(eotest_results_file,
+                                              jobname='fe55_analysis_BOT')
+    if results_files:
+        gains = get_amplifier_gains(results_files[0])
+    else:
+        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
+              file_prefix, ".  Using unit gains.")
+        gains = get_amplifier_gains()
 
     bias_frame = bias_filename(file_prefix)
 
@@ -532,7 +540,14 @@ def flat_pairs_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    try:
+        eotest_results_file \
+            = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
+                                        jobname='fe55_analysis_BOT')[0]
+    except IndexError:
+        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
+              file_prefix, ".  Using unit gains.")
+        eotest_results_file = None
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(file_prefix)
 
@@ -734,10 +749,29 @@ def get_raft_files_by_slot(raft_name, file_suffix):
         filename = template.format(raft_name, slot_name, run)
         if os.path.isfile(filename):
             raft_files[slot_name] = filename
+        else:
+            filenames = siteUtils.dependency_glob(filename)
+            if filenames:
+                raft_files[slot_name] = filenames[0]
     if not raft_files:
         raise FileNotFoundError("no files found for raft %s with suffix %s"
                                 % (raft_name, file_suffix))
     return raft_files
+
+
+def repackage_summary_files():
+    """
+    Repackage summary.lims files from prior jobs as eotest results
+    files.
+    """
+    run = siteUtils.getRunNumber()
+    summary_files = siteUtils.dependency_glob('summary.lims')
+    for det_name in camera_info.get_det_names():
+        file_prefix = make_file_prefix(run, det_name)
+        raft, slot = det_name.split('_')
+        repackager = eotestUtils.JsonRepackager()
+        repackager.process_files(summary_files, slot=slot, raft=raft)
+        repackager.write('{}_eotest_results.fits'.format(file_prefix))
 
 
 def raft_results_task(raft_name):
@@ -976,3 +1010,28 @@ def mondiode_value(flat_file, exptime, factor=5,
     y -= np.median(y[np.where(y < ythresh)])
     integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
     return integral/exptime
+
+
+det_task_mapping = {'gain': (fe55_jh_task,),
+                    'bias': (bias_frame_jh_task,),
+                    'biasnoise': (read_noise_jh_task,),
+                    'dark': (dark_current_jh_task,),
+                    'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
+                    'ptc': (ptc_jh_task,),
+                    'brighterfatter': (bf_jh_task,),
+                    'linearity': (flat_pairs_jh_task,),
+                    'cti': (cte_jh_task,),
+                    'tearing': (tearing_jh_task,),
+                    'traps': (traps_jh_task,)}
+
+
+def run_det_task_analysis(det_task_name, det_names=None, processes=None):
+    """Run the desired detector-level task using multiprocessing."""
+    tasks = det_task_mapping[det_task_name]
+
+    if det_names is None:
+        det_names = camera_info.get_det_names()
+
+    if det_task_name in get_analysis_types():
+        for task in tasks:
+            run_device_analysis_pool(task, det_names, processes=processes)
