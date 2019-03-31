@@ -23,6 +23,7 @@ from multiprocessor_execution import run_device_analysis_pool
 __all__ = ['run_det_task_analysis', 'make_file_prefix',
            'fe55_task', 'fe55_jh_task',
            'bias_frame_task', 'bias_frame_jh_task',
+           'scan_mode_analysis_task', 'scan_mode_analysis_jh_task',
            'read_noise_task', 'read_noise_jh_task',
            'raft_noise_correlations', 'raft_jh_noise_correlations',
            'bright_defects_task', 'bright_defects_jh_task',
@@ -179,6 +180,19 @@ def bias_frame_task(run, det_name, bias_files):
     bias_frame = bias_filename(file_prefix, check_is_file=False)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+
+
+def scan_mode_analysis_jh_task(det_name):
+    """JH version of scan mode analysis task."""
+    run = siteUtils.getRunNumber()
+    scan_mode_files = []
+    return scan_mode_analysis_task(run, det_name, scan_mode_files)
+
+
+def scan_mode_analysis_task(run, det_name, scan_mode_files):
+    """Scan mode analysis task."""
+    file_prefix = make_file_prefix(run, det_name)
+    # TODO: Implement scan mode analysis.
 
 
 def read_noise_jh_task(det_name):
@@ -1014,6 +1028,7 @@ def mondiode_value(flat_file, exptime, factor=5,
 
 det_task_mapping = {'gain': (fe55_jh_task,),
                     'bias': (bias_frame_jh_task,),
+                    'scan': (scan_mode_analysis_jh_task),
                     'biasnoise': (read_noise_jh_task,),
                     'dark': (dark_current_jh_task,),
                     'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
