@@ -104,9 +104,11 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     title = '{}, {}'.format(run, det_name)
 
     bias_frame = bias_filename(file_prefix)
+    png_files = []
+
     pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
 
-    png_files = ['%s_fe55_p3_p5_hists.png' % file_prefix]
+    png_files.append('%s_fe55_p3_p5_hists.png' % file_prefix)
     siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
                             pix0='p3', pix1='p5')
 
@@ -154,7 +156,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
 
 def get_amplifier_gains(eotest_results_file=None):
@@ -501,7 +504,8 @@ def cte_jh_task(det_name):
     png_file_list = '{}_cte_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
     return None
 
@@ -995,7 +999,8 @@ def raft_results_task(raft_name):
     png_file_list = '{}_raft_results_task_png_files.txt'.format(raft_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
     return None
 
