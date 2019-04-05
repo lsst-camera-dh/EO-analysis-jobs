@@ -105,23 +105,28 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     bias_frame = bias_filename(file_prefix)
     png_files = []
 
-    pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
+    try:
+        pixel_stats = sensorTest.Fe55PixelStats(fe55_files,
+                                                sensor_id=file_prefix)
+        png_files.append('%s_fe55_p3_p5_hists.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
+                                pix0='p3', pix1='p5')
 
-    png_files.append('%s_fe55_p3_p5_hists.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
-                            pix0='p3', pix1='p5')
+        png_files.append('%s_fe55_p3_p5_profiles.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
+                                png_files[-1], pixel_coord='x',
+                                pix0='p3', pix1='p5')
 
-    png_files.append('%s_fe55_p3_p5_profiles.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
-                            png_files[-1], pixel_coord='x',
-                            pix0='p3', pix1='p5')
+        png_files.append('%s_fe55_apflux_serial.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1])
 
-    png_files.append('%s_fe55_apflux_serial.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1])
-
-    png_files.append('%s_fe55_apflux_parallel.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1],
-                            pixel_coord='y')
+        png_files.append('%s_fe55_apflux_parallel.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1],
+                                pixel_coord='y')
+    except:
+        # Encountered error processing data or generating pngs so skip
+        # these plots.
+        pass
 
     rolloff_mask_file = '%s_edge_rolloff_mask.fits' % file_prefix
     sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
