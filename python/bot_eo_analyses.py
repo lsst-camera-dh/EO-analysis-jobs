@@ -15,7 +15,6 @@ import lsst.eotest.sensor as sensorTest
 import lsst.eotest.raft as raftTest
 import eotestUtils
 import siteUtils
-from siteUtils import HJ_FILEPATH_SERVER
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
@@ -1084,14 +1083,6 @@ det_task_mapping = {'gain': (fe55_jh_task,),
 
 def run_det_task_analysis(det_task_name, det_names=None, processes=None):
     """Run the desired detector-level task using multiprocessing."""
-    global HJ_FILEPATH_SERVER
-    try:
-        acq_run = os.environ['LCATR_ACQ_RUN']
-    except KeyError:
-        pass
-    else:
-        HJ_FILEPATH_SERVER.query_file_paths(acq_run)
-
     tasks = det_task_mapping[det_task_name]
 
     if det_names is None:
