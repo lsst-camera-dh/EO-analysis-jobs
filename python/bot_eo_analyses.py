@@ -983,10 +983,14 @@ def raft_results_task(raft_name):
     png_files.append('%s_parallel_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
-    spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                         title=title, ymax=5.2)
-    png_files.append('%s_psf_sigma.png' % file_prefix)
-    plt.savefig(png_files[-1])
+    try:
+        spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
+                             title=title, ymax=5.2)
+        png_files.append('%s_psf_sigma.png' % file_prefix)
+        plt.savefig(png_files[-1])
+    except KeyError:
+        # PSF_SIGMA not available so skip this plot
+        pass
 
     try:
         spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
