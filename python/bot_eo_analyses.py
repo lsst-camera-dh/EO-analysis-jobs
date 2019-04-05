@@ -929,21 +929,26 @@ def raft_results_task(raft_name):
         plt.savefig(png_files[-1])
         del sflat_low
 
-    # QE images at 350, 500, 620, 750, 870, and 1000nm.
-    for wl in (350, 500, 620, 750, 870, 1000):
-        print("Processing %i nm image" % wl)
-        pattern = 'lambda_flat_{:04d}*/*_{}_*.fits'.format(wl, raft_name)
-        files = siteUtils.dependency_glob(pattern)
+    # QE images at various wavelengths and filters
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    for wl in ('SDSSu', 'SDSSg', 'SDSSr', 'SDSSi', 'SDSSz', 'SDSSY',
+               '480nm', '650nm', '750nm', '870nm', '950nm', '970nm'):
+        print("Processing %s image" % wl)
+        pattern = 'lambda_flat_{}*/*_{}_*.fits'.format(wl, raft_name)
+        print(pattern)
+        print(acq_jobname)
+        files = siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname)
         if not files:
+            print("no files found")
             continue
         lambda_files = dict()
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
         flat = raftTest.RaftMosaic(lambda_files, gains=gains)
-        flat.plot(title='%s, %i nm' % (title, wl),
+        flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted')
-        png_files.append('{}_{:04d}nm_flat.png'.format(file_prefix, wl))
+        png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
         plt.savefig(png_files[-1])
         del flat
 
