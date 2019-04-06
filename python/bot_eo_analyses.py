@@ -430,7 +430,7 @@ def dark_current_jh_task(det_name):
     eotest_results_file \
         = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
                                     jobname='read_noise_BOT')[0]
-    gains = get_amplifier_gains(eotest_results_file)
+    gains = get_amplifier_gains('{}_eotest_results.fits'.format(file_prefix))
     bias_frame = bias_filename(file_prefix)
 
     dark_curr_pixels, dark95s \
