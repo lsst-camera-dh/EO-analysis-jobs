@@ -490,14 +490,7 @@ def cte_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
-    results_files = siteUtils.dependency_glob(eotest_results_file,
-                                              jobname='fe55_analysis_BOT')
-    if results_files:
-        gains = get_amplifier_gains(results_files[0])
-    else:
-        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
-              file_prefix, ".  Using unit gains.")
-        gains = get_amplifier_gains()
+    gains = get_amplifier_gains(eotest_results_file)
 
     bias_frame = bias_filename(file_prefix)
 
