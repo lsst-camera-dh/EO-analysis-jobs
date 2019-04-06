@@ -164,11 +164,23 @@ def fe55_task(run, det_name, fe55_files, bias_files):
                 output.write('{}\n'.format(item))
 
 
-def get_amplifier_gains(eotest_results_file=None):
+def get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
     if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
-        or eotest_results_file is None):
+        or file_pattern is None):
         return {amp: 1 for amp in range(1, 17)}
+
+    # Attempt to retrieve gains from fe55_analysis_BOT then ptc_BOT.
+    # If neither are available, then use unit gains.
+    results_files = siteUtils.dependency_glob(file_pattern,
+                                              jobname='fe55_analysis_BOT')
+    if not results_files:
+        results_files = siteUtils.dependency_glob(file_pattern,
+                                                  jobname='ptc_BOT')
+    if not results_files:
+        return {amp: 1 for amp in range(1, 17)}
+
+    eotest_results_file = results_files[0]
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
     gains = data['GAIN']
