@@ -117,12 +117,6 @@ def fe55_task(run, det_name, fe55_files, bias_files):
                                 png_files[-1], pixel_coord='x',
                                 pix0='p3', pix1='p5')
 
-        png_files.append('%s_fe55_apflux_serial.png' % file_prefix)
-        siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1])
-
-        png_files.append('%s_fe55_apflux_parallel.png' % file_prefix)
-        siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1],
-                                pixel_coord='y')
     except:
         # Encountered error processing data or generating pngs so skip
         # these plots.
