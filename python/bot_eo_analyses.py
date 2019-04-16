@@ -35,6 +35,7 @@ __all__ = ['run_det_task_analysis', 'make_file_prefix',
            'find_flat2_bot',
            'flat_pairs_task', 'flat_pairs_jh_task',
            'ptc_task', 'ptc_jh_task',
+           'overscan_task', 'overscan_jh_task',
            'bf_task', 'bf_jh_task',
            'qe_task', 'qe_jh_task',
            'tearing_task', 'tearing_jh_task',
@@ -598,6 +599,38 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                             Ne_bounds=linearity_spec_range,
                             use_exptime=use_exptime)
 
+def overscan_jh_task():
+    """JH version of single sensor execution of the overscan task."""
+    run = siteUtils.getRunNumber()
+    file_prefix = make_file_prefix(run, det_name)
+
+    flat_files \
+        = siteUtils.dependency_glob(glob_pattern('flat_pairs', det_name))
+    if not flat_files:
+        print("flat_pairs_task: Flat pairs files not found for detector",
+              det_name)
+        return None
+
+    try:
+        eotest_results_file \
+            = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
+                                        jobname='fe55_analysis_BOT')[0]
+    except IndexError:
+        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
+              file_prefix, ".  Using unit gains.")
+        eotest_results_file = None
+    gains = get_amplifier_gains(eotest_results_file)
+    bias_frame = bias_filename(file_prefix)
+
+    return overscan_task(run, det_name, flat_files, gains, bias_frame=bias_frame)
+
+def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
+    """Single sensor execution of the overscan task."""
+    file_prefix = make_file_prefix(run, det_name)
+    
+    task = sensorTest.OverscanTask()
+    task.run(file_prefix, flat_files, gains, bias_frame=bias_frame)
+    results_file = '%s_overscan_results.fits' % file_prefix
 
 def ptc_jh_task(det_name):
     """JH version of single sensor execution of the PTC task."""

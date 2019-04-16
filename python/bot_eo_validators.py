@@ -22,7 +22,7 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_read_noise', 'validate_bright_defects',
            'validate_dark_defects', 'validate_traps', 'validate_dark_current',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
-           'validate_brighter_fatter',
+           'validate_brighter_fatter', 'validate_overscan',
            'validate_qe', 'validate_tearing', 'validate_raft_results']
 
 
@@ -484,6 +484,26 @@ def validate_ptc(results, det_names):
 
     report_missing_data("validate_ptc", missing_det_names)
 
+    return results
+
+def validate_overscan(results, det_names):
+    """Validate the overscan results."""
+    run = siteUtils.getRunNumber()
+    missing_det_names = []
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = make_file_prefix(run, det_name)
+        overscan_results = '%s_overscan_results.fits' % file_prefix
+        if not os.path.isfile(overscan_results):
+            missing_det_names.append(det_name)
+            continue
+        eotestUtils.addHeaderData(overscan_results, TESTTYPE='FLAT',
+                                  DATE=eotestUtils.utc_now_isoformat())
+
+        results.append(siteUtils.make_fileref(overscan_results))
+
+    report_missing_data("validate_overscan", missing_det_names)
+    
     return results
 
 def validate_brighter_fatter(results, det_names):
