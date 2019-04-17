@@ -676,6 +676,7 @@ if __name__ == '__main__':
     results = validate_cte(results, det_names)
     results = validate_flat_pairs(results, det_names)
     results = validate_ptc(results, det_names)
+    results = validate_overscan(results, det_names)
     results = validate_qe(results, det_names)
     results = validate_tearing(results, det_names)
     results = validate_raft_results(results, raft_names)

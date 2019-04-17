@@ -448,6 +448,25 @@ def validate_ptc(results, det_names):
 
     return results
 
+def validate_overscan(results, det_names):
+    """Validate the overscan results."""
+    run = siteUtils.getRunNumber()
+    missing_det_names = []
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        file_prefix = make_file_prefix(run, det_name)
+        overscan_results = '%s_overscan_results.fits' % file_prefix
+        if not os.path.isfile(overscan_results):
+            missing_det_names.append(det_name)
+            continue
+        eotestUtils.addHeaderData(overscan_results, TESTTYPE='FLAT',
+                                  DATE=eotestUtils.utc_now_isoformat())
+
+        results.append(siteUtils.make_fileref(overscan_results))
+
+    report_missing_data("validate_overscan", missing_det_names)
+    
+    return results
 
 def validate_qe(results, det_names):
     """Validate the QE results."""
@@ -580,6 +599,7 @@ if __name__ == '__main__':
     results = validate_cte(results, det_names)
     results = validate_flat_pairs(results, det_names)
     results = validate_ptc(results, det_names)
+    results = validate_overscan(results, det_names)
     results = validate_qe(results, det_names)
     results = validate_tearing(results, det_names)
     results = validate_raft_results(results, raft_names)
