@@ -113,17 +113,22 @@ def validate_fe55(results, det_names):
                                                    metadata=metadata))
 
         data = sensorTest.EOTestResults(gain_file)
-        amps = data['AMP']
-        gain_data = data['GAIN']
-        gain_errors = data['GAIN_ERROR']
-        sigmas = data['PSF_SIGMA']
-        for amp, gain_value, gain_error, sigma in zip(amps, gain_data,
-                                                      gain_errors, sigmas):
-            if not np.isfinite(gain_error):
-                gain_error = -1
-            results.append(lcatr.schema.valid(
-                lcatr.schema.get('fe55_BOT_analysis'), amp=amp, gain=gain_value,
-                gain_error=gain_error, psf_sigma=sigma, slot=slot, raft=raft))
+        try:
+            amps = data['AMP']
+            gain_data = data['GAIN']
+            gain_errors = data['GAIN_ERROR']
+            sigmas = data['PSF_SIGMA']
+        except KeyError:
+            pass
+        else:
+            for amp, gain_value, gain_error, sigma in zip(amps, gain_data,
+                                                          gain_errors, sigmas):
+                if not np.isfinite(gain_error):
+                    gain_error = -1
+                results.append(lcatr.schema.valid(
+                    lcatr.schema.get('fe55_BOT_analysis'), amp=amp,
+                    gain=gain_value, gain_error=gain_error, psf_sigma=sigma,
+                    slot=slot, raft=raft))
 
     report_missing_data('validate_fe55', missing_det_names)
 

@@ -84,8 +84,13 @@ def bias_filename(file_prefix, check_is_file=True):
 def fe55_jh_task(det_name):
     "JH version of single sensor execution of the Fe55 analysis task."
     run = siteUtils.getRunNumber()
-    fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name))
-    bias_files = siteUtils.dependency_glob(glob_pattern('fe55_bias', det_name))
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 25)
+
+    fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name),
+                                           acq_jobname=acq_jobname)
+    bias_files = siteUtils.dependency_glob(glob_pattern('fe55_bias', det_name),
+                                           acq_jobname=acq_jobname)[:nbias]
     if not fe55_files or not bias_files:
         print("fe55_task: Needed data files missing for detector", det_name)
         return None
@@ -98,23 +103,24 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     title = '{}, {}'.format(run, det_name)
 
     bias_frame = bias_filename(file_prefix)
-    pixel_stats = sensorTest.Fe55PixelStats(fe55_files, sensor_id=file_prefix)
+    png_files = []
 
-    png_files = ['%s_fe55_p3_p5_hists.png' % file_prefix]
-    siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
-                            pix0='p3', pix1='p5')
+    try:
+        pixel_stats = sensorTest.Fe55PixelStats(fe55_files,
+                                                sensor_id=file_prefix)
+        png_files.append('%s_fe55_p3_p5_hists.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.pixel_hists, png_files[-1],
+                                pix0='p3', pix1='p5')
 
-    png_files.append('%s_fe55_p3_p5_profiles.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
-                            png_files[-1], pixel_coord='x',
-                            pix0='p3', pix1='p5')
+        png_files.append('%s_fe55_p3_p5_profiles.png' % file_prefix)
+        siteUtils.make_png_file(pixel_stats.pixel_diff_profile,
+                                png_files[-1], pixel_coord='x',
+                                pix0='p3', pix1='p5')
 
-    png_files.append('%s_fe55_apflux_serial.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1])
-
-    png_files.append('%s_fe55_apflux_parallel.png' % file_prefix)
-    siteUtils.make_png_file(pixel_stats.apflux_profile, png_files[-1],
-                            pixel_coord='y')
+    except:
+        # Encountered error processing data or generating pngs so skip
+        # these plots.
+        pass
 
     rolloff_mask_file = '%s_edge_rolloff_mask.fits' % file_prefix
     sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
@@ -148,14 +154,27 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
 
-def get_amplifier_gains(eotest_results_file=None):
+def get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
     if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
-        or eotest_results_file is None):
+        or file_pattern is None):
         return {amp: 1 for amp in range(1, 17)}
+
+    # Attempt to retrieve gains from fe55_analysis_BOT then ptc_BOT.
+    # If neither are available, then use unit gains.
+    results_files = siteUtils.dependency_glob(file_pattern,
+                                              jobname='fe55_analysis_BOT')
+    if not results_files:
+        results_files = siteUtils.dependency_glob(file_pattern,
+                                                  jobname='ptc_BOT')
+    if not results_files:
+        return {amp: 1 for amp in range(1, 17)}
+
+    eotest_results_file = results_files[0]
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
     gains = data['GAIN']
@@ -165,8 +184,11 @@ def get_amplifier_gains(eotest_results_file=None):
 def bias_frame_jh_task(det_name):
     """JH version of the bias_frame_task."""
     run = siteUtils.getRunNumber()
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 10)
     bias_files \
-        = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name))
+        = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name),
+                                    acq_jobname=acq_jobname)[:nbias]
     if not bias_files:
         print("bias_frame_task: Needed data files are missing for detector",
               det_name)
@@ -199,9 +221,12 @@ def read_noise_jh_task(det_name):
     """JH version of the single sensor read noise task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 10)
 
     bias_files \
-        = siteUtils.dependency_glob(glob_pattern('read_noise', det_name))
+        = siteUtils.dependency_glob(glob_pattern('read_noise', det_name),
+                                    acq_jobname=acq_jobname)[:nbias]
     if not bias_files:
         print("read_noise_task: Needed data files are missing for detector",
               det_name)
@@ -237,11 +262,14 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
 def raft_jh_noise_correlations(raft_name):
     """JH version of raft-level noise-correlation analysis."""
     run = siteUtils.getRunNumber()
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+
     bias_files \
         = siteUtils.dependency_glob(glob_pattern('raft_noise_correlations',
-                                                 '{}_S??'.format(raft_name)))
+                                                 '{}_S??'.format(raft_name)),
+                                    acq_jobname=acq_jobname)
     if not bias_files:
-        print("raft_noise_correlatiosn: Missing bias files for raft",
+        print("raft_noise_correlations: Missing bias files for raft",
               raft_name)
         return None
     bias_file_dict = dict()
@@ -268,9 +296,11 @@ def bright_defects_jh_task(det_name):
     """JH version of single sensor bright pixels task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     dark_files \
-        = siteUtils.dependency_glob(glob_pattern('bright_defects', det_name))
+        = siteUtils.dependency_glob(glob_pattern('bright_defects', det_name),
+                                    acq_jobname=acq_jobname)
     if not dark_files:
         print("bright_defects_task: Needed data files missing for detector",
               det_name)
@@ -308,9 +338,11 @@ def dark_defects_jh_task(det_name):
     """JH version of single sensor execution of the dark defects task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     sflat_files \
-        = siteUtils.dependency_glob(glob_pattern('dark_defects', det_name))
+        = siteUtils.dependency_glob(glob_pattern('dark_defects', det_name),
+                                    acq_jobname=acq_jobname)
     if not sflat_files:
         print("dark_defects_task: No high flux superflat files found for",
               det_name)
@@ -342,8 +374,10 @@ def traps_jh_task(det_name):
     """JH version of single sensor execution of the traps analysis task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
-    trap_files = siteUtils.dependency_glob(glob_pattern('traps', det_name))
+    trap_files = siteUtils.dependency_glob(glob_pattern('traps', det_name),
+                                           acq_jobname=acq_jobname)
     if not trap_files:
         print("traps_task: No pocket pumping file found for detector",
               det_name)
@@ -377,9 +411,11 @@ def dark_current_jh_task(det_name):
     """JH version of single sensor execution of the dark current task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     dark_files \
-        = siteUtils.dependency_glob(glob_pattern('dark_current', det_name))
+        = siteUtils.dependency_glob(glob_pattern('dark_current', det_name),
+                                    acq_jobname=acq_jobname)
     if not dark_files:
         print("dark_current_task: No dark files found for detector", det_name)
         return None
@@ -388,7 +424,7 @@ def dark_current_jh_task(det_name):
     eotest_results_file \
         = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
                                     jobname='read_noise_BOT')[0]
-    gains = get_amplifier_gains(eotest_results_file)
+    gains = get_amplifier_gains('{}_eotest_results.fits'.format(file_prefix))
     bias_frame = bias_filename(file_prefix)
 
     dark_curr_pixels, dark95s \
@@ -433,11 +469,14 @@ def cte_jh_task(det_name):
     """JH version of single sensor execution of the CTE task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     sflat_high_files \
-        = siteUtils.dependency_glob(glob_pattern('cte_high', det_name))
+        = siteUtils.dependency_glob(glob_pattern('cte_high', det_name),
+                                    acq_jobname=acq_jobname)
     sflat_low_files \
-        = siteUtils.dependency_glob(glob_pattern('cte_low', det_name))
+        = siteUtils.dependency_glob(glob_pattern('cte_low', det_name),
+                                    acq_jobname=acq_jobname)
     if not sflat_high_files and not sflat_low_files:
         print("cte_task: Superflat files not found for detector", det_name)
         return None
@@ -445,14 +484,7 @@ def cte_jh_task(det_name):
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
-    results_files = siteUtils.dependency_glob(eotest_results_file,
-                                              jobname='fe55_analysis_BOT')
-    if results_files:
-        gains = get_amplifier_gains(results_files[0])
-    else:
-        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
-              file_prefix, ".  Using unit gains.")
-        gains = get_amplifier_gains()
+    gains = get_amplifier_gains(eotest_results_file)
 
     bias_frame = bias_filename(file_prefix)
 
@@ -475,7 +507,8 @@ def cte_jh_task(det_name):
     png_file_list = '{}_cte_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
     return None
 
@@ -545,9 +578,11 @@ def flat_pairs_jh_task(det_name):
     """JH version of single sensor execution of the flat pairs task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     flat_files \
-        = siteUtils.dependency_glob(glob_pattern('flat_pairs', det_name))
+        = siteUtils.dependency_glob(glob_pattern('flat_pairs', det_name),
+                                    acq_jobname=acq_jobname)
     if not flat_files:
         print("flat_pairs_task: Flat pairs files not found for detector",
               det_name)
@@ -603,8 +638,10 @@ def ptc_jh_task(det_name):
     """JH version of single sensor execution of the PTC task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
-    flat_files = siteUtils.dependency_glob(glob_pattern('ptc', det_name))
+    flat_files = siteUtils.dependency_glob(glob_pattern('ptc', det_name),
+                                           acq_jobname=acq_jobname)
     if not flat_files:
         print("ptc_task: Flat pairs files not found for detector", det_name)
         return None
@@ -638,9 +675,11 @@ def bf_jh_task(det_name):
     """JH version of single sensor execution of the brighter-fatter task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
     flat_files \
-        = siteUtils.dependency_glob(glob_pattern('brighter_fatter', det_name))
+        = siteUtils.dependency_glob(glob_pattern('brighter_fatter', det_name),
+                                    acq_jobname=acq_jobname)
 
     if not flat_files:
         print("bf_jh_task: Flat pairs files not found for detector", det_name)
@@ -675,8 +714,10 @@ def qe_jh_task(det_name):
     """JH version of single sensor execution of the QE task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
 
-    lambda_files = siteUtils.dependency_glob(glob_pattern('qe', det_name))
+    lambda_files = siteUtils.dependency_glob(glob_pattern('qe', det_name),
+                                             acq_jobname=acq_jobname)
     if not lambda_files:
         print("qe_task: QE scan files not found for detector", det_name)
         return None
@@ -736,7 +777,10 @@ def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
-    flat_files = siteUtils.dependency_glob(glob_pattern('tearing', det_name))
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+
+    flat_files = siteUtils.dependency_glob(glob_pattern('tearing', det_name),
+                                           acq_jobname=acq_jobname)
     if not flat_files:
         print("tearing_task: Flat files not found for detector", det_name)
         return None
@@ -839,7 +883,7 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
-    # Median bias mosaic.
+    # Median bias mosaic
     median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
                      annotation='ADU/pixel')
@@ -884,21 +928,26 @@ def raft_results_task(raft_name):
         plt.savefig(png_files[-1])
         del sflat_low
 
-    # QE images at 350, 500, 620, 750, 870, and 1000nm.
-    for wl in (350, 500, 620, 750, 870, 1000):
-        print("Processing %i nm image" % wl)
-        pattern = 'lambda_flat_{:04d}*/*_{}_*.fits'.format(wl, raft_name)
-        files = siteUtils.dependency_glob(pattern)
+    # QE images at various wavelengths and filters
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    for wl in ('SDSSu', 'SDSSg', 'SDSSr', 'SDSSi', 'SDSSz', 'SDSSY',
+               '480nm', '650nm', '750nm', '870nm', '950nm', '970nm'):
+        print("Processing %s image" % wl)
+        pattern = 'lambda_flat_{}*/*_{}_*.fits'.format(wl, raft_name)
+        print(pattern)
+        print(acq_jobname)
+        files = siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname)
         if not files:
+            print("no files found")
             continue
         lambda_files = dict()
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
         flat = raftTest.RaftMosaic(lambda_files, gains=gains)
-        flat.plot(title='%s, %i nm' % (title, wl),
+        flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted')
-        png_files.append('{}_{:04d}nm_flat.png'.format(file_prefix, wl))
+        png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
         plt.savefig(png_files[-1])
         del flat
 
@@ -933,10 +982,14 @@ def raft_results_task(raft_name):
     png_files.append('%s_parallel_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
-    spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                         title=title, ymax=5.2)
-    png_files.append('%s_psf_sigma.png' % file_prefix)
-    plt.savefig(png_files[-1])
+    try:
+        spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
+                             title=title, ymax=5.2)
+        png_files.append('%s_psf_sigma.png' % file_prefix)
+        plt.savefig(png_files[-1])
+    except KeyError:
+        # PSF_SIGMA not available so skip this plot
+        pass
 
     try:
         spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
@@ -958,7 +1011,8 @@ def raft_results_task(raft_name):
     png_file_list = '{}_raft_results_task_png_files.txt'.format(raft_name)
     with open(png_file_list, 'w') as output:
         for item in png_files:
-            output.write('{}\n'.format(item))
+            if os.path.isfile(item):
+                output.write('{}\n'.format(item))
 
     return None
 
