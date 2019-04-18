@@ -14,6 +14,8 @@ def run_bright_pixels_task(sensor_id):
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
                                            description='Dark files:')
+    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+                                           description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
@@ -21,7 +23,7 @@ def run_bright_pixels_task(sensor_id):
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
-    task.run(sensor_id, dark_files, mask_files, gains)
+    task.run(sensor_id, dark_files, mask_files, gains, bias_frame=bias_frame)
 
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_medianed_dark.png' % file_prefix,

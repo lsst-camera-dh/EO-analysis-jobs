@@ -14,11 +14,13 @@ def run_dark_pixels_task(sensor_id):
     sflat_files = siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
                                             jobname=siteUtils.getProcessName('sflat_raft_acq'),
                                             description='Superflat files:')
+    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+                                           description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
 
     task = sensorTest.DarkPixelsTask()
-    task.run(sensor_id, sflat_files, mask_files)
+    task.run(sensor_id, sflat_files, mask_files, bias_frame=bias_frame)
 
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_superflat_dark_defects.png' % file_prefix,

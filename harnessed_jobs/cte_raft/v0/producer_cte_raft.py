@@ -14,6 +14,8 @@ from multiprocessor_execution import sensor_analyses
 def run_cte_task(sensor_id):
     "Single sensor execution of the cte task."
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
+    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+                                           description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
@@ -39,14 +41,14 @@ def run_cte_task(sensor_id):
 
     task = sensorTest.CteTask()
     task.run(sensor_id, sflat_high_files, flux_level='high', gains=gains,
-             mask_files=mask_files)
+             mask_files=mask_files, bias_frame=bias_frame)
 
     sflat_low_files = \
         siteUtils.dependency_glob('S*/%s_sflat_500_flat_L*.fits' % sensor_id,
                                   jobname=siteUtils.getProcessName('sflat_raft_acq'),
                                   description='Superflat low flux files:')
     task.run(sensor_id, sflat_low_files, flux_level='low', gains=gains,
-             mask_files=mask_files)
+             mask_files=mask_files, bias_frame=bias_frame)
 
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
 
