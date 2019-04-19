@@ -886,7 +886,7 @@ def raft_results_task(raft_name):
     # Median bias mosaic
     median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
-                     annotation='ADU/pixel')
+                     annotation='ADU/pixel', rotate180=True)
     png_files = ['{}_median_bias.png'.format(file_prefix)]
     plt.savefig(png_files[-1])
     del median_bias
@@ -895,7 +895,8 @@ def raft_results_task(raft_name):
     dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
     dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains)
     dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
-                     annotation='e-/pixel, gain-corrected, bias-subtracted')
+                     annotation='e-/pixel, gain-corrected, bias-subtracted',
+                     rotate180=True)
     png_files.append('{}_medianed_dark.png'.format(file_prefix))
     plt.savefig(png_files[-1])
     del dark_mosaic
@@ -909,7 +910,8 @@ def raft_results_task(raft_name):
     else:
         sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
         sflat_high.plot(title='%s, high flux superflat' % title,
-                        annotation='e-/pixel, gain-corrected, bias-subtracted')
+                        annotation='e-/pixel, gain-corrected, bias-subtracted',
+                        rotate180=True)
         png_files.append('{}_superflat_high.png'.format(file_prefix))
         plt.savefig(png_files[-1])
         del sflat_high
@@ -923,7 +925,8 @@ def raft_results_task(raft_name):
     else:
         sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
         sflat_low.plot(title='%s, low flux superflat' % title,
-                       annotation='e-/pixel, gain-corrected, bias-subtracted')
+                       annotation='e-/pixel, gain-corrected, bias-subtracted',
+                       rotate180=True)
         png_files.append('{}_superflat_low.png'.format(file_prefix))
         plt.savefig(png_files[-1])
         del sflat_low
@@ -946,7 +949,8 @@ def raft_results_task(raft_name):
             lambda_files[slot_name] = item
         flat = raftTest.RaftMosaic(lambda_files, gains=gains)
         flat.plot(title='%s, %s' % (title, wl),
-                  annotation='e-/pixel, gain-corrected, bias-subtracted')
+                  annotation='e-/pixel, gain-corrected, bias-subtracted',
+                  rotate180=True)
         png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
         plt.savefig(png_files[-1])
         del flat
