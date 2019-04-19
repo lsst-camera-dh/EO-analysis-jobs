@@ -67,8 +67,9 @@ def run_fe55_task(sensor_id):
 
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
+    hist_nsig = 10
     task.run(sensor_id, fe55_files, (rolloff_mask_file,), bias_frame=bias_frame,
-             accuracy_req=0.01)
+             accuracy_req=0.01, hist_nsig=hist_nsig)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % sensor_id
@@ -86,7 +87,7 @@ def run_fe55_task(sensor_id):
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
                             '%s_fe55_dists.png' % file_prefix,
-                            fe55_file=fe55_file)
+                            fe55_file=fe55_file, xrange_scale=3)
 
     siteUtils.make_png_file(plots.psf_dists,
                             '%s_psf_dists.png' % file_prefix,
