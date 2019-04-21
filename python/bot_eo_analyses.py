@@ -145,7 +145,7 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     fe55_file = glob.glob('%s_psf_results*.fits' % file_prefix)[0]
     png_files.append('%s_fe55_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.fe55_dists, png_files[-1],
-                            fe55_file=fe55_file)
+                            fe55_file=fe55_file, xrange_scale=3)
 
     png_files.append('%s_psf_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.psf_dists, png_files[-1],
