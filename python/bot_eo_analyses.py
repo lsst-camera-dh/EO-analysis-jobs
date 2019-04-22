@@ -125,10 +125,12 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     rolloff_mask_file = '%s_edge_rolloff_mask.fits' % file_prefix
     sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
 
+    hist_nsig = 20
+
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
     task.run(file_prefix, fe55_files, (rolloff_mask_file,),
-             bias_frame=bias_frame, accuracy_req=0.01)
+             bias_frame=bias_frame, accuracy_req=0.01, hist_nsig=hist_nsig)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -145,7 +147,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     fe55_file = glob.glob('%s_psf_results*.fits' % file_prefix)[0]
     png_files.append('%s_fe55_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.fe55_dists, png_files[-1],
-                            fe55_file=fe55_file, xrange_scale=3)
+                            fe55_file=fe55_file, xrange_scale=5,
+                            hist_nsig=hist_nsig)
 
     png_files.append('%s_psf_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.psf_dists, png_files[-1],
@@ -975,7 +978,7 @@ def raft_results_task(raft_name):
     spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
                                       'Serial CTI (ppm)', spec=(5e-6, 3e-5),
                                       title=title, yscaling=1e6, yerrors=True,
-                                      colors='br', ymax=4e-5)
+                                      colors='br', ybounds=(-1e-5, 4e-5))
     png_files.append('%s_serial_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
@@ -988,7 +991,7 @@ def raft_results_task(raft_name):
 
     try:
         spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                             title=title, ymax=5.2)
+                             title=title, ybounds=(0, 5.2))
         png_files.append('%s_psf_sigma.png' % file_prefix)
         plt.savefig(png_files[-1])
     except KeyError:
