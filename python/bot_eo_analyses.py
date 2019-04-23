@@ -896,7 +896,8 @@ def raft_results_task(raft_name):
 
     # Dark mosaic
     dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
-    dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains)
+    dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains,
+                                      bias_frames=bias_files)
     dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
                      annotation='e-/pixel, gain-corrected, bias-subtracted',
                      rotate180=True)
@@ -911,7 +912,8 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
+        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains,
+                                         bias_frames=bias_files)
         sflat_high.plot(title='%s, high flux superflat' % title,
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
                         rotate180=True)
@@ -926,7 +928,8 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
+        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains,
+                                        bias_frames=bias_files)
         sflat_low.plot(title='%s, low flux superflat' % title,
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
                        rotate180=True)
@@ -950,7 +953,8 @@ def raft_results_task(raft_name):
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
-        flat = raftTest.RaftMosaic(lambda_files, gains=gains)
+        flat = raftTest.RaftMosaic(lambda_files, gains=gains,
+                                   bias_frames=bias_files)
         flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
                   rotate180=True)
