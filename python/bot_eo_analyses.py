@@ -852,11 +852,11 @@ def raft_results_task(raft_name):
     # files.  This info will be used in computing the pixel defect
     # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
-    bias_files = get_raft_files_by_slot(raft_name, 'median_bias.fits')
+    bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits')
     mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
 
     total_num, rolloff_mask \
-        = sensorTest.pixel_counts(bias_files[slot_names[0]],
+        = sensorTest.pixel_counts(bias_frames[slot_names[0]],
                                   input_mask=mask_files[slot_names[0]])
 
     # Exposure time (in seconds) for 95th percentile dark current shot
@@ -886,18 +886,19 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
+    png_files = []
     # Median bias mosaic
-    median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
+    median_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
                      annotation='ADU/pixel', rotate180=True)
-    png_files = ['{}_median_bias.png'.format(file_prefix)]
+    png_files.append('{}_median_bias.png'.format(file_prefix))
     plt.savefig(png_files[-1])
     del median_bias
 
     # Dark mosaic
     dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
     dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains,
-                                      bias_frames=bias_files)
+                                      bias_frames=bias_frames)
     dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
                      annotation='e-/pixel, gain-corrected, bias-subtracted',
                      rotate180=True)
@@ -913,7 +914,7 @@ def raft_results_task(raft_name):
         print(eobj)
     else:
         sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains,
-                                         bias_frames=bias_files)
+                                         bias_frames=bias_frames)
         sflat_high.plot(title='%s, high flux superflat' % title,
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
                         rotate180=True)
@@ -929,7 +930,7 @@ def raft_results_task(raft_name):
         print(eobj)
     else:
         sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains,
-                                        bias_frames=bias_files)
+                                        bias_frames=bias_frames)
         sflat_low.plot(title='%s, low flux superflat' % title,
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
                        rotate180=True)
@@ -954,7 +955,7 @@ def raft_results_task(raft_name):
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
         flat = raftTest.RaftMosaic(lambda_files, gains=gains,
-                                   bias_frames=bias_files)
+                                   bias_frames=bias_frames)
         flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
                   rotate180=True)
@@ -969,27 +970,27 @@ def raft_results_task(raft_name):
     spec_plots = raftTest.RaftSpecPlots(results_files)
     columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
     spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)',
-                                      spec=9, title=title)
+                                      spec=9, title=title, ybounds=(-1, 100))
     png_files.append('%s_total_noise.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_plot('MAX_FRAC_DEV',
                          'non-linearity (max. fractional deviation)',
-                         spec=0.03, title=title)
+                         spec=0.03, title=title, ybounds=(0, 0.1))
     png_files.append('%s_linearity.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
                                       'Serial CTI (ppm)', spec=(5e-6, 3e-5),
                                       title=title, yscaling=1e6, yerrors=True,
-                                      colors='br', ybounds=(-1e-5, 4e-5))
+                                      colors='br', ybounds=(-1e-5, 6e-5))
     png_files.append('%s_serial_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
                                       'Parallel CTI (ppm)', spec=3e-6,
                                       title=title, yscaling=1e6, yerrors=True,
-                                      colors='br')
+                                      colors='br', ybounds=(-1e-5, 6e-5))
     png_files.append('%s_parallel_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
@@ -1006,7 +1007,7 @@ def raft_results_task(raft_name):
         spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
                                           'System Gain (e-/ADU)',
                                           yerrors=True, title=title,
-                                          colors='br')
+                                          colors='br', ybounds=(0, 3))
         png_files.append('%s_system_gain.png' % file_prefix)
         plt.savefig(png_files[-1])
     except KeyError:
@@ -1015,7 +1016,7 @@ def raft_results_task(raft_name):
 
     spec_plots.make_plot('DARK_CURRENT_95',
                          '95th percentile dark current (e-/pixel/s)',
-                         spec=0.2, title=title)
+                         spec=0.2, title=title, ybounds=(-0.01, 1))
     png_files.append('%s_dark_current.png' % file_prefix)
     plt.savefig(png_files[-1])
 
