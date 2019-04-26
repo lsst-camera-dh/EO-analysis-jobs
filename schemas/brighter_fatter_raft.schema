@@ -1,0 +1,13 @@
+# -*- python -*-
+{
+    'schema_name' : 'brighter_fatter_raft',
+    'schema_version' : 0,
+    'amp' : int,
+    'bf_xcorr' : float,
+    'bf_xcorr_err' : float,
+    'bf_ycorr' : float,
+    'bf_ycorr_err' : float,
+    'bf_mean' : float,
+    'slot' : str,
+    'sensor_id' : str
+}
