@@ -24,15 +24,20 @@ for slot, sensor_id in raft.items():
 
     results_file = '%s_eotest_results.fits' % sensor_id
     data = sensorTest.EOTestResults(results_file)
-    amps = data['AMP']
-    ptc_gains = data['PTC_GAIN']
-    ptc_gain_errors = data['PTC_GAIN_ERROR']
-    for amp, gain, gain_error in zip(amps, ptc_gains, ptc_gain_errors):
-        results.append(lcatr.schema.valid(lcatr.schema.get('ptc_raft'),
-                                          amp=amp, ptc_gain=gain,
-                                          ptc_gain_error=gain_error,
-                                          slot=slot,
-                                          sensor_id=sensor_id))
+    columns = (data['AMP'], data['PTC_GAIN'], data['PTC_GAIN_ERROR'],
+               data['PTC_A00'], data['PTC_A00_ERROR'],
+               data['PTC_NOISE'], data['PTC_NOISE_ERROR'],
+               data['PTC_TURNOFF'])
+    schema = lcatr.schema.get('ptc_raft')
+    for (amp, ptc_gain, ptc_gain_error, ptc_a00, ptc_a00_error,
+         ptc_noise, ptc_noise_error, ptc_turnoff) in zip(*columns):
+        results.append(lcatr.schema.valid(
+            schema, amp=amp,
+            ptc_gain=ptc_gain, ptc_gain_error=ptc_gain_error,
+            ptc_a00=ptc_a00, ptc_a00_error=ptc_a00_error,
+            ptc_noise=ptc_noise, ptc_noise_error=ptc_noise_error,
+            ptc_turnoff=ptc_turnoff, slot=slot, sensor_id=sensor_id))
+
     # Persist the png files.
     metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,
                     TESTTYPE='FLAT', TEST_CATEGORY='EO')
