@@ -4,6 +4,7 @@
     'schema_version' : 0,
     'amp' : int,
     'dark_current_95CL' : float,
+    'dark_current_median' : float,
     'slot' : str,
     'sensor_id' : str
 }

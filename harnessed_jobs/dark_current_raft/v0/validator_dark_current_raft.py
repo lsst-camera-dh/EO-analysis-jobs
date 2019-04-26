@@ -18,11 +18,12 @@ for slot, sensor_id in raft.items():
 
     amps = data['AMP']
     dc95s = data['DARK_CURRENT_95']
-    for amp, dc95 in zip(amps, dc95s):
+    dcmeds = data['DARK_CURRENT_MEDIAN']
+    for amp, dc95, dcmed in zip(amps, dc95s, dcmeds):
         results.append(lcatr.schema.valid(lcatr.schema.get('dark_current_raft'),
                                           amp=amp, dark_current_95CL=dc95,
-                                          slot=slot,
-                                          sensor_id=sensor_id))
+                                          dark_current_median=dcmed,
+                                          slot=slot, sensor_id=sensor_id))
 
     # Persist the png files.
     metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,

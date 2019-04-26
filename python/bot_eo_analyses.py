@@ -886,6 +886,14 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
+    # Extract dark currents for each amplifier in the raft.
+    dark_currents = dict()
+    for slot_name, results_file in results_files.items():
+        results = sensorTest.EOTestResults(results_file)
+        dark_currents[slot_name] \
+            = dict(_ for _ in zip(results['AMP'],
+                                  results['DARK_CURRENT_MEDIAN']))
+
     png_files = []
     # Median bias mosaic
     median_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
@@ -914,7 +922,8 @@ def raft_results_task(raft_name):
         print(eobj)
     else:
         sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains,
-                                         bias_frames=bias_frames)
+                                         bias_frames=bias_frames,
+                                         dark_currents=dark_currents)
         sflat_high.plot(title='%s, high flux superflat' % title,
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
                         rotate180=True)
@@ -930,7 +939,8 @@ def raft_results_task(raft_name):
         print(eobj)
     else:
         sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains,
-                                        bias_frames=bias_frames)
+                                        bias_frames=bias_frames,
+                                        dark_currents=dark_currents)
         sflat_low.plot(title='%s, low flux superflat' % title,
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
                        rotate180=True)
@@ -955,7 +965,8 @@ def raft_results_task(raft_name):
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
         flat = raftTest.RaftMosaic(lambda_files, gains=gains,
-                                   bias_frames=bias_frames)
+                                   bias_frames=bias_frames,
+                                   dark_currents=dark_currents)
         flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
                   rotate180=True)
