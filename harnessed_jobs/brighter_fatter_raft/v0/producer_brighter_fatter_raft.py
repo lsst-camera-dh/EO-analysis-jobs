@@ -27,7 +27,7 @@ def run_bf_task(sensor_id):
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
     siteUtils.make_png_file(plots.bf_curves,
                             '%s_brighter-fatter.png' % file_prefix,
-                            ptc_file='%s_bf.fits' % sensor_id)
+                            bf_file='%s_bf.fits' % sensor_id)
 
 if __name__ == '__main__':
     sensor_analyses(run_bf_task)

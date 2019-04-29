@@ -24,12 +24,6 @@ for slot, sensor_id in raft.items():
 
     results_file = '%s_eotest_results.fits' % sensor_id
     data = sensorTest.EOTestResults(results_file)
-    amps = data['AMP']
-    bf_xcorr = data['BF_XCORR']
-    bf_xcorr_err = data['BF_XCORR_ERR']
-    bf_ycorr = data['BF_YCORR']
-    bf_ycorr_err = data['BF_YCORR_ERR']
-    bf_mean = data['PTC_MEAN']
     columns = (data['AMP'], data['BF_XCORR'], data['BF_XCORR_ERR'],
                data['BF_YCORR'], data['BF_YCORR_ERR'], data['BF_MEAN'])
     schema = lcatr.schema.get('brighter_fatter_raft')
