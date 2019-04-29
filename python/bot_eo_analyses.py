@@ -125,10 +125,12 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     rolloff_mask_file = '%s_edge_rolloff_mask.fits' % file_prefix
     sensorTest.rolloff_mask(fe55_files[0], rolloff_mask_file)
 
+    hist_nsig = 20
+
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
     task.run(file_prefix, fe55_files, (rolloff_mask_file,),
-             bias_frame=bias_frame, accuracy_req=0.01)
+             bias_frame=bias_frame, accuracy_req=0.01, hist_nsig=hist_nsig)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -145,7 +147,8 @@ def fe55_task(run, det_name, fe55_files, bias_files):
     fe55_file = glob.glob('%s_psf_results*.fits' % file_prefix)[0]
     png_files.append('%s_fe55_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.fe55_dists, png_files[-1],
-                            fe55_file=fe55_file)
+                            fe55_file=fe55_file, xrange_scale=5,
+                            hist_nsig=hist_nsig)
 
     png_files.append('%s_psf_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.psf_dists, png_files[-1],
@@ -849,11 +852,11 @@ def raft_results_task(raft_name):
     # files.  This info will be used in computing the pixel defect
     # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
-    bias_files = get_raft_files_by_slot(raft_name, 'median_bias.fits')
+    bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits')
     mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
 
     total_num, rolloff_mask \
-        = sensorTest.pixel_counts(bias_files[slot_names[0]],
+        = sensorTest.pixel_counts(bias_frames[slot_names[0]],
                                   input_mask=mask_files[slot_names[0]])
 
     # Exposure time (in seconds) for 95th percentile dark current shot
@@ -883,19 +886,30 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
+    # Extract dark currents for each amplifier in the raft.
+    dark_currents = dict()
+    for slot_name, results_file in results_files.items():
+        results = sensorTest.EOTestResults(results_file)
+        dark_currents[slot_name] \
+            = dict(_ for _ in zip(results['AMP'],
+                                  results['DARK_CURRENT_MEDIAN']))
+
+    png_files = []
     # Median bias mosaic
-    median_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
+    median_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
-                     annotation='ADU/pixel')
-    png_files = ['{}_median_bias.png'.format(file_prefix)]
+                     annotation='ADU/pixel', rotate180=True)
+    png_files.append('{}_median_bias.png'.format(file_prefix))
     plt.savefig(png_files[-1])
     del median_bias
 
     # Dark mosaic
     dark_files = get_raft_files_by_slot(raft_name, 'median_dark_bp.fits')
-    dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains)
+    dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains,
+                                      bias_frames=bias_frames)
     dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
-                     annotation='e-/pixel, gain-corrected, bias-subtracted')
+                     annotation='e-/pixel, gain-corrected, bias-subtracted',
+                     rotate180=True)
     png_files.append('{}_medianed_dark.png'.format(file_prefix))
     plt.savefig(png_files[-1])
     del dark_mosaic
@@ -907,9 +921,12 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains)
+        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains,
+                                         bias_frames=bias_frames,
+                                         dark_currents=dark_currents)
         sflat_high.plot(title='%s, high flux superflat' % title,
-                        annotation='e-/pixel, gain-corrected, bias-subtracted')
+                        annotation='e-/pixel, gain-corrected, bias-subtracted',
+                        rotate180=True)
         png_files.append('{}_superflat_high.png'.format(file_prefix))
         plt.savefig(png_files[-1])
         del sflat_high
@@ -921,9 +938,12 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains)
+        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains,
+                                        bias_frames=bias_frames,
+                                        dark_currents=dark_currents)
         sflat_low.plot(title='%s, low flux superflat' % title,
-                       annotation='e-/pixel, gain-corrected, bias-subtracted')
+                       annotation='e-/pixel, gain-corrected, bias-subtracted',
+                       rotate180=True)
         png_files.append('{}_superflat_low.png'.format(file_prefix))
         plt.savefig(png_files[-1])
         del sflat_low
@@ -944,9 +964,12 @@ def raft_results_task(raft_name):
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
-        flat = raftTest.RaftMosaic(lambda_files, gains=gains)
+        flat = raftTest.RaftMosaic(lambda_files, gains=gains,
+                                   bias_frames=bias_frames,
+                                   dark_currents=dark_currents)
         flat.plot(title='%s, %s' % (title, wl),
-                  annotation='e-/pixel, gain-corrected, bias-subtracted')
+                  annotation='e-/pixel, gain-corrected, bias-subtracted',
+                  rotate180=True)
         png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
         plt.savefig(png_files[-1])
         del flat
@@ -958,33 +981,33 @@ def raft_results_task(raft_name):
     spec_plots = raftTest.RaftSpecPlots(results_files)
     columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
     spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)',
-                                      spec=9, title=title)
+                                      spec=9, title=title, ybounds=(-1, 100))
     png_files.append('%s_total_noise.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_plot('MAX_FRAC_DEV',
                          'non-linearity (max. fractional deviation)',
-                         spec=0.03, title=title)
+                         spec=0.03, title=title, ybounds=(0, 0.1))
     png_files.append('%s_linearity.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
                                       'Serial CTI (ppm)', spec=(5e-6, 3e-5),
                                       title=title, yscaling=1e6, yerrors=True,
-                                      colors='br', ymax=4e-5)
+                                      colors='br', ybounds=(-1e-5, 6e-5))
     png_files.append('%s_serial_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
                                       'Parallel CTI (ppm)', spec=3e-6,
                                       title=title, yscaling=1e6, yerrors=True,
-                                      colors='br')
+                                      colors='br', ybounds=(-1e-5, 6e-5))
     png_files.append('%s_parallel_cti.png' % file_prefix)
     plt.savefig(png_files[-1])
 
     try:
         spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                             title=title, ymax=5.2)
+                             title=title, ybounds=(0, 5.2))
         png_files.append('%s_psf_sigma.png' % file_prefix)
         plt.savefig(png_files[-1])
     except KeyError:
@@ -995,7 +1018,7 @@ def raft_results_task(raft_name):
         spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'),
                                           'System Gain (e-/ADU)',
                                           yerrors=True, title=title,
-                                          colors='br')
+                                          colors='br', ybounds=(0, 3))
         png_files.append('%s_system_gain.png' % file_prefix)
         plt.savefig(png_files[-1])
     except KeyError:
@@ -1004,7 +1027,7 @@ def raft_results_task(raft_name):
 
     spec_plots.make_plot('DARK_CURRENT_95',
                          '95th percentile dark current (e-/pixel/s)',
-                         spec=0.2, title=title)
+                         spec=0.2, title=title, ybounds=(-0.01, 1))
     png_files.append('%s_dark_current.png' % file_prefix)
     plt.savefig(png_files[-1])
 

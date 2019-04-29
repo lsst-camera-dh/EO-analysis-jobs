@@ -320,10 +320,12 @@ def validate_dark_current(results, det_names):
 
         amps = data['AMP']
         dc95s = data['DARK_CURRENT_95']
-        for amp, dc95 in zip(amps, dc95s):
+        dark_current_medians = data['DARK_CURRENT_MEDIAN']
+        for amp, dc95, dcmed in zip(amps, dc95s, dark_current_medians):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('dark_current_BOT'), amp=amp,
-                dark_current_95CL=dc95, slot=slot, raft=raft))
+                dark_current_95CL=dc95, dark_current_median=dcmed,
+                slot=slot, raft=raft))
 
         # Persist the png files.
         metadata = dict(TESTTYPE='DARK', TEST_CATEGORY='EO',

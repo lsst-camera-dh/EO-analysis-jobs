@@ -13,13 +13,15 @@ def run_ptc_task(sensor_id):
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
+    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+                                           description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
                                        sensor_id=sensor_id)
 
     task = sensorTest.PtcTask()
-    task.run(sensor_id, flat_files, mask_files, gains)
+    task.run(sensor_id, flat_files, mask_files, gains, bias_frame=bias_frame)
 
     results_file = '%s_eotest_results.fits' % sensor_id
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)

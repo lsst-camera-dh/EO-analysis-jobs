@@ -19,9 +19,10 @@ def run_fe55_task(sensor_id):
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Bias files:')
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     nf = len(bias_files)
-    mean_bias_file = '%(sensor_id)s_mean_bias_%(nf)i.fits' % locals()
-    imutils.fits_mean_file(bias_files, mean_bias_file)
+    bias_frame = '%(sensor_id)s_mean_bias_%(nf)i.fits' % locals()
+    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
     #
     # Create a png zoom of the upper right corner of segment 1 for an Fe55
@@ -66,7 +67,9 @@ def run_fe55_task(sensor_id):
 
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
-    task.run(sensor_id, fe55_files, (rolloff_mask_file,), accuracy_req=0.01)
+    hist_nsig = 10
+    task.run(sensor_id, fe55_files, (rolloff_mask_file,), bias_frame=bias_frame,
+             accuracy_req=0.01, hist_nsig=hist_nsig)
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % sensor_id
@@ -77,14 +80,14 @@ def run_fe55_task(sensor_id):
 
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_mean_bias.png' % file_prefix,
-                            mean_bias_file,
+                            bias_frame,
                             title='%s, mean bias frame' % sensor_id,
                             annotation='ADU/pixel, overscan-subtracted')
 
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
                             '%s_fe55_dists.png' % file_prefix,
-                            fe55_file=fe55_file)
+                            fe55_file=fe55_file, xrange_scale=3)
 
     siteUtils.make_png_file(plots.psf_dists,
                             '%s_psf_dists.png' % file_prefix,

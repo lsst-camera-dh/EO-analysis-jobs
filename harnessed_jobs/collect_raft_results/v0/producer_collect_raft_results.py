@@ -24,8 +24,8 @@ def slot_dependency_glob(pattern, jobname):
 
 run_number = siteUtils.getRunNumber()
 
-# Use a mean bias file to determine the maximum number of active
-# pixels for the image quality statistics.
+# Use a bias file to determine the maximum number of active pixels for
+# the image quality statistics.
 bias_files = slot_dependency_glob('*bias*.fits',
                                   siteUtils.getProcessName('qe_raft_acq'))
 total_num, rolloff_mask = sensorTest.pixel_counts(list(bias_files.values())[0])
@@ -68,34 +68,43 @@ for slot, res_file in results_files.items():
     gains[slot] = dict([(amp, gain) for amp, gain
                         in zip(results['AMP'], results['GAIN'])])
 
+# Collect super bias files for bias frame subtraction.
+bias_frames = slot_dependency_glob('*mean_bias_*.fits', 'fe55_raft_analysis')
+
 title = '%s, %s' % (raft_id, run_number)
 file_prefix = '%s_%s' % (raft_id, run_number)
 
 # Raft-level mosaics of median darks, bias, superflats high and low.
 dark_mosaic = raftTest.RaftMosaic(slot_dependency_glob('*median_dark_bp.fits',
                                                        'bright_defects_raft'),
-                                  gains=gains)
+                                  gains=gains, bias_frames=bias_frames)
 dark_mosaic.plot(title='%s, medianed dark frames' % title,
-                 annotation='e-/pixel, gain-corrected, bias-subtracted')
+                 annotation='e-/pixel, gain-corrected, bias-subtracted',
+                 rotate180=True)
 plt.savefig('%s_medianed_dark.png' % file_prefix)
 del dark_mosaic
 
-mean_bias = raftTest.RaftMosaic(bias_files, bias_subtract=False)
-mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel')
+mean_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
+mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel',
+               rotate180=True)
 plt.savefig('%s_mean_bias.png' % file_prefix)
 del mean_bias
 
 sflat_high = raftTest.RaftMosaic(slot_dependency_glob('*superflat_high.fits',
-                                                      'cte_raft'), gains=gains)
+                                                      'cte_raft'),
+                                 gains=gains, bias_frames=bias_frames)
 sflat_high.plot(title='%s, high flux superflat' % title,
-                annotation='e-/pixel, gain-corrected, bias-subtracted')
+                annotation='e-/pixel, gain-corrected, bias-subtracted',
+                rotate180=True)
 plt.savefig('%s_superflat_high.png' % file_prefix)
 del sflat_high
 
 sflat_low = raftTest.RaftMosaic(slot_dependency_glob('*superflat_low.fits',
-                                                     'cte_raft'), gains=gains)
+                                                     'cte_raft'),
+                                gains=gains, bias_frames=bias_frames)
 sflat_low.plot(title='%s, low flux superflat' % title,
-               annotation='e-/pixel, gain-corrected, bias-subtracted')
+               annotation='e-/pixel, gain-corrected, bias-subtracted',
+               rotate180=True)
 plt.savefig('%s_superflat_low.png' % file_prefix)
 del sflat_low
 
@@ -105,9 +114,10 @@ for wl in (350, 500, 620, 750, 870, 1000):
     files = slot_dependency_glob('*lambda_flat_%04i_*.fits' % wl,
                                  siteUtils.getProcessName('qe_raft_acq'))
     try:
-        flat = raftTest.RaftMosaic(files, gains=gains)
+        flat = raftTest.RaftMosaic(files, gains=gains, bias_frames=bias_frames)
         flat.plot(title='%s, %i nm' % (title, wl),
-                  annotation='e-/pixel, gain-corrected, bias-subtracted')
+                  annotation='e-/pixel, gain-corrected, bias-subtracted',
+                  rotate180=True)
         plt.savefig('%s_%04inm_flat.png' % (file_prefix, wl))
         del flat
     except IndexError as eobj:

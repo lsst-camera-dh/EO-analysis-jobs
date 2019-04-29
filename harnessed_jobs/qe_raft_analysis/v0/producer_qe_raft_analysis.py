@@ -33,6 +33,8 @@ def run_qe_task(sensor_id):
         print()
         sys.stdout.flush()
 
+    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+                                           description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
@@ -41,7 +43,7 @@ def run_qe_task(sensor_id):
     task = sensorTest.QeTask()
     task.config.temp_set_point = -100.
     task.run(sensor_id, lambda_files, pd_ratio_file, mask_files, gains,
-             correction_image=correction_image)
+             correction_image=correction_image, bias_frame=bias_frame)
 
     results_file \
         = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,

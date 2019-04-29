@@ -4,6 +4,8 @@ Producer script for raft-level flat pairs analysis.
 """
 from __future__ import print_function
 import pickle
+import lsst.eotest.image_utils as imutils
+import lsst.eotest.sensor as sensorTest
 import siteUtils
 from multiprocessor_execution import sensor_analyses
 from tearing_detection import tearing_detection
@@ -19,12 +21,23 @@ def run_tearing_detection(sensor_id):
     """
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     tearing_stats = []
+    # Create a super bias frame.
+    bias_files = siteUtils.dependency_glob('S*/%s_flat_bias*.fits' % sensor_id,
+                                           jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
+                                           description='Bias files:')
+    if bias_files:
+        bias_frame = '%s_superbias.fits' % sensor_id
+        amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+        imutils.superbias_file(bias_files[:10], amp_geom.serial_overscan,
+                               bias_frame)
+    else:
+        bias_frame = None
     for job_key, pattern in acq_jobs.items():
         job_name, subset = job_key
         flats = siteUtils.dependency_glob(pattern % sensor_id,
                                           jobname=siteUtils.getProcessName(job_name),
                                           description='Flat files:')
-        tearing_found, _ = tearing_detection(flats)
+        tearing_found, _ = tearing_detection(flats, bias_frame=bias_frame)
         tearing_stats.append((job_name, subset, sensor_id, len(tearing_found)))
 
     with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
