@@ -137,39 +137,40 @@ spec_plots = raftTest.RaftSpecPlots(results_files)
 
 columns = 'READ_NOISE DC95_SHOT_NOISE TOTAL_NOISE'.split()
 spec_plots.make_multi_column_plot(columns, 'noise per pixel (-e rms)', spec=9,
-                                  title=title)
+                                  title=title, ybounds=(-1, 100))
 plt.savefig('%s_total_noise.png' % file_prefix)
 
 spec_plots.make_plot('MAX_FRAC_DEV',
                      'non-linearity (max. fractional deviation)',
-                     spec=0.03, title=title)
+                     spec=0.03, title=title, ybounds=(0, 0.1))
 plt.savefig('%s_linearity.png' % file_prefix)
 
 spec_plots.make_multi_column_plot(('CTI_LOW_SERIAL', 'CTI_HIGH_SERIAL'),
                                   'Serial CTI (ppm)', spec=(5e-6, 3e-5),
                                   title=title, yscaling=1e6, yerrors=True,
-                                  colors='br', ymax=4e-5)
+                                  colors='br', ybounds=(-1e-5, 6e-5))
 plt.savefig('%s_serial_cti.png' % file_prefix)
 
 spec_plots.make_multi_column_plot(('CTI_LOW_PARALLEL', 'CTI_HIGH_PARALLEL'),
                                   'Parallel CTI (ppm)', spec=3e-6,
                                   title=title, yscaling=1e6, yerrors=True,
-                                  colors='br')
+                                  colors='br', ybounds=(-1e-5, 6e-5))
 plt.savefig('%s_parallel_cti.png' % file_prefix)
 
 try:
     spec_plots.make_plot('PSF_SIGMA', 'PSF sigma (microns)', spec=5.,
-                         title=title, ymax=5.2)
+                         title=title, ybounds=(0, 5.2))
 except KeyError:
     pass
 else:
     plt.savefig('%s_psf_sigma.png' % file_prefix)
 
 spec_plots.make_multi_column_plot(('GAIN', 'PTC_GAIN'), 'System Gain (e-/ADU)',
-                                  yerrors=True, title=title, colors='br')
+                                  yerrors=True, title=title, colors='br',
+                                  ybounds=(0, 3))
 plt.savefig('%s_system_gain.png' % file_prefix)
 
 spec_plots.make_plot('DARK_CURRENT_95',
                      '95th percentile dark current (e-/pixel/s)',
-                     spec=0.2, title=title)
+                     spec=0.2, title=title, ybounds=(-0.01, 1))
 plt.savefig('%s_dark_current.png' % file_prefix)
