@@ -20,11 +20,12 @@ def run_overscan_task(sensor_id):
     task = sensorTest.OverscanTask()
     task.run(sensor_id, flat_files, gains) # Needs bias file
 
+    results_file = '%s_eotest_results.fits' % sensor_id
     overscan_file = '%s_overscan_results.fits' % sensor_id
-#    plots = sensorTest.EOTestPlots(sensor_id, overscan_file=overscan_file)
-
-#    siteUtils.make_png_file(plots.overscan,
-#                            '%s_linearity.png' % file_prefix)
+    plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
+    siteUtils.make_png_file(plots.overscan,
+                            '%s_cti.png' % file_prefix,
+                            overscan_results='%s_overscan_results.fits' % sensor_id)
 
 if __name__ == '__main__':
     sensor_analyses(run_overscan_task)
