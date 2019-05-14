@@ -33,7 +33,7 @@ fp_configs = {'fe55_BOT_analysis': (('gain', 'psf_sigma'),
                           ((0, 1e-5), (0, 1e-5), (0, 1e-5), (0, 1e-5)),
                           (None, None, None, None)),
               'flat_pairs_BOT': (('max_frac_dev',), ((0, 0.05),), (None,)),
-              'ptc_BOT': (('ptc_gain', 'ptc_a00'), ((0.5, 1.5), (0, 5e6)),
+              'ptc_BOT': (('ptc_gain', 'ptc_a00'), ((0.5, 1.5), (0, 5e-6)),
                           ('e-/ADU', None)),
               'bright_fatter_BOT': (('bf_xcorr', 'bf_ycorr'), (None, None),
                                     (None, None))}

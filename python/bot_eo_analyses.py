@@ -334,7 +334,8 @@ def bright_defects_task(run, det_name, dark_files, gains, mask_files=(),
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_medianed_dark.png' % file_prefix,
                             '%s_median_dark_bp.fits' % file_prefix,
-                            title=title, annotation=annotation)
+                            title=title, annotation=annotation,
+                            bias_frame=bias_frame, gains=gains, binsize=4)
 
 
 def dark_defects_jh_task(det_name):
@@ -371,7 +372,8 @@ def dark_defects_task(run, det_name, sflat_files, mask_files=(),
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_superflat_dark_defects.png' % file_prefix,
                             '%s_median_sflat.fits' % file_prefix,
-                            title=title, annotation='ADU/pixel')
+                            title=title, annotation='ADU/pixel',
+                            flatten=True, binsize=4)
 
 def traps_jh_task(det_name):
     """JH version of single sensor execution of the traps analysis task."""
@@ -547,7 +549,7 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
                             superflat_file,
                             title=('%s, %s, CTE supeflat, %s flux '
                                    % (run, det_name, flux_level)),
-                            annotation='ADU/pixel')
+                            annotation='ADU/pixel', flatten=True, binsize=4)
 
     png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
     siteUtils.make_png_file(plots.cte_profiles, png_files[-1], flux_level,
