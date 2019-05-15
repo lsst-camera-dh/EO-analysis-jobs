@@ -30,15 +30,15 @@ def run_dark_current_task(sensor_id):
     results_file \
         = siteUtils.dependency_glob('%s_eotest_results.fits' % sensor_id,
                                     jobname='read_noise_raft')[0]
-    eo_results = sensorTest.EOTestResults(results_file)
-    read_noise = dict(pair for pair in zip(eo_results['AMP'],
-                                           eo_results['TOTAL_NOISE']))
-
-    siteUtils.make_png_file(sensorTest.total_noise_histograms,
-                            '%s_total_noise_hists.png' % file_prefix,
-                            dark_curr_pixels, read_noise, dark95s,
-                            exptime=16, title=sensor_id)
-
+#    eo_results = sensorTest.EOTestResults(results_file)
+#    read_noise = dict(pair for pair in zip(eo_results['AMP'],
+#                                           eo_results['TOTAL_NOISE']))
+#
+#    siteUtils.make_png_file(sensorTest.total_noise_histograms,
+#                            '%s_total_noise_hists.png' % file_prefix,
+#                            dark_curr_pixels, read_noise, dark95s,
+#                            exptime=16, title=sensor_id)
+#
     plots = sensorTest.EOTestPlots(sensor_id, results_file=results_file)
     siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
                             dark95s=dark95s)

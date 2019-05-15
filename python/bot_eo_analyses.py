@@ -456,13 +456,13 @@ def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
     the read noise measurements.
     """
     file_prefix = make_file_prefix(run, det_name)
-    eo_results = sensorTest.EOTestResults(eotest_results_file)
-    read_noise = dict(pair for pair in zip(eo_results['AMP'],
-                                           eo_results['TOTAL_NOISE']))
-    siteUtils.make_png_file(sensorTest.total_noise_histograms,
-                            '%s_total_noise_hists.png' % file_prefix,
-                            dark_curr_pixels, read_noise, dark95s,
-                            exptime=16, title=det_name)
+#    eo_results = sensorTest.EOTestResults(eotest_results_file)
+#    read_noise = dict(pair for pair in zip(eo_results['AMP'],
+#                                           eo_results['TOTAL_NOISE']))
+#    siteUtils.make_png_file(sensorTest.total_noise_histograms,
+#                            '%s_total_noise_hists.png' % file_prefix,
+#                            dark_curr_pixels, read_noise, dark95s,
+#                            exptime=16, title=det_name)
     plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file)
     siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
                             dark95s=dark95s)
