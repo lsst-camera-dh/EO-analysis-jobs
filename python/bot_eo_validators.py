@@ -26,14 +26,15 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_qe', 'validate_tearing', 'validate_raft_results']
 
 
-def run_validator(det_task_name):
+def run_validator(*det_task_names):
     """
     Driver function to run the validator function for the desired
     detector-level EO task.
     """
-    validator = eval('validate_{}'.format(det_task_name))
     results = []
-    results = validator(results, camera_info.get_det_names())
+    for det_task_name in det_task_names:
+        validator = eval('validate_{}'.format(det_task_name))
+        results = validator(results, camera_info.get_det_names())
     results.extend(siteUtils.jobInfo())
     lcatr.schema.write_file(results)
     lcatr.schema.validate_file()
