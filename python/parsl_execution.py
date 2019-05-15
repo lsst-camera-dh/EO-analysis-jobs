@@ -10,7 +10,7 @@ import camera_components
 import parsl
 from parsl.app.app import python_app
 
-from .parsl_irs_dc_config import IR2_DC_CONFIG, MAX_PARSL_THREADS
+from parsl_ir2_dc_config import IR2_DC_CONFIG, MAX_PARSL_THREADS
 
 parsl.load(IR2_DC_CONFIG)
 
@@ -67,6 +67,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None):
             task_func(device_name)
     else:
         outputs = [ parsl_wrapper(task_func, device_name).result() for device_name in device_names ]
+        print (outputs)
 
 
 def parsl_sensor_analyses(run_task_func, raft_id=None, processes=None):
