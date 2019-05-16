@@ -3,16 +3,15 @@ Function to parallelize subcomponent analyses for an assembly such
 as raft or full focal plane.
 """
 import os
-import multiprocessing
-import siteUtils
+#import siteUtils
 import camera_components
 
 import parsl
+
 from parsl.app.app import python_app
 
-from parsl_ir2_dc_config import IR2_DC_CONFIG, MAX_PARSL_THREADS
-
-parsl.load(IR2_DC_CONFIG)
+from parsl_ir2_dc_config import load_ir2_dc_config,\
+    MAX_PARSL_THREADS, PARSL_LOADED
 
 
 __all__ = ['parsl_sensor_analyses', 'parsl_device_analysis_pool']
@@ -58,6 +57,8 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None):
         processes = max(1, MAX_PARSL_THREADS - 1)
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
+    print ("Running in %i processes" % processes)
+
     if processes == 1:
         # For cases where only one process will be run at a time, it's
         # faster to run serially instead of using a
@@ -66,8 +67,10 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None):
         for device_name in device_names:
             task_func(device_name)
     else:
+        print (device_names)
         outputs = [ parsl_wrapper(task_func, device_name).result() for device_name in device_names ]
         print (outputs)
+    return outputs
 
 
 def parsl_sensor_analyses(run_task_func, raft_id=None, processes=None):
@@ -88,21 +91,16 @@ def parsl_sensor_analyses(run_task_func, raft_id=None, processes=None):
         If None (default), then set to 1 or one less than
         the number of cores, whichever is larger.
     """
+    if not PARSL_LOADED:
+        load_ir2_dc_config()
+
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
 
+    print(raft.sensor_names)
     parsl_device_analysis_pool(run_task_func, raft.sensor_names,
                                processes=processes)
 
 
-def print_device_name(device_name):
-    sys.stdout.write("%s\n" % device_name)
-
-
-if __name__ == '__main__':
-    import os
-    os.environ['LCATR_LIMS_URL'] = 'Dummy Prod'
-    raft_id = 'LCA-11021_RTM-004-Dev'
-    parsl_sensor_analyses(print_device_name, raft_id)
