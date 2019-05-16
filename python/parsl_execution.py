@@ -67,9 +67,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None):
         for device_name in device_names:
             task_func(device_name)
     else:
-        print (device_names)
         outputs = [ parsl_wrapper(task_func, device_name).result() for device_name in device_names ]
-        print (outputs)
     return outputs
 
 
@@ -99,8 +97,7 @@ def parsl_sensor_analyses(run_task_func, raft_id=None, processes=None):
 
     raft = camera_components.Raft.create_from_etrav(raft_id)
 
-    print(raft.sensor_names)
-    parsl_device_analysis_pool(run_task_func, raft.sensor_names,
-                               processes=processes)
+    return parsl_device_analysis_pool(run_task_func, raft.sensor_names,
+                                      processes=processes)
 
 
