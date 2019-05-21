@@ -6,6 +6,7 @@ import os
 import glob
 import copy
 import pickle
+from collections import defaultdict
 import configparser
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,6 +20,8 @@ from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
 from multiprocessor_execution import run_device_analysis_pool
+import scope
+import multiscope
 
 __all__ = ['run_det_task_analysis', 'make_file_prefix',
            'fe55_task', 'fe55_jh_task',
@@ -207,17 +210,57 @@ def bias_frame_task(run, det_name, bias_files):
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
 
-def scan_mode_analysis_jh_task(det_name):
+def get_scan_mode_files(raft_name):
+    """Get the scan mode filenames for a given raft, organized by
+    scan mode folder and slot.
+    """
+    acq_jobname = siteUtils.getProcessName('BOT_acq')
+    pattern = glob_pattern('scan_mode', '{}_*'.format(raft_name))
+    files = siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname)
+    scan_mode_files = defaultdict(dict)
+    for item in files:
+        scan_dir = os.path.basename(os.path.dirname(item))
+        slot = os.path.basename(item).split('.')[0].split('_')[-1]
+        scan_mode_files[scan_dir][slot] = item
+    return scan_mode_files
+
+
+def scan_mode_analysis_jh_task(raft_name):
     """JH version of scan mode analysis task."""
     run = siteUtils.getRunNumber()
-    scan_mode_files = []
-    return scan_mode_analysis_task(run, det_name, scan_mode_files)
+    scan_mode_files = get_scan_mode_files(raft_name)
+    return scan_mode_analysis_task(run, raft_name, scan_mode_files)
 
 
-def scan_mode_analysis_task(run, det_name, scan_mode_files):
+def get_raft_arrays(raft_files):
+    seglist = multiscope.slot_ids()
+    raftarrays = []
+    for slot in ['S{}'.format(seg) for seg in seglist]:
+        raftarrays.append(scope.get_scandata_fromfile(raft_files[slot]))
+    return raftarrays, seglist
+
+
+def scan_mode_analysis_task(run, raft_name, scan_mode_files):
     """Scan mode analysis task."""
-    file_prefix = make_file_prefix(run, det_name)
-    # TODO: Implement scan mode analysis.
+    file_prefix = make_file_prefix(run, raft_name)
+    for scan_dir, raft_files in scan_mode_files.items():
+        raft_arrays, seg_list = get_raft_arrays(raft_files)
+        # Make the dispersion plots, one per sensor.
+        for seg, scandata in zip(seg_list, raft_arrays):
+            slot = 'S' + seg
+            det_name = '_'.join((raft_name, slot))
+            disp_plot_title = '{}, Run {}, {}'.format(det_name, run, scan_dir)
+            scope.plot_scan_dispersion(scandata, title=disp_plot_title)
+            disp_outfile \
+                = '{}_{}_{}_dispersion.png'.format(det_name, run, scan_dir)
+            plt.savefig(disp_outfile)
+            plt.close()
+        # Make the multiscope plots for each raft.
+        title = '{}, Run {}, {}'.format(raft_name, run, scan_dir)
+        multiscope.plot_raft_allchans(raft_arrays, seg_list, suptitle=title)
+        outfile = '{}_{}_multiscope.png'.format(file_prefix, scan_dir)
+        plt.savefig(outfile)
+        plt.close()
 
 
 def read_noise_jh_task(det_name):
@@ -1105,23 +1148,23 @@ def mondiode_value(flat_file, exptime, factor=5,
     return integral/exptime
 
 
-det_task_mapping = {'gain': (fe55_jh_task,),
-                    'bias': (bias_frame_jh_task,),
-                    'scan': (scan_mode_analysis_jh_task),
-                    'biasnoise': (read_noise_jh_task,),
-                    'dark': (dark_current_jh_task,),
-                    'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
-                    'ptc': (ptc_jh_task,),
-                    'brighterfatter': (bf_jh_task,),
-                    'linearity': (flat_pairs_jh_task,),
-                    'cti': (cte_jh_task,),
-                    'tearing': (tearing_jh_task,),
-                    'traps': (traps_jh_task,)}
+task_mapping = {'gain': (fe55_jh_task,),
+                'bias': (bias_frame_jh_task,),
+                'scan': (scan_mode_analysis_jh_task,),
+                'biasnoise': (read_noise_jh_task,),
+                'dark': (dark_current_jh_task,),
+                'badpixel': (bright_defects_jh_task, dark_defects_jh_task),
+                'ptc': (ptc_jh_task,),
+                'brighterfatter': (bf_jh_task,),
+                'linearity': (flat_pairs_jh_task,),
+                'cti': (cte_jh_task,),
+                'tearing': (tearing_jh_task,),
+                'traps': (traps_jh_task,)}
 
 
 def run_det_task_analysis(det_task_name, det_names=None, processes=None):
     """Run the desired detector-level task using multiprocessing."""
-    tasks = det_task_mapping[det_task_name]
+    tasks = task_mapping[det_task_name]
 
     if det_names is None:
         det_names = camera_info.get_det_names()
@@ -1129,3 +1172,15 @@ def run_det_task_analysis(det_task_name, det_names=None, processes=None):
     if det_task_name in get_analysis_types():
         for task in tasks:
             run_device_analysis_pool(task, det_names, processes=processes)
+
+
+def run_raft_task_analysis(raft_task_name, raft_names=None, processes=None):
+    """Run the desired raft-level task using multiprocessing."""
+    tasks = task_mapping[raft_task_name]
+
+    if raft_names is None:
+        raft_names = camera_info.get_raft_names()
+
+    if raft_task_name in get_analysis_types():
+        for task in tasks:
+            run_device_analysis_pool(task, raft_names, processes=processes)

@@ -69,7 +69,21 @@ def validate_bias_frame(results, det_names):
 
 def validate_scan(results, det_names):
     """Validate scan mode analysis results."""
-    # TODO: implement validate task for scan mode results.
+    run = siteUtils.getRunNumber()
+    rafts = set()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        rafts.add(raft)
+        file_prefix = make_file_prefix(run, det_name)
+        disp_files = glob.glob('{}_*_dispersion.png'.format(file_prefix))
+        for item in disp_files:
+            md = dict(raft=raft, slot=slot, run=run)
+            results.append(siteUtils.make_fileref(item, metadata=md))
+    for raft in rafts:
+        multiscope_files = glob.glob('{}_{}_*multiscope.png'.format(raft, run))
+        for item in multiscope_files:
+            md = dict(raft=raft, run=run)
+            results.append(siteUtils.make_fileref(item, metadata=md))
     return results
 
 
