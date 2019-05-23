@@ -2,13 +2,12 @@
 """
 Producer script for raft-level brighter-fatter analysis.
 """
-from __future__ import print_function
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_bf_task(sensor_id):
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat1*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
@@ -30,4 +29,7 @@ def run_bf_task(sensor_id):
                             bf_file='%s_bf.fits' % sensor_id)
 
 if __name__ == '__main__':
-    sensor_analyses(run_bf_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_bf_task, processes=processes)
