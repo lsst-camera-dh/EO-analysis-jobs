@@ -7,6 +7,7 @@ import multiprocessing
 import traceback
 import siteUtils
 import camera_components
+from parsl_execution import parsl_sensor_analyses, parsl_device_analysis_pool
 
 __all__ = ['sensor_analyses', 'run_device_analysis_pool']
 
@@ -23,7 +24,7 @@ class TracebackDecorator:
             raise eobj
 
 
-def run_device_analysis_pool(task_func, device_names, processes=None):
+def run_device_analysis_pool(task_func, device_names, processes=None, **kwds):
     """
     Use a multiprocessing.Pool to run a device-level analysis task
     over a collection of device names.  The task_func should be
@@ -53,6 +54,10 @@ def run_device_analysis_pool(task_func, device_names, processes=None):
     Users can override the default or keyword argument values by setting
     the LCATR_PARALLEL_PROCESSES environment variable.
     """
+    if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
+        return parsl_device_analysis_pool(task_func, device_names,
+                                          processes=processes, **kwds)
+
     if processes is None:
         # Use the maximum number of cores available, reserving one for
         # the parent process.
@@ -75,7 +80,7 @@ def run_device_analysis_pool(task_func, device_names, processes=None):
             for res in results:
                 res.get()
 
-def sensor_analyses(run_task_func, raft_id=None, processes=None):
+def sensor_analyses(run_task_func, raft_id=None, processes=None, **kwds):
     """
     Run a sensor-level analysis task implemented as a pickleable
     function that takes the desired sensor id as its single argument.
@@ -93,6 +98,10 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None):
         If None (default), then set to 1 or one less than
         the number of cores, whichever is larger.
     """
+    if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
+        return parsl_sensor_analyses(run_task_func, raft_id=raft_id,
+                                     processes=processes, **kwds)
+
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 
