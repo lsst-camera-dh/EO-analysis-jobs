@@ -2,18 +2,17 @@
 """
 Producer script for raft-level read noise analysis.
 """
-from __future__ import print_function
 import os
-import matplotlib.pyplot as plt
-import lsst.eotest.sensor as sensorTest
 import siteUtils
-import eotestUtils
-from correlated_noise import correlated_noise, raft_level_oscan_correlations
-from multiprocessor_execution import sensor_analyses
 import camera_components
 
-
 def run_read_noise_task(sensor_id):
+    import matplotlib.pyplot as plt
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+    from correlated_noise import correlated_noise
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
@@ -53,7 +52,12 @@ def get_bias_files(raft_id=None):
     return bias_files
 
 if __name__ == '__main__':
-    sensor_analyses(run_read_noise_task)
+    import matplotlib.pyplot as plt
+    from correlated_noise import raft_level_oscan_correlations
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_read_noise_task, processes=processes)
 
     raft_id = os.environ['LCATR_UNIT_ID']
     run = siteUtils.getRunNumber()

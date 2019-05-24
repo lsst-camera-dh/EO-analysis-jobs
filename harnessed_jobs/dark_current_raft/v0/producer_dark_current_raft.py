@@ -2,14 +2,13 @@
 """
 Producer script for raft-level dark current analysis.
 """
-from __future__ import absolute_import
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_dark_current_task(sensor_id):
     "Single sensor execution of dark current analysis."
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('dark_raft_acq'),
@@ -44,4 +43,7 @@ def run_dark_current_task(sensor_id):
                             dark95s=dark95s)
 
 if __name__ == '__main__':
-    sensor_analyses(run_dark_current_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_dark_current_task, processes=processes)

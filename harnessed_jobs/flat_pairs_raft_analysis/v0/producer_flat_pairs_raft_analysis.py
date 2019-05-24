@@ -2,13 +2,12 @@
 """
 Producer script for raft-level flat pairs analysis.
 """
-from __future__ import print_function
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_flat_pair_task(sensor_id):
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
@@ -48,4 +47,7 @@ def run_flat_pair_task(sensor_id):
                             Ne_bounds=Ne_bounds, use_exptime=use_exptime)
 
 if __name__ == '__main__':
-    sensor_analyses(run_flat_pair_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_flat_pair_task, processes=processes)

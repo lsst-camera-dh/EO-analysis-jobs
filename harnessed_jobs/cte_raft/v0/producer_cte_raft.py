@@ -2,17 +2,16 @@
 """
 Producer script for raft-level CTE analysis.
 """
-from __future__ import print_function
-import os
-import shutil
-import glob
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_cte_task(sensor_id):
     "Single sensor execution of the cte task."
+    import os
+    import shutil
+    import glob
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
                                            description='Super bias frame:')[0]
@@ -76,4 +75,7 @@ def run_cte_task(sensor_id):
                                 flux_level, sflat_file, mask_files, serial=False)
 
 if __name__ == '__main__':
-    sensor_analyses(run_cte_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_cte_task, processes=processes)
