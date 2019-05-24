@@ -24,7 +24,7 @@ class TracebackDecorator:
             raise eobj
 
 
-def run_device_analysis_pool(task_func, device_names, processes=None, **kwds):
+def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None):
     """
     Use a multiprocessing.Pool to run a device-level analysis task
     over a collection of device names.  The task_func should be
@@ -38,10 +38,12 @@ def run_device_analysis_pool(task_func, device_names, processes=None, **kwds):
         its argument.
     device_names: list
         The list of device names to run in the pool.
-    processes : int, optional
+    processes : int [None]
         The maximum number of processes to have running at once.
-        If None (default), then set to 1 or one less than
-        the number of cores, whichever is larger.
+        If None, then set to 1 or one less than the number of cores,
+        whichever is larger.
+    cwd: str [None]
+        Working directory to cd to for parsl multi-node processing.
 
     Notes
     -----
@@ -56,7 +58,7 @@ def run_device_analysis_pool(task_func, device_names, processes=None, **kwds):
     """
     if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
         return parsl_device_analysis_pool(task_func, device_names,
-                                          processes=processes, **kwds)
+                                          processes=processes, cwd=cwd)
 
     if processes is None:
         # Use the maximum number of cores available, reserving one for
@@ -73,14 +75,16 @@ def run_device_analysis_pool(task_func, device_names, processes=None, **kwds):
             task_func(device_name)
     else:
         with multiprocessing.Pool(processes=processes) as pool:
-            results = [pool.apply_async(TracebackDecorator(task_func), (device_name,))
+            results = [pool.apply_async(TracebackDecorator(task_func),
+                                        (device_name,))
                        for device_name in device_names]
             pool.close()
             pool.join()
             for res in results:
                 res.get()
 
-def sensor_analyses(run_task_func, raft_id=None, processes=None, **kwds):
+
+def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None):
     """
     Run a sensor-level analysis task implemented as a pickleable
     function that takes the desired sensor id as its single argument.
@@ -93,14 +97,19 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None, **kwds):
     raft_id : str, optional
         The RTM (or RSA) LSST ID.  If None (default), the LCATR_UNIT_ID
         is used.
-    processes : int, optional
+    processes : int [None]
         The maximum number of processes to have running at once.
-        If None (default), then set to 1 or one less than
-        the number of cores, whichever is larger.
+        If None, then set to 1 or one less than the number of cores,
+        whichever is larger.
+    cwd : str [None]
+        Working directory to cd to for parsl multi-node processing.
+        If None, then use `cwd = os.path.abspath('.')`.
     """
     if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
+        if cwd is None:
+            cwd = os.path.abspath('.')
         return parsl_sensor_analyses(run_task_func, raft_id=raft_id,
-                                     processes=processes, **kwds)
+                                     processes=processes, cwd=cwd)
 
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
