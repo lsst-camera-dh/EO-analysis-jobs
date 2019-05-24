@@ -62,9 +62,9 @@ def run_cte_task(sensor_id):
         siteUtils.make_png_file(sensorTest.plot_flat,
                                 sflat_file.replace('.fits', '.png').replace(sensor_id, file_prefix),
                                 sflat_file,
-                                title=('%s, CTE supeflat, %s flux '
+                                title=('%s, CTE superflat, %s flux '
                                        % (sensor_id, flux_level)),
-                                annotation='ADU/pixel')
+                                annotation='ADU/pixel', flatten=True, binsize=4)
         siteUtils.make_png_file(plots.cte_profiles,
                                 ('%s_serial_oscan_%s.png' %
                                  (file_prefix, flux_level)),

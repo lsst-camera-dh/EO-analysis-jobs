@@ -29,7 +29,8 @@ def run_bright_pixels_task(sensor_id):
                             '%s_medianed_dark.png' % file_prefix,
                             '%s_median_dark_bp.fits' % sensor_id,
                             title='%s, medianed dark for bright defects analysis' % sensor_id,
-                            annotation='e-/pixel, gain-corrected, bias-subtracted')
+                            annotation='e-/pixel, gain-corrected, bias-subtracted',
+                            bias_frame=bias_frame, gains=gains, binsize=4)
 
 if __name__ == '__main__':
     sensor_analyses(run_bright_pixels_task)
