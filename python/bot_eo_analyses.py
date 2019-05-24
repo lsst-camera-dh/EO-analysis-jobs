@@ -90,8 +90,6 @@ def bias_filename(file_prefix, check_is_file=True):
     return filename
 
 
-
-
 def fe55_task(run, det_name, fe55_files, bias_files):
     "Single sensor execution of the Fe55 analysis task."
     file_prefix = make_file_prefix(run, det_name)
@@ -177,21 +175,6 @@ def get_amplifier_gains(file_pattern=None):
     amps = data['AMP']
     gains = data['GAIN']
     return {amp: gain for amp, gain in zip(amps, gains)}
-
-
-def bias_frame_jh_task(det_name):
-    """JH version of the bias_frame_task."""
-    run = siteUtils.getRunNumber()
-    acq_jobname = siteUtils.getProcessName('BOT_acq')
-    nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 10)
-    bias_files \
-        = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name),
-                                    acq_jobname=acq_jobname)[:nbias]
-    if not bias_files:
-        print("bias_frame_task: Needed data files are missing for detector",
-              det_name)
-        return None
-    return bias_frame_task(run, det_name, bias_files)
 
 
 def bias_frame_task(run, det_name, bias_files):
