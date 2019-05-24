@@ -25,7 +25,7 @@ def run_dark_pixels_task(sensor_id):
                             '%s_superflat_dark_defects.png' % file_prefix,
                             '%s_median_sflat.fits' % sensor_id,
                             title='%s, superflat for dark defects analysis' % sensor_id,
-                            annotation='ADU/pixel')
+                            annotation='ADU/pixel', flatten=True, binsize=4)
 
 if __name__ == '__main__':
     from multiprocessor_execution import sensor_analyses
