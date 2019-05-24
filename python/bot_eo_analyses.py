@@ -628,6 +628,11 @@ def mondiode_value(flat_file, exptime, factor=5,
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
     if device_names is None:
         device_names = camera_info.get_det_names()
+    rafts = os.environ.get('LCATR_RAFTS', None)
+    if rafts is not None:
+        rafts = rafts.split('_')
+        device_names = [det_name for det_name in device_names
+                        if det_name[:3] in rafts]
 
     cwd = os.path.abspath('.')
     for jh_task in jh_tasks:
