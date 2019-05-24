@@ -25,11 +25,11 @@ WORKER_NODE_ADDRESSES = set(['lsst-dc01', 'lsst-dc02', 'lsst-dc03',
                              'lsst-dc10'])
 MOTHER_NODE_ADDRESS = socket.gethostname().split('.')[0]
 WORKER_NODE_ADDRESSES.remove(MOTHER_NODE_ADDRESS)
+
 NCORES = 28
+MAX_PARSL_THREADS = len(WORKER_NODE_ADDRESSES) * NCORES
 
 PARSL_LOADED = False
-
-MAX_PARSL_THREADS = len(WORKER_NODE_ADDRESSES) * NCORES
 
 def script_dir(hostname, root_dir='.'):
     """
@@ -51,7 +51,6 @@ def load_ir2_dc_config():
         executors.append(HighThroughputExecutor(label=host,
                                                 address=MOTHER_NODE_ADDRESS,
                                                 worker_debug=False,
-                                                cores_per_worker=NCORES,
                                                 provider=provider))
 
     config = Config(executors=executors, strategy=None)

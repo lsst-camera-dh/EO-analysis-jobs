@@ -2,23 +2,17 @@
 """
 Producer script for raft-level flat pairs analysis.
 """
-from __future__ import print_function
-import pickle
-import lsst.eotest.image_utils as imutils
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-from multiprocessor_execution import sensor_analyses
-from tearing_detection import tearing_detection
-
-acq_jobs = {('flat_pair_raft_acq', 'N/A'): 'S*/%s_flat*flat?_*.fits',
-            ('qe_raft_acq', 'N/A'): 'S*/%s_lambda_flat_*.fits',
-            ('sflat_raft_acq', 'low_flux'): 'S*/%s_sflat_500_flat_L*.fits',
-            ('sflat_raft_acq', 'high_flux'): 'S*/%s_sflat_500_flat_H*.fits'}
 
 def run_tearing_detection(sensor_id):
     """
     Loop over the acquisition jobs and perform tearing analysis on each.
     """
+    import pickle
+    import lsst.eotest.image_utils as imutils
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    from tearing_detection import tearing_detection
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     tearing_stats = []
     # Create a super bias frame.
@@ -32,6 +26,11 @@ def run_tearing_detection(sensor_id):
                                bias_frame)
     else:
         bias_frame = None
+
+    acq_jobs = {('flat_pair_raft_acq', 'N/A'): 'S*/%s_flat*flat?_*.fits',
+                ('qe_raft_acq', 'N/A'): 'S*/%s_lambda_flat_*.fits',
+                ('sflat_raft_acq', 'low_flux'): 'S*/%s_sflat_500_flat_L*.fits',
+                ('sflat_raft_acq', 'high_flux'): 'S*/%s_sflat_500_flat_H*.fits'}
     for job_key, pattern in acq_jobs.items():
         job_name, subset = job_key
         flats = siteUtils.dependency_glob(pattern % sensor_id,
@@ -44,4 +43,7 @@ def run_tearing_detection(sensor_id):
         pickle.dump(tearing_stats, output)
 
 if __name__ == '__main__':
-    sensor_analyses(run_tearing_detection)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_tearing_detection, processes=processes)

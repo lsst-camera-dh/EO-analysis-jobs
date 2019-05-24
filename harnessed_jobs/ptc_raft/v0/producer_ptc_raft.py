@@ -2,13 +2,12 @@
 """
 Producer script for raft-level PTC analysis.
 """
-from __future__ import print_function
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_ptc_task(sensor_id):
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
@@ -30,4 +29,7 @@ def run_ptc_task(sensor_id):
                             ptc_file='%s_ptc.fits' % sensor_id)
 
 if __name__ == '__main__':
-    sensor_analyses(run_ptc_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_ptc_task, processes=processes)

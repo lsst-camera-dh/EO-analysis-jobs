@@ -2,16 +2,18 @@
 """
 Producer script for raft-level Fe55 analysis.
 """
-from __future__ import print_function
-import os
-import glob
-import lsst.eotest.image_utils as imutils
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-from multiprocessor_execution import sensor_analyses
+# Note that parsl python_apps require imports to be within the bodies
+# of these functions since it is the serialized versions of these
+# objects that are executed remotely.
 
 def run_fe55_task(sensor_id):
     "Single sensor execution of the Fe55 analysis task."
+    import os
+    import glob
+    import lsst.eotest.image_utils as imutils
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
@@ -95,14 +97,21 @@ def run_fe55_task(sensor_id):
 
 def write_nominal_gains(sensor_id, gain=1):
     """Write nominal gains in lieu of doing the Fe55 analysis."""
+    import lsst.eotest.sensor as sensorTest
+
     results_file = '%s_eotest_results.fits' % sensor_id
     results = sensorTest.EOTestResults(results_file)
     for amp in range(1, 17):
         results.add_seg_result(amp, 'GAIN', gain)
     results.write(clobber=True)
 
+
 if __name__ == '__main__':
+    import os
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9     # Reserve 1 process per CCD.
     if os.environ.get("LCATR_SKIP_FE55_ANALYSIS", "False") == "True":
-        sensor_analyses(write_nominal_gains)
+        sensor_analyses(write_nominal_gains, processes=processes)
     else:
-        sensor_analyses(run_fe55_task)
+        sensor_analyses(run_fe55_task, processes=processes)

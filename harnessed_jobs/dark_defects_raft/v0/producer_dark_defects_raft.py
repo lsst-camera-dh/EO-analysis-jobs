@@ -2,14 +2,13 @@
 """
 Producer script for raft-level dark defects analysis.
 """
-from __future__ import print_function
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_dark_pixels_task(sensor_id):
     "Single sensor execution of the dark pixels task."
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     sflat_files = siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
                                             jobname=siteUtils.getProcessName('sflat_raft_acq'),
@@ -29,4 +28,7 @@ def run_dark_pixels_task(sensor_id):
                             annotation='ADU/pixel', flatten=True, binsize=4)
 
 if __name__ == '__main__':
-    sensor_analyses(run_dark_pixels_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_dark_pixels_task, processes=processes)

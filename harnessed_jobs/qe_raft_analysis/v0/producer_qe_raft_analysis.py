@@ -2,16 +2,15 @@
 """
 Producer script for raft-level QE analysis.
 """
-from __future__ import print_function
-import os
-import sys
-import lsst.eotest.sensor as sensorTest
-import siteUtils
-import eotestUtils
-from multiprocessor_execution import sensor_analyses
 
 def run_qe_task(sensor_id):
     "Single sensor execution of the QE task."
+    import os
+    import sys
+    import lsst.eotest.sensor as sensorTest
+    import siteUtils
+    import eotestUtils
+
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     lambda_files = siteUtils.dependency_glob('S*/%s_lambda_flat_*.fits' % sensor_id,
                                              jobname=siteUtils.getProcessName('qe_raft_acq'),
@@ -63,4 +62,7 @@ def run_qe_task(sensor_id):
         print(str(eobj))
 
 if __name__ == '__main__':
-    sensor_analyses(run_qe_task)
+    from multiprocessor_execution import sensor_analyses
+
+    processes = 9                # Reserve 1 process per CCD.
+    sensor_analyses(run_qe_task, processes=processes)
