@@ -71,6 +71,9 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None, cwd=None
         The working directory to cd to at the remote node.  Nominally, this
         is a location on the shared file system.
     """
+    if not PARSL_LOADED:
+        load_ir2_dc_config()
+
     if processes is None:
         # Use the maximum number of cores available, reserving one for
         # the parent process.
@@ -120,9 +123,6 @@ def parsl_sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None)
         The working directory to cd to at the remote node.  Nominally, this
         is a location on the shared file system.
     """
-    if not PARSL_LOADED:
-        load_ir2_dc_config()
-
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 
