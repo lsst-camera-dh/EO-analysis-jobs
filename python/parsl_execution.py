@@ -8,8 +8,7 @@ import camera_components
 
 from parsl.app.app import python_app
 
-from parsl_ir2_dc_config import load_ir2_dc_config,\
-    MAX_PARSL_THREADS, PARSL_LOADED
+from parsl_ir2_dc_config import load_ir2_dc_config, MAX_PARSL_THREADS
 
 
 __all__ = ['parsl_sensor_analyses', 'parsl_device_analysis_pool']
@@ -71,8 +70,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None, cwd=None
         The working directory to cd to at the remote node.  Nominally, this
         is a location on the shared file system.
     """
-    if not PARSL_LOADED:
-        load_ir2_dc_config()
+    load_ir2_dc_config()
 
     if processes is None:
         # Use the maximum number of cores available, reserving one for

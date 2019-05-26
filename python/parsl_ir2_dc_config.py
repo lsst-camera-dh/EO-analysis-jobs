@@ -10,7 +10,7 @@ from parsl.providers import LocalProvider
 from parsl.channels import SSHChannel
 from parsl.config import Config
 
-__all__ = ['load_ir2_dc_config', 'MAX_PARSL_THREADS', 'PARSL_LOADED']
+__all__ = ['load_ir2_dc_config', 'MAX_PARSL_THREADS']
 
 
 # Suppress the verbose default debug-level logging:
@@ -29,7 +29,6 @@ WORKER_NODE_ADDRESSES.remove(MOTHER_NODE_ADDRESS)
 NCORES = 28
 MAX_PARSL_THREADS = len(WORKER_NODE_ADDRESSES) * NCORES
 
-PARSL_LOADED = False
 
 def script_dir(hostname, root_dir='.'):
     """
@@ -42,6 +41,13 @@ def load_ir2_dc_config():
     """
     Load the parsl config for ad-hoc providers.
     """
+    try:
+        parsl.DataFlowKernelLoader.dfk()
+        print("parsl config is already loaded.")
+        return
+    except RuntimeError:
+        pass
+
     executors = []
 
     for host in WORKER_NODE_ADDRESSES:
@@ -56,5 +62,3 @@ def load_ir2_dc_config():
     config = Config(executors=executors, strategy=None)
 
     parsl.load(config)
-
-    PARSL_LOADED = True
