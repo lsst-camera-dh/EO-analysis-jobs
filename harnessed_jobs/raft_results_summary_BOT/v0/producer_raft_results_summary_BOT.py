@@ -229,7 +229,7 @@ if __name__ == '__main__':
     from focal_plane_plotting import plot_focal_plane
 
     repackage_summary_files()
-    run_jh_tasks(raft_results_task, camera_info.get_raft_names())
+    run_jh_tasks(raft_results_task, device_names=camera_info.get_raft_names())
 
     #
     # Focal plane heat maps
