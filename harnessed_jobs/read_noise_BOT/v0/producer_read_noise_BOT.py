@@ -66,6 +66,6 @@ if __name__ == '__main__':
     from bot_eo_analyses import get_analysis_types, run_jh_tasks
 
     if 'biasnoise' in get_analysis_types():
-        run_device_analysis_pool(read_noise_jh_task)
-        run_device_analysis_pool(raft_jh_noise_correlations,
-                                 device_names= camera_info.get_raft_names())
+        run_jh_tasks(read_noise_jh_task)
+        run_jh_tasks(raft_jh_noise_correlations,
+                     device_names=camera_info.get_raft_names())

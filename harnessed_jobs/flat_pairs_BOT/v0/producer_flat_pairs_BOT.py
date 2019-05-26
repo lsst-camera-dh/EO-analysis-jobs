@@ -7,7 +7,7 @@ def flat_pairs_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, flat_pairs_task
+        get_amplifier_gains, bias_filename, flat_pairs_task, mondiode_value
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)

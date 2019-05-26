@@ -7,7 +7,8 @@ def dark_current_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, dark_current_task
+        get_amplifier_gains, bias_filename, dark_current_task,\
+        plot_ccd_total_noise
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)

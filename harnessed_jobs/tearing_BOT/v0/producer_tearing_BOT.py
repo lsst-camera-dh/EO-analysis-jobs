@@ -5,7 +5,8 @@ Producer script for BOT tearing analysis.
 def tearing_jh_task(det_name):
     """JH version of single sensor execution of the tearing task."""
     import siteUtils
-    from bot_eo_analyses import make_file_prefix, bias_filename, tearing_task
+    from bot_eo_analyses import make_file_prefix, glob_pattern,\
+        bias_filename, tearing_task
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)

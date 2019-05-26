@@ -8,7 +8,7 @@ def cte_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifer_gains, bias_filename, cte_task, plot_cte_results
+        get_amplifier_gains, bias_filename, cte_task, plot_cte_results
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
