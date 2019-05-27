@@ -635,6 +635,10 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
                         if det_name[:3] in rafts]
 
     cwd = os.path.abspath('.')
+    hj_fp_server = siteUtils.HarnessedJobFilePaths()
+    hj_fp_server_file = 'hj_fp_server.pkl'
+    with open(hj_fp_server_file, 'wb') as output:
+        pickle.dump(hj_fp_server, output)
     for jh_task in jh_tasks:
         run_device_analysis_pool(jh_task, device_names,
                                  processes=processes, cwd=cwd)
