@@ -9,6 +9,7 @@ def raft_results_task(raft_name):
     import matplotlib.pyplot as plt
     import lsst.eotest.sensor as sensorTest
     import lsst.eotest.raft as raftTest
+    import siteUtils
     from camera_components import camera_info
     from bot_eo_analyses import get_raft_files_by_slot, make_file_prefix,\
         get_amplifier_gains
