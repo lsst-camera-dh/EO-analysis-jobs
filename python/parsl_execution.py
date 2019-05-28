@@ -3,11 +3,9 @@ Function to parallelize subcomponent analyses for an assembly such
 as raft or full focal plane.
 """
 import os
+from parsl.app.app import python_app
 import siteUtils
 import camera_components
-
-from parsl.app.app import python_app
-
 from parsl_ir2_dc_config import load_ir2_dc_config, MAX_PARSL_THREADS
 
 
@@ -78,7 +76,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None, cwd=None
         processes = max(1, MAX_PARSL_THREADS - 1)
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
-    print ("Running in %i processes" % processes)
+    print("Running in %i processes" % processes)
 
     if processes == 1:
         # For cases where only one process will be run at a time, it's
@@ -87,7 +85,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None, cwd=None
         # cause significant overhead.
         for device_name in device_names:
             task_func(device_name)
-        return
+        return None
 
     # Put the AppFutures in a list so that the task_funcs can run
     # asynchronously on the workers.

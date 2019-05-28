@@ -13,6 +13,8 @@ __all__ = ['sensor_analyses', 'run_device_analysis_pool']
 
 
 class TracebackDecorator:
+    """Class to decorate functions to ensure that the traceback is
+    printed when running in a multiprocessing.Pool."""
     def __init__(self, func):
         self.func = func
     def __call__(self, *args, **kwds):
@@ -82,6 +84,7 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None):
             pool.join()
             for res in results:
                 res.get()
+    return None
 
 
 def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None):
@@ -118,3 +121,4 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None):
 
     run_device_analysis_pool(run_task_func, raft.sensor_names,
                              processes=processes)
+    return None
