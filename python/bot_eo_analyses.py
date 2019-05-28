@@ -13,7 +13,6 @@ import numpy as np
 from astropy.io import fits
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
-import lsst.eotest.raft as raftTest
 import eotestUtils
 import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
@@ -25,7 +24,7 @@ import multiscope
 
 __all__ = ['make_file_prefix',
            'glob_pattern',
-           'get_amplifer_gains',
+           'get_amplifier_gains',
            'bias_filename',
            'get_raft_files_by_slot',
            'get_analysis_types',
@@ -90,7 +89,7 @@ def bias_filename(file_prefix, check_is_file=True):
     return filename
 
 
-def fe55_task(run, det_name, fe55_files, bias_files):
+def fe55_task(run, det_name, fe55_files):
     "Single sensor execution of the Fe55 analysis task."
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
@@ -201,6 +200,7 @@ def get_scan_mode_files(raft_name):
 
 
 def get_raft_arrays(raft_files):
+    """Get raftarrrays list for passing to scan mode plotting code."""
     seglist = multiscope.slot_ids()
     raftarrays = []
     for slot in ['S{}'.format(seg) for seg in seglist]:
@@ -626,6 +626,31 @@ def mondiode_value(flat_file, exptime, factor=5,
 
 
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
+    """
+    Run functions to execute tasks under the job harness in parallel.
+    These functions should take a device name as its only argument, and
+    the parallelization will take place over device_names.
+
+
+    Parameters
+    ----------
+    jh_tasks: list-like container of functions
+        These functions are serialized and dispatched to workers on
+        remote nodes, so all dependencies should be imported in the
+        bodies of the functions.
+    device_names: list-like container of device names [None]
+        List of sensors, rafts, etc..  If None, then all of the
+        science sensors in the focal plane is used.
+    processes: int [None]
+        Number of processes to run in parallel. If None, then all
+        available processes can be potentially used.
+
+    Notes
+    -----
+    Because the number of jh_task functions can vary, the keyword arguments
+    should reference the keywords explicitly, i.e., one cannot rely on
+    keyword position to pass those values.
+    """
     if device_names is None:
         device_names = camera_info.get_det_names()
     rafts = os.environ.get('LCATR_RAFTS', None)
