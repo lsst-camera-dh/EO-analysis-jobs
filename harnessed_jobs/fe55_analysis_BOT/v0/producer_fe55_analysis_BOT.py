@@ -14,12 +14,10 @@ def fe55_jh_task(det_name):
 
     fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name),
                                            acq_jobname=acq_jobname)
-    bias_files = siteUtils.dependency_glob(glob_pattern('fe55_bias', det_name),
-                                           acq_jobname=acq_jobname)[:nbias]
-    if not fe55_files or not bias_files:
+    if not fe55_files:
         print("fe55_task: Needed data files missing for detector", det_name)
         return None
-    return fe55_task(run, det_name, fe55_files, bias_files)
+    return fe55_task(run, det_name, fe55_files)
 
 
 if __name__ == '__main__':
