@@ -53,6 +53,7 @@ def load_ir2_dc_config():
     for host in WORKER_NODE_ADDRESSES:
         channel = SSHChannel(hostname=host, script_dir=script_dir(host))
         provider = LocalProvider(channel=channel,
+                                 init_blocks=1,
                                  worker_init='source %s' % SETUP_SCRIPT)
         executors.append(HighThroughputExecutor(label=host,
                                                 address=MOTHER_NODE_ADDRESS,
