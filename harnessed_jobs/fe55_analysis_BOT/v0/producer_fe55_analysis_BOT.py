@@ -10,7 +10,6 @@ def fe55_jh_task(det_name):
 
     run = siteUtils.getRunNumber()
     acq_jobname = siteUtils.getProcessName('BOT_acq')
-    nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 25)
 
     fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name),
                                            acq_jobname=acq_jobname)
