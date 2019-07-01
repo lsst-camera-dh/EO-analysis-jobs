@@ -318,16 +318,22 @@ def raft_jh_noise_correlations(raft_name):
         print("raft_noise_correlations: Missing bias files for raft",
               raft_name)
         return None
-    bias_file_dict = dict()
-    slot_names = camera_info.get_slot_names()
+    bias_frame_dict = defaultdict(dict)
     for item in bias_files:
-        for slot_name in slot_names:
-            if slot_name in bias_file_dict:
-                continue
-            det_name = '{}_{}'.format(raft_name, slot_name)
-            if det_name in os.path.basename(item):
-                bias_file_dict[slot_name] = item
-    return raft_noise_correlations(run, raft_name, bias_file_dict)
+        # The exposure is identified by test type, image type, and
+        # seqno in the name of the folder containing the FITS files.
+        seqno = os.path.dirname(item).split('_')[-1]
+        # slot_name is the last '_'-delimited field before '.fits'.
+        slot_name = item.split('_')[-1].split('.')[0]
+        bias_frame_dict[seqno][slot_name] = item
+    for seqno in bias_frame_dict:
+        if len(bias_frame_dict[seqno]) == 9:
+            bias_frame_files = bias_frame_dict[seqno]
+            break
+    print("bias frame files for raft_noise_correlations:")
+    for item in bias_frame_files:
+        print("   ", item)
+    return raft_noise_correlations(run, raft_name, bias_frame_files)
 
 
 def raft_noise_correlations(run, raft_name, bias_file_dict):
