@@ -252,7 +252,6 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
     plt.savefig('%s_correlated_noise.png' % file_prefix)
 
 
-
 def raft_noise_correlations(run, raft_name, bias_file_dict):
     """Raft-level noise-correlation analysis."""
     file_prefix = make_file_prefix(run, raft_name)

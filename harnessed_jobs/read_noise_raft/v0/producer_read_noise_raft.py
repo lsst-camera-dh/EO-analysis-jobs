@@ -3,6 +3,7 @@
 Producer script for raft-level read noise analysis.
 """
 import os
+from collections import defaultdict
 import siteUtils
 import camera_components
 
@@ -43,13 +44,21 @@ def get_bias_files(raft_id=None):
     if raft_id is None:
         raft_id = os.environ['LCATR_UNIT_ID']
     raft = camera_components.Raft.create_from_etrav(raft_id)
-    bias_files = dict()
+    # Get list of bias files for each slot.
+    bias_files = defaultdict(dict)
     for slot, sensor_id in raft.items():
-        bias_files[slot] \
-            = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
-                                        jobname=siteUtils.getProcessName('fe55_raft_acq'),
-                                        description='Bias files for noise correlations:')[0]
-    return bias_files
+        my_files = \
+                siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
+                                          jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                          description='Bias files for noise correlations:')
+        for item in my_files:
+            timestamp = item.split('_')[-1].split('.')[0]
+            bias_files[timestamp][slot] = item
+    for timestamp in bias_files:
+        if len(bias_files[timestamp]) == 9:
+            return bias_files[timestamp]
+    raise RuntimeError("Could not find bias files for all nine CCDs.")
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
