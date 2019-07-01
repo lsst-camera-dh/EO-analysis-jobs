@@ -52,11 +52,11 @@ def get_bias_files(raft_id=None):
                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                           description='Bias files for noise correlations:')
         for item in my_files:
-            seqno = item.split('_')[-1].split('.')[0]
-            bias_files[seqno][slot] = item
-    for seqno in bias_files:
-        if len(bias_files[seqno]) == 9:
-            return bias_files[seqno]
+            timestamp = item.split('_')[-1].split('.')[0]
+            bias_files[timestamp][slot] = item
+    for timestamp in bias_files:
+        if len(bias_files[timestamp]) == 9:
+            return bias_files[timestamp]
     raise RuntimeError("Could not find bias files for all nine CCDs.")
 
 
