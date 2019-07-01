@@ -232,7 +232,6 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
         plt.close()
 
 
-
 def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
                     system_noise=None):
     """Run the read noise tasks on a single detector."""
