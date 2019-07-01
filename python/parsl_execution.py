@@ -3,6 +3,7 @@ Function to parallelize subcomponent analyses for an assembly such
 as raft or full focal plane.
 """
 import os
+import logging
 from parsl.app.app import python_app
 import siteUtils
 import camera_components
@@ -13,7 +14,8 @@ __all__ = ['parsl_sensor_analyses', 'parsl_device_analysis_pool']
 
 
 @python_app
-def parsl_wrapper(func, *args, cwd=None, lcatr_envs=None, **kwargs):
+def parsl_wrapper(func, *args, cwd=None, lcatr_envs=None, logger=None,
+                  **kwargs):
     """
     Parsl python_app function wrapper that is serialized and executed
     on worker nodes.
@@ -30,7 +32,13 @@ def parsl_wrapper(func, *args, cwd=None, lcatr_envs=None, **kwargs):
         # function.
         os.environ.update(lcatr_envs)
 
-    return func(*args, **kwargs)
+    result = func(*args, **kwargs)
+    if logger is None:
+        logger = logging.getLogger('parsl_wrapper')
+        logger.setLevel(logging.INFO)
+
+    logger.info('pid {} returning'.format(os.getpid()))
+    return result
 
 
 def get_lcatr_envs():
@@ -90,7 +98,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None, cwd=None
     # Put the AppFutures in a list so that the task_funcs can run
     # asynchronously on the workers.
     outputs = [parsl_wrapper(task_func, device_name, cwd=cwd,
-                             lcatr_envs=get_lcatr_envs())
+                             lcatr_envs=get_lcatr_envs(), logger=None)
                for device_name in device_names]
 
     # Check the resolution of the AppFutures by asking for the result.
