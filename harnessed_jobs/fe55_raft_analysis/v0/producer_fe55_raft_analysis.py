@@ -18,6 +18,10 @@ def run_fe55_task(sensor_id):
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Fe55 files:')
+    # Reverse sort the fe55 files to avoid transient effects arising
+    # from using frames taken right after cool down that could bias
+    # the gain measurement.
+    fe55_files = sorted(fe55_files, reverse=True)
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('fe55_raft_acq'),
                                            description='Bias files:')
