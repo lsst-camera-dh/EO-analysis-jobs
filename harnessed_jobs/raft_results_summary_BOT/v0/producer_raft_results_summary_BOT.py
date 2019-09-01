@@ -281,7 +281,7 @@ if __name__ == '__main__':
 
                 # Histogram the amp-level data.
                 plt.figure()
-                hist_amp_data(amp_data, column)
+                hist_amp_data(amp_data, column, hist_range=z_range)
                 if units is not None:
                     plt.title('Run {}, {} ({})'.format(run, column, units))
                 else:
