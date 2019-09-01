@@ -227,7 +227,7 @@ if __name__ == '__main__':
     import siteUtils
     from camera_components import camera_info
     from bot_eo_analyses import repackage_summary_files, run_jh_tasks
-    from focal_plane_plotting import plot_focal_plane
+    from focal_plane_plotting import plot_focal_plane, hist_amp_data
 
     repackage_summary_files()
     run_jh_tasks(raft_results_task, device_names=camera_info.get_raft_names())
@@ -266,16 +266,25 @@ if __name__ == '__main__':
             fig = plt.figure(figsize=(12, 10))
             ax = fig.add_subplot(1, 1, 1)
             try:
-                amp_values = et_results.get_amp_data(schema_name, column)
+                amp_data = et_results.get_amp_data(schema_name, column)
             except KeyError:
                 print("No focal plane results for {}: {} in eTraveler."
                       .format(schema_name, column))
             else:
-                plot_focal_plane(ax, amp_values, camera=camera,
-                                 z_range=z_range)
+                plot_focal_plane(ax, amp_data, camera=camera, z_range=z_range)
                 if units is not None:
                     plt.title('Run {}, {} ({})'.format(run, column, units))
                 else:
                     plt.title('Run {}, {}'.format(run, column))
                 outfile = '{}_{}_{}.png'.format(unit_id, run, column)
+                plt.savefig(outfile)
+
+                # Histogram the amp-level data.
+                plt.figure()
+                hist_amp_data(amp_data, column)
+                if units is not None:
+                    plt.title('Run {}, {} ({})'.format(run, column, units))
+                else:
+                    plt.title('Run {}, {}'.format(run, column))
+                outfile = '{}_{}_{}_hist.png'.format(unit_id, run, column)
                 plt.savefig(outfile)

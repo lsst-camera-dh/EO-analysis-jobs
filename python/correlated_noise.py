@@ -123,7 +123,7 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
         fdata1 = bias_oscans[amp] - mean_oscans[amp]
         fmean1 = np.mean(fdata1)
         fdata1 -= fmean1
-        dmat = np.vstack((reduced_mean_oscan.flatten(), fdata1.flatten()))
+        dmat = np.vstack((reduced_mean_oscan.ravel(), fdata1.ravel()))
         covmat = scipy.cov(dmat, rowvar=True)
         corr_factor = covmat[0, 1]/covmat[0, 0]
         fdiff = fdata1 - corr_factor*reduced_mean_oscan
@@ -145,25 +145,25 @@ def plot_correlated_noise(correlation_data, bias_stats, plot_corr=True,
                           title='', figsize=(8, 8)):
     f1, ax1 = plt.subplots(4, 4, figsize=figsize)
     ax1 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                ax1.flatten())}
+                                                ax1.ravel())}
     f1.suptitle(title)
     f2, ax2 = plt.subplots(4, 4, figsize=figsize)
     ax2 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                ax2.flatten())}
+                                                ax2.ravel())}
     f2.suptitle(title)
     for amp, corr_data in correlation_data.items():
         reduced_mean_oscan, fdata1, fdiff = corr_data
-        ax1[amp].hist2d(reduced_mean_oscan.flatten(), fdata1.flatten(),
+        ax1[amp].hist2d(reduced_mean_oscan.ravel(), fdata1.ravel(),
                         bins=(100, 100), range=((-50, 50), (-50, 50)))
         label = 'amp %i, cov/var = %.2f' \
                 % (amp, bias_stats[amp].corr_factor)
         ax1[amp].text(-40, 40, label, fontsize=6, color='w',
                       fontweight='bold')
         if plot_corr:
-            ax2[amp].hist(fdiff.flatten(), bins=100, range=(-50, 50),
+            ax2[amp].hist(fdiff.ravel(), bins=100, range=(-50, 50),
                           histtype='step')
         else:
-            ax2[amp].hist(fdata1.flatten(), bins=100, range=(-50, 50),
+            ax2[amp].hist(fdata1.ravel(), bins=100, range=(-50, 50),
                           histtype='step')
     return f1, f2
 
@@ -217,7 +217,7 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title='',
 
     interval = viz.PercentileInterval(98.)
     if vrange is None:
-        vrange = interval.get_limits(np.abs(data.flatten()))
+        vrange = interval.get_limits(np.abs(data.ravel()))
     norm = ImageNormalize(vmin=vrange[0], vmax=vrange[1], stretch=stretch())
     image = ax.imshow(data, interpolation='none', norm=norm)
     plt.colorbar(image)

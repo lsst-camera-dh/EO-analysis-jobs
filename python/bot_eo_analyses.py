@@ -616,7 +616,7 @@ def mondiode_value(flat_file, exptime, factor=5,
     return integral/exptime
 
 
-def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
+def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     """
     Run functions to execute tasks under the job harness in parallel.
     These functions should take a device name as its only argument, and
@@ -635,6 +635,15 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
     processes: int [None]
         Number of processes to run in parallel. If None, then all
         available processes can be potentially used.
+    walltime: float [3600]
+        Walltime in seconds for python app execution.  If the python app
+        does not return within walltime, a parsl.app.errors.AppTimeout
+        exception will be thrown.
+
+    Raises
+    ------
+    parsl.app.errors.AppTimeout
+
 
     Notes
     -----
@@ -657,4 +666,5 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None):
         pickle.dump(hj_fp_server, output)
     for jh_task in jh_tasks:
         run_device_analysis_pool(jh_task, device_names,
-                                 processes=processes, cwd=cwd)
+                                 processes=processes, cwd=cwd,
+                                 walltime=walltime)

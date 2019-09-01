@@ -26,7 +26,8 @@ class TracebackDecorator:
             raise eobj
 
 
-def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None):
+def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None,
+                             walltime=3600):
     """
     Use a multiprocessing.Pool to run a device-level analysis task
     over a collection of device names.  The task_func should be
@@ -46,6 +47,14 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None):
         whichever is larger.
     cwd: str [None]
         Working directory to cd to for parsl multi-node processing.
+    walltime: float [3600]
+        Walltime in seconds for parsl app execution.  If the app does not
+        return within walltime, a parsl.app.errors.AppTimeout exception
+        will be raised.  This is not used for non-parsl processing.
+
+    Raises
+    ------
+    parsl.app.errors.AppTimeout
 
     Notes
     -----
@@ -87,32 +96,42 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None):
     return None
 
 
-def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None):
+def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None,
+                    walltime=3600):
     """
     Run a sensor-level analysis task implemented as a pickleable
     function that takes the desired sensor id as its single argument.
 
     Parameters
     ----------
-    run_task_func : function
+    run_task_func: function
         A pickleable function that takes the sensor_id string as
         its argument.
-    raft_id : str, optional
+    raft_id: str, optional
         The RTM (or RSA) LSST ID.  If None (default), the LCATR_UNIT_ID
         is used.
-    processes : int [None]
+    processes: int [None]
         The maximum number of processes to have running at once.
         If None, then set to 1 or one less than the number of cores,
         whichever is larger.
-    cwd : str [None]
+    cwd: str [None]
         Working directory to cd to for parsl multi-node processing.
         If None, then use `cwd = os.path.abspath('.')`.
+    walltime: float [3600]
+        Walltime in seconds for parsl app execution.  If the app does not
+        return within walltime, a parsl.app.errors.AppTimeout exception
+        will be raised.  This is not used for non-parsl processing.
+
+    Raises
+    ------
+    parsl.app.errors.AppTimeout
     """
     if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
         if cwd is None:
             cwd = os.path.abspath('.')
         return parsl_sensor_analyses(run_task_func, raft_id=raft_id,
-                                     processes=processes, cwd=cwd)
+                                     processes=processes, cwd=cwd,
+                                     walltime=walltime)
 
     if raft_id is None:
         raft_id = siteUtils.getUnitId()

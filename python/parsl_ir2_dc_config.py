@@ -13,18 +13,33 @@ from parsl.config import Config
 __all__ = ['load_ir2_dc_config', 'MAX_PARSL_THREADS']
 
 
-# Suppress the verbose default debug-level logging:
-parsl.set_stream_logger(name='interchange', level=logging.INFO)
-
 SETUP_SCRIPT = os.environ.get('LCATR_SETUP_SCRIPT',
                               os.path.join(os.environ['INST_DIR'], 'setup.sh'))
 
-WORKER_NODE_ADDRESSES = set(['lsst-dc01', 'lsst-dc02', 'lsst-dc03',
-                             'lsst-dc04', 'lsst-dc05', 'lsst-dc06',
-                             'lsst-dc07', 'lsst-dc08', 'lsst-dc09',
-                             'lsst-dc10'])
+# Hosts lsst-dc[02, 08, 09] seem ok. The others can have segfaults.
+worker_nodes = set([
+    'lsst-dc02',
+    'lsst-dc08',
+    'lsst-dc09',
+    'lsst-dc10'
+])
+
+segfault_nodes = set([
+    'lsst-dc01',
+    'lsst-dc03',
+    'lsst-dc04',
+    'lsst-dc05',
+    'lsst-dc06',
+    'lsst-dc07'
+])
+
+WORKER_NODE_ADDRESSES = set()
+WORKER_NODE_ADDRESSES = WORKER_NODE_ADDRESSES.union(worker_nodes)
+WORKER_NODE_ADDRESSES = WORKER_NODE_ADDRESSES.union(segfault_nodes)
+
 MOTHER_NODE_ADDRESS = socket.gethostname().split('.')[0]
-WORKER_NODE_ADDRESSES.remove(MOTHER_NODE_ADDRESS)
+if MOTHER_NODE_ADDRESS in WORKER_NODE_ADDRESSES:
+    WORKER_NODE_ADDRESSES.remove(MOTHER_NODE_ADDRESS)
 
 NCORES = 28
 MAX_PARSL_THREADS = len(WORKER_NODE_ADDRESSES) * NCORES
