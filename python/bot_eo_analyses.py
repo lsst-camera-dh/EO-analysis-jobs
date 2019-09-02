@@ -175,6 +175,7 @@ class GetAmplifierGains:
         self._read_eo_config(bot_eo_config_file)
         if self.run is not None:
             self.et_results = siteUtils.ETResults(self.run)
+            print("using gains from run", self.run)
 
     def _read_eo_config(self, bot_eo_config_file):
         cp = configparser.ConfigParser(allow_no_value=True,
@@ -191,9 +192,15 @@ class GetAmplifierGains:
         if self.run is None:
             return _get_amplifer_gains(file_pattern)
         # Extract the det_name from the file pattern.
-        match = re.search('_R\d\d_S\d\d_', file_pattern)
-        det_name = file_pattern[match.start()+1: match.end()-1]
-        return self.et_results.get_amp_gains(det_name)
+        match = re.search('R\d\d_S\d\d', file_pattern)
+        if match is None:
+            raise RuntimeError("GetAmplifierGains.__call__: "
+                               f"no det_name match in {file_pattern}")
+        det_name = file_pattern[match.start(): match.end()]
+        gains = self.et_results.get_amp_gains(det_name)
+        if not gains:
+            return {amp: 1 for amp in range(1, 17)}
+        return gains
 
 def _get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
