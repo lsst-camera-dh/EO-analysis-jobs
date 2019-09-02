@@ -5,9 +5,15 @@ as raft or full focal plane.
 import os
 import multiprocessing
 import traceback
+import warnings
 import siteUtils
 import camera_components
-from parsl_execution import parsl_sensor_analyses, parsl_device_analysis_pool
+try:
+    from parsl_execution import parsl_sensor_analyses, \
+        parsl_device_analysis_pool
+except ImportError as eobj:
+    warnings.warn(f'ImportError: {eobj}')
+    pass
 
 __all__ = ['sensor_analyses', 'run_device_analysis_pool']
 
