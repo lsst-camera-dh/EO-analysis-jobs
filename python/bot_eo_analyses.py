@@ -3,9 +3,11 @@ Producer script for BOT analyses.
 """
 from __future__ import print_function
 import os
+import re
 import glob
 import copy
 import pickle
+import warnings
 from collections import defaultdict
 import configparser
 import matplotlib.pyplot as plt
@@ -153,7 +155,54 @@ def fe55_task(run, det_name, fe55_files):
                 output.write('{}\n'.format(item))
 
 
-def get_amplifier_gains(file_pattern=None):
+def _get_bot_eo_config_file(bot_eo_config_file=None):
+    """Get the BOT EO config file describing the acquisitions and
+    EO analyses to perform.
+    """
+    if bot_eo_config_file is not None:
+        return bot_eo_config_file
+
+    # Find the BOT-level EO configuration file from the acq.cfg file.
+    acq_cfg = os.path.join(os.environ['LCATR_CONFIG_DIR'], 'acq.cfg')
+    with open(acq_cfg, 'r') as fd:
+        for line in fd:
+            if line.startswith('bot_eo_acq_cfg'):
+                return line.strip().split('=')[1].strip()
+
+
+class GetAmplifierGains:
+    def __init__(self, bot_eo_config_file=None):
+        self._read_eo_config(bot_eo_config_file)
+        if self.run is not None:
+            self.et_results = siteUtils.ETResults(self.run)
+            print("using gains from run", self.run)
+
+    def _read_eo_config(self, bot_eo_config_file):
+        cp = configparser.ConfigParser(allow_no_value=True,
+                                       inline_comment_prefixes=('#',))
+        cp.optionxform = str
+        cp.read(_get_bot_eo_config_file(bot_eo_config_file))
+        self.run = None
+        for analysis_type, run in cp.items('ANALYSIS_RUNS'):
+            if analysis_type.lower() == 'gain':
+                self.run = run
+                break
+
+    def __call__(self, file_pattern):
+        if self.run is None:
+            return _get_amplifer_gains(file_pattern)
+        # Extract the det_name from the file pattern.
+        match = re.search('R\d\d_S\d\d', file_pattern)
+        if match is None:
+            raise RuntimeError("GetAmplifierGains.__call__: "
+                               f"no det_name match in {file_pattern}")
+        det_name = file_pattern[match.start(): match.end()]
+        gains = self.et_results.get_amp_gains(det_name)
+        if not gains:
+            return {amp: 1 for amp in range(1, 17)}
+        return gains
+
+def _get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
     if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
         or file_pattern is None):
@@ -174,6 +223,13 @@ def get_amplifier_gains(file_pattern=None):
     amps = data['AMP']
     gains = data['GAIN']
     return {amp: gain for amp, gain in zip(amps, gains)}
+
+try:
+    get_amplifier_gains = GetAmplifierGains()
+except KeyError as eobj:
+    warnings.warn(f"KeyError: {eobj} when creating get_amplifier_gains "
+                  "function object.  Assigning to default function.")
+    get_amplifier_gains = _get_amplifier_gains
 
 
 def bias_frame_task(run, det_name, bias_files):
@@ -555,14 +611,7 @@ def repackage_summary_files():
 
 def get_analysis_types(bot_eo_config_file=None):
     """"Get the analysis types to be performed from the BOT-level EO config."""
-    if bot_eo_config_file is None:
-        # Find the BOT-level EO configuration file.
-        acq_cfg = os.path.join(os.environ['LCATR_CONFIG_DIR'], 'acq.cfg')
-        with open(acq_cfg, 'r') as fd:
-            for line in fd:
-                if line.startswith('bot_eo_acq_cfg'):
-                    bot_eo_config_file = line.strip().split('=')[1].strip()
-                    break
+    bot_eo_config_file = _get_bot_eo_config_file(bot_eo_config_file)
 
     # Read in the analyses to be performed from the config file.
     cp = configparser.ConfigParser(allow_no_value=True,
