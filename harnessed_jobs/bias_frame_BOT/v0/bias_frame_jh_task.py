@@ -31,4 +31,4 @@ def bias_frame_jh_task(det_name):
 if __name__ == '__main__':
     import sys
     det_name = sys.argv[1]
-    bias_frame_jh_taks(det_name)
+    bias_frame_jh_task(det_name)
