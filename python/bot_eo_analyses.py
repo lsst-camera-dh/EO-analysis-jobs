@@ -6,6 +6,7 @@ import os
 import re
 import glob
 import copy
+import time
 import pickle
 import warnings
 from collections import defaultdict
@@ -714,6 +715,10 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     with open(hj_fp_server_file, 'wb') as output:
         pickle.dump(hj_fp_server, output)
     for jh_task in jh_tasks:
+        # Add 30 second sleep before launching jh_task processes in
+        # parallel to allow for parsl process_pool_workers from the
+        # previous set of jh_task processes to finish.
+        time.sleep(30)
         run_device_analysis_pool(jh_task, device_names,
                                  processes=processes, cwd=cwd,
                                  walltime=walltime)
