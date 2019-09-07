@@ -75,14 +75,17 @@ if __name__ == '__main__':
     # easily retrieved.
     repackage_summary_files()
 
-#    # Run python version.
-#    run_jh_tasks(raft_results_task, device_names=camera_info.get_raft_names())
-
-    # Run the command-line version.
-    raft_results_task_script \
-        = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
-                       'raft_results_summary_BOT', 'v0', 'raft_results_task.py')
-    run_jh_tasks(raft_results_task_script,
-                 device_names=camera_info.get_raft_names())
+    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
+        # Run python version.
+        run_jh_tasks(raft_results_task,
+                     device_names=camera_info.get_raft_names())
+    else:
+        # Run the command-line version.
+        raft_results_task_script \
+            = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
+                           'raft_results_summary_BOT', 'v0',
+                           'raft_results_task.py')
+        run_jh_tasks(raft_results_task_script,
+                     device_names=camera_info.get_raft_names())
 
     make_focal_plane_plots()
