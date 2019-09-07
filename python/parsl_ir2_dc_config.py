@@ -16,26 +16,21 @@ __all__ = ['load_ir2_dc_config', 'MAX_PARSL_THREADS']
 SETUP_SCRIPT = os.environ.get('LCATR_SETUP_SCRIPT',
                               os.path.join(os.environ['INST_DIR'], 'setup.sh'))
 
-# Hosts lsst-dc[02, 08, 09] seem ok. The others can have segfaults.
 worker_nodes = set([
+    'lsst-dc01',
     'lsst-dc02',
+    'lsst-dc03',
+    'lsst-dc04',
+    'lsst-dc05',
+    'lsst-dc06',
+    'lsst-dc07',
     'lsst-dc08',
     'lsst-dc09',
     'lsst-dc10'
 ])
 
-segfault_nodes = set([
-    'lsst-dc01',
-    'lsst-dc03',
-    'lsst-dc04',
-    'lsst-dc05',
-    'lsst-dc06',
-    'lsst-dc07'
-])
-
 WORKER_NODE_ADDRESSES = set()
 WORKER_NODE_ADDRESSES = WORKER_NODE_ADDRESSES.union(worker_nodes)
-WORKER_NODE_ADDRESSES = WORKER_NODE_ADDRESSES.union(segfault_nodes)
 
 MOTHER_NODE_ADDRESS = socket.gethostname().split('.')[0]
 if MOTHER_NODE_ADDRESS in WORKER_NODE_ADDRESSES:
@@ -73,8 +68,10 @@ def load_ir2_dc_config():
         executors.append(HighThroughputExecutor(label=host,
                                                 address=MOTHER_NODE_ADDRESS,
                                                 worker_debug=False,
-                                                provider=provider))
+                                                provider=provider,
+                                                heartbeat_period=1,
+                                                heartbeat_threshold=2))
 
-    config = Config(executors=executors, strategy=None)
+    config = Config(executors=executors, strategy=None, retries=3)
 
     parsl.load(config)

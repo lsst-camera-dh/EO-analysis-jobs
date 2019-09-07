@@ -2,26 +2,17 @@
 """
 Producer script for BOT tearing analysis.
 """
-def tearing_jh_task(det_name):
-    """JH version of single sensor execution of the tearing task."""
-    import siteUtils
-    from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        bias_filename, tearing_task
+import os
+from tearing_jh_task import tearing_jh_task
+from bot_eo_analyses import get_analysis_types, run_jh_tasks
 
-    run = siteUtils.getRunNumber()
-    file_prefix = make_file_prefix(run, det_name)
-    acq_jobname = siteUtils.getProcessName('BOT_acq')
-
-    flat_files = siteUtils.dependency_glob(glob_pattern('tearing', det_name),
-                                           acq_jobname=acq_jobname)
-    if not flat_files:
-        print("tearing_task: Flat files not found for detector", det_name)
-        return None
-    bias_frame = bias_filename(file_prefix)
-    return tearing_task(run, det_name, flat_files, bias_frame=bias_frame)
-
-
-if __name__ == '__main__':
-    from bot_eo_analyses import get_analysis_types, run_jh_tasks
-    if 'tearing' in get_analysis_types():
+if 'tearing' in get_analysis_types():
+    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
+        # Run the python version.
         run_jh_tasks(tearing_jh_task)
+    else:
+        # Run the command-line version.
+        tearing_jh_task_script \
+            = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
+                           'tearing_BOT', 'v0', 'tearing_jh_task.py')
+        run_jh_tasks(tearing_jh_task_script)

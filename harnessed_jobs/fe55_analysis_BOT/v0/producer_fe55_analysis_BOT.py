@@ -2,24 +2,18 @@
 """
 Producer script for BOT Fe55 analysis.
 """
-def fe55_jh_task(det_name):
-    "JH version of single sensor execution of the Fe55 analysis task."
-    import os
-    import siteUtils
-    from bot_eo_analyses import glob_pattern, fe55_task
+import os
+from fe55_jh_task import fe55_jh_task
+from bot_eo_analyses import get_analysis_types, run_jh_tasks
 
-    run = siteUtils.getRunNumber()
-    acq_jobname = siteUtils.getProcessName('BOT_acq')
-
-    fe55_files = siteUtils.dependency_glob(glob_pattern('fe55', det_name),
-                                           acq_jobname=acq_jobname)
-    if not fe55_files:
-        print("fe55_task: Needed data files missing for detector", det_name)
-        return None
-    return fe55_task(run, det_name, fe55_files)
-
-
-if __name__ == '__main__':
-    from bot_eo_analyses import get_analysis_types, run_jh_tasks
-    if 'gain' in get_analysis_types():
+if 'gain' in get_analysis_types():
+    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
+        # Run the python version of the task.
         run_jh_tasks(fe55_jh_task)
+    else:
+        # Run the command-line version.
+        fe55_task_script \
+            = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                           'harnessed_jobs', 'fe55_analysis_BOT',
+                           'v0', 'fe55_jh_task.py')
+        run_jh_tasks(fe55_task_script)

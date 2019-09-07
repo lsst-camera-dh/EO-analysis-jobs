@@ -17,7 +17,7 @@ __all__ = ['parsl_sensor_analyses', 'parsl_device_analysis_pool']
 def bash_wrapper(script_name, *args, cwd=None, lcatr_envs=None, **kwds):
     script_lines = []
     if cwd is not None:
-        script_lines.append('cd f{cwd}')
+        script_lines.append(f'cd {cwd}')
     if lcatr_envs is not None:
         script_lines.extend(['export {}={}'.format(*_)
                              for _ in lcatr_envs.items()])
@@ -46,7 +46,7 @@ def python_wrapper(func, *args, cwd=None, lcatr_envs=None, logger=None,
 
     result = func(*args, **kwargs)
     if logger is None:
-        logger = logging.getLogger('parsl_wrapper')
+        logger = logging.getLogger('python_wrapper')
         logger.setLevel(logging.INFO)
 
     logger.info('pid {} returning'.format(os.getpid()))

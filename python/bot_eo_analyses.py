@@ -6,6 +6,7 @@ import os
 import re
 import glob
 import copy
+import time
 import pickle
 import warnings
 from collections import defaultdict
@@ -170,23 +171,35 @@ def _get_bot_eo_config_file(bot_eo_config_file=None):
                 return line.strip().split('=')[1].strip()
 
 
-class GetAmplifierGains:
-    def __init__(self, bot_eo_config_file=None):
-        self._read_eo_config(bot_eo_config_file)
-        if self.run is not None:
-            self.et_results = siteUtils.ETResults(self.run)
-            print("using gains from run", self.run)
+def _get_gain_run(bot_eo_config_file=None):
+    """Get the run number to use for gain values from the
+    BOT EO config file.  If no run was specified, return None,
+    indicating that the gain results from the current run
+    should be used.
+    """
+    cp = configparser.ConfigParser(allow_no_value=True,
+                                   inline_comment_prefixes=('#',))
+    cp.optionxform = str
+    cp.read(_get_bot_eo_config_file(bot_eo_config_file))
+    for analysis_type, run in cp.items('ANALYSIS_RUNS'):
+        if analysis_type.lower() == 'gain':
+            return run
+    return None
 
-    def _read_eo_config(self, bot_eo_config_file):
-        cp = configparser.ConfigParser(allow_no_value=True,
-                                       inline_comment_prefixes=('#',))
-        cp.optionxform = str
-        cp.read(_get_bot_eo_config_file(bot_eo_config_file))
-        self.run = None
-        for analysis_type, run in cp.items('ANALYSIS_RUNS'):
-            if analysis_type.lower() == 'gain':
-                self.run = run
-                break
+
+class GetAmplifierGains:
+    def __init__(self, bot_eo_config_file=None,
+                 et_results_file='et_results.pkl'):
+        self.run = _get_gain_run(bot_eo_config_file)
+        if self.run is not None:
+            if not os.path.isfile(et_results_file):
+                self.et_results = siteUtils.ETResults(self.run)
+                with open(et_results_file, 'wb') as fd:
+                    pickle.dump(self.et_results, fd)
+            else:
+                with open(et_results_file, 'rb') as fd:
+                    self.et_results = pickle.load(fd)
+            print("using gains from run", self.run)
 
     def __call__(self, file_pattern):
         if self.run is None:
@@ -709,11 +722,25 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
                         if det_name[:3] in rafts]
 
     cwd = os.path.abspath('.')
+
+    # Query eT database for file paths from a previous run, if
+    # specified, and store in a pickle file.
     hj_fp_server = siteUtils.HarnessedJobFilePaths()
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:
         pickle.dump(hj_fp_server, output)
+
+    # Create a GetAmplifierGains object in order to query the eT
+    # database for gain results from previous runs and write a pickle
+    # file that can be loaded locally from disk by the various jh
+    # tasks being run in parallel to avoid eT db access contention.
+    GetAmplifierGains()
+
     for jh_task in jh_tasks:
+        # Add 30 second sleep before launching jh_task processes in
+        # parallel to allow for parsl process_pool_workers from the
+        # previous set of jh_task processes to finish.
+        time.sleep(30)
         run_device_analysis_pool(jh_task, device_names,
                                  processes=processes, cwd=cwd,
                                  walltime=walltime)

@@ -2,17 +2,21 @@
 """
 Producer script for BOT scan mode analysis.
 """
-def scan_mode_analysis_jh_task(raft_name):
-    """JH version of scan mode analysis task."""
-    import siteUtils
-    from bot_eo_analyses import get_scan_mode_files, scan_mode_analysis_task
+import os
+from camera_components import camera_info
+from scan_mode_analysis_jh_task import scan_mode_analysis_jh_task
+from bot_eo_analyses import get_analysis_types, run_jh_tasks
 
-    run = siteUtils.getRunNumber()
-    scan_mode_files = get_scan_mode_files(raft_name)
-    return scan_mode_analysis_task(run, raft_name, scan_mode_files)
-
-
-if __name__ == '__main__':
-    from bot_eo_analyses import get_analysis_types, run_jh_tasks
-    if 'scan' in get_analysis_types():
-        run_jh_tasks(scan_mode_analysis_jh_task)
+if 'scan' in get_analysis_types():
+    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
+        # Run the python version of the task.
+        run_jh_tasks(scan_mode_analysis_jh_task,
+                     device_names=camera_info.get_raft_names())
+    else:
+        # Run the command-line version.
+        scan_mode_script \
+            = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                           'harnessed_jobs', 'scan_mode_analysis_BOT',
+                           'v0', 'scan_mode_analysis_jh_task.py')
+        run_jh_tasks(scan_mode_script,
+                     device_names=camera_info.get_raft_names())
