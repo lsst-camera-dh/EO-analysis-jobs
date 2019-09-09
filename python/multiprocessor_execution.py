@@ -14,6 +14,7 @@ try:
 except ImportError as eobj:
     warnings.warn(f'ImportError: {eobj}')
     pass
+from ssh_dispatcher import ssh_device_analysis_pool
 
 __all__ = ['sensor_analyses', 'run_device_analysis_pool']
 
@@ -73,9 +74,12 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None,
     Users can override the default or keyword argument values by setting
     the LCATR_PARALLEL_PROCESSES environment variable.
     """
-    if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
+    if os.environ.get('LCATR_USE_PARSL', False) == 'True':
         return parsl_device_analysis_pool(task_func, device_names,
                                           processes=processes, cwd=cwd)
+
+    if os.environ.get('LCATR_USE_SSH_DISPATCHER', False) == 'True':
+        return ssh_device_analysis_pool(task_func, device_names, cwd=cwd)
 
     if processes is None:
         # Use the maximum number of cores available, reserving one for
