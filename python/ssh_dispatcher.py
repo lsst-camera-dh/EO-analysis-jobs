@@ -135,13 +135,11 @@ class TaskRunner:
             for log_file in items:
                 with open(log_file, 'r') as fd:
                     lines = fd.readlines()
-                    if lines:
+                    if lines and lines[-1].startswith('Task succeeded'):
                         my_log_files.remove(log_file)
-                    else:
-                        continue
-                    if lines[-1].startswith('Task succeeded'):
                         logger.info('Done: %s', os.path.basename(log_file))
-                    if lines[-1].startswith('Task failed'):
+                    if lines and lines[-1].startswith('Task failed'):
+                        my_log_files.remove(log_file)
                         logger.info('Failed: %s', os.path.basename(log_file))
                         failures.append(self._task_ids[log_file])
             time.sleep(interval)
