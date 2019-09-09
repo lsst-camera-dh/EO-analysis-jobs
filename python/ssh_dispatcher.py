@@ -20,14 +20,17 @@ class TaskRunner:
     def __init__(self, script, working_dir, setup, verbose=False):
         self.params = script, working_dir, setup
         self.verbose = verbose
+        self.log_dir = os.path.join(working_dir, 'logging')
+        os.makedirs(self.log_dir, exist_ok=True)
 
     def log_file(self, task_id, clean_up=True):
         """
         Create a log filename from the task_id and clean up any
         existing log files in the working directory.
         """
-        _, working_dir, _ = self.params
-        my_log_file = os.path.join(working_dir, f'task_{task_id}.log')
+        script, working_dir, _ = self.params
+        task_name = os.path.basename(script).split('.')[0]
+        my_log_file = os.path.join(self.log_dir, f'{task_name}_{task_id}.log')
         if clean_up and os.path.isfile(my_log_file):
             os.remove(my_log_file)
         return my_log_file
@@ -81,6 +84,15 @@ class TaskRunner:
             raise RuntimeError(message)
 
 
+def ir2_hosts():
+    remote_hosts = []
+    for i in range(1, 11):
+        host = f'lsst-dc{i:02}'
+        if host in socket.gethostname():
+            continue
+        remote_hosts.append(host)
+    yield np.random.choice(remote_hosts)
+
 def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
                              remote_hosts=None, verbose=False):
     """
@@ -91,28 +103,14 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
     task_runner = TaskRunner(task_script, cwd, setup, verbose=verbose)
     num_tasks = len(device_names)
 
-    num_rafts = 25
     if remote_hosts is None:
-        remote_hosts = []
-        for i in range(1, 11):
-            host = f'lsst-dc{i:02}'
-            # Skip current host, since it is the parent node.
-            if host in socket.gethostname():
-                continue
-            remote_hosts.extend([host]*num_rafts)
-        np.random.shuffle(remote_hosts)
-
-    log_dir = os.path.join(cwd, 'logging')
-    os.makedirs(log_dir, exist_ok=True)
+        remote_hosts = ir2_hosts()
 
     log_files = set()
     with multiprocessing.Pool(processes=num_tasks) as pool:
         outputs = []
         for device_name, remote_host in zip(device_names, remote_hosts):
-            task_name = os.path.basename(task_script).split('.')[0]
-            log_file =  os.path.join(log_dir, f'{task_name}_{device_name}.log')
-            if os.path.isfile(log_file):
-                os.remove(log_file)
+            log_file = task_runner.log_file(device_name)
             log_files.add(log_file)
             args = remote_host, log_file, device_name
             outputs.append(pool.apply_async(task_runner, args))
@@ -120,3 +118,5 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
         pool.join()
         [_.get() for _ in outputs]
     task_runner.monitor_tasks(log_files, max_time=max_time)
+
+    return None
