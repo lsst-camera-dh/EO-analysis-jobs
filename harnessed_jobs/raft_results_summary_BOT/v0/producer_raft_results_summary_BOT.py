@@ -8,7 +8,8 @@ from lsst.obs.lsst.imsim import ImsimMapper
 import siteUtils
 from camera_components import camera_info
 from focal_plane_plotting import plot_focal_plane, hist_amp_data
-from bot_eo_analyses import repackage_summary_files, run_jh_tasks
+from bot_eo_analyses import repackage_summary_files, \
+    run_python_task_or_cl_script
 from raft_results_task import raft_results_task
 
 def make_focal_plane_plots():
@@ -75,17 +76,11 @@ if __name__ == '__main__':
     # easily retrieved.
     repackage_summary_files()
 
-    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
-        # Run python version.
-        run_jh_tasks(raft_results_task,
-                     device_names=camera_info.get_raft_names())
-    else:
-        # Run the command-line version.
-        raft_results_task_script \
-            = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
-                           'raft_results_summary_BOT', 'v0',
-                           'raft_results_task.py')
-        run_jh_tasks(raft_results_task_script,
-                     device_names=camera_info.get_raft_names())
+    raft_results_task_script \
+        = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
+                       'raft_results_summary_BOT', 'v0', 'raft_results_task.py')
+
+    run_python_task_or_cl_script(raft_results_task, raft_results_task_script,
+                                 device_names=camera_info.get_raft_names())
 
     make_focal_plane_plots()

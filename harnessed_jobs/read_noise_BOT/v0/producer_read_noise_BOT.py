@@ -6,24 +6,20 @@ import os
 from camera_components import camera_info
 from read_noise_jh_task import read_noise_jh_task
 from raft_jh_noise_correlations import raft_jh_noise_correlations
-from bot_eo_analyses import get_analysis_types, run_jh_tasks
+from bot_eo_analyses import get_analysis_types, run_python_task_or_cl_script
 
 if 'biasnoise' in get_analysis_types():
-    if os.environ.get('LCATR_USE_PARSL', False) != 'True':
-        # Run the python versions of these tasks.
-        run_jh_tasks(read_noise_jh_task)
-        run_jh_tasks(raft_jh_noise_correlations,
-                     device_names=camera_info.get_raft_names())
-    else:
-        # Run the command-line versions.
-        read_noise_jh_task_script \
-            = os.path.join(os.environ['EOANALYSISJOBSDIR'],
-                           'harnessed_jobs', 'read_noise_BOT',
-                           'v0', 'read_noise_jh_task.py')
-        run_jh_tasks(read_noise_jh_task_script)
+    read_noise_jh_task_script \
+        = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                       'harnessed_jobs', 'read_noise_BOT',
+                       'v0', 'read_noise_jh_task.py')
+    run_python_task_or_cl_script(read_noise_jh_task, read_noise_jh_task_script)
 
-        raft_jh_noise_correlations_script \
-            = os.path.join(os.environ['EOANALYSISJOBSDIR'],
-                           'harnessed_jobs', 'read_noise_BOT',
-                           'v0', 'raft_jh_noise_correlations.py')
-        run_jh_tasks(raft_jh_noise_correlations_script)
+    raft_jh_noise_correlations_script \
+        = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                       'harnessed_jobs', 'read_noise_BOT',
+                       'v0', 'raft_jh_noise_correlations.py')
+
+    run_python_task_or_cl_script(raft_jh_noise_correlations,
+                                 raft_jh_noise_correlations_script,
+                                 device_names=camera_info.get_raft_names())
