@@ -86,6 +86,7 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
     """
     Submit JH tasks on remote nodes.
     """
+    cwd = os.path.abspath(cwd)
     setup = os.environ['LCATR_SETUP_SCRIPT']
     task_runner = TaskRunner(task_script, cwd, setup, verbose=verbose)
     num_tasks = len(device_names)
