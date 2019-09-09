@@ -69,8 +69,8 @@ def load_ir2_dc_config():
                                                 address=MOTHER_NODE_ADDRESS,
                                                 worker_debug=False,
                                                 provider=provider,
-                                                heartbeat_period=1,
-                                                heartbeat_threshold=2))
+                                                heartbeat_period=2,
+                                                heartbeat_threshold=10))
 
     config = Config(executors=executors, strategy=None, retries=3)
 
