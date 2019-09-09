@@ -3,6 +3,7 @@ Function to parallelize subcomponent analyses for an assembly such
 as raft or full focal plane.
 """
 import os
+import time
 import logging
 from parsl.app.app import python_app, bash_app
 import siteUtils
@@ -100,13 +101,16 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None,
     """
     load_ir2_dc_config()
 
+    logger = logging.getLogger('parsl_device_analysis_pool')
+    logger.setLevel(logging.INFO)
+
     if processes is None:
         # Use the maximum number of cores available, reserving one for
         # the parent process.
         processes = max(1, MAX_PARSL_THREADS - 1)
     processes = int(os.environ.get('LCATR_PARALLEL_PROCESSES', processes))
 
-    print("Running in %i processes" % processes)
+    logger.info("Running in %i processes" % processes)
 
     if processes == 1:
         # For cases where only one process will be run at a time, it's
@@ -122,14 +126,16 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None,
     parsl_wrapper = bash_wrapper if isinstance(task_func, str) \
                     else python_wrapper
     outputs = []
-    for device_name in device_names:
-        print(f"launching parsl job for {task_func} and {device_name}")
+    for i, device_name in enumerate(device_names):
+        logger.info(f"launching parsl job for task {i} and {device_name}")
+        time.sleep(1)
         outputs.append(parsl_wrapper(task_func, device_name, cwd=cwd,
                                      lcatr_envs=get_lcatr_envs(),
                                      logger=None, walltime=walltime))
 
     # Check the resolution of the AppFutures by asking for the result.
-    # Calling .result() blocks until the function has exited on the worker node.
+    # Calling .result() blocks until the function has exited on the
+    # worker node.
     return [_.result() for _ in outputs]
 
 
