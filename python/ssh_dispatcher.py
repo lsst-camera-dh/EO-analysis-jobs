@@ -14,15 +14,12 @@ import numpy as np
 
 __all__ = ['ssh_device_analysis_pool']
 
+logging.basicConfig(format='%(asctime)s %(name)s: %(message)s')
+
 class TaskRunner:
-    def __init__(self, script, working_dir, setup, verbose=False, logger=None):
+    def __init__(self, script, working_dir, setup, verbose=False):
         self.params = script, working_dir, setup
         self.verbose = verbose
-        if logger is None:
-            self.logger = logging.getLogger('TaskRunner')
-            self.logger.setLevel(logging.INFO)
-        else:
-            self.logger = logger
 
     def log_file(self, task_id, clean_up=True):
         """
@@ -39,6 +36,9 @@ class TaskRunner:
         """
         Function call-back for launching the remote process via ssh.
         """
+        logger = logging.getLogger('TaskRunner.__call__')
+        logger.setLevel(logging.INFO)
+
         script, working_dir, setup = self.params
         task_id = args[0]
         command = f'ssh {remote_host} '
@@ -47,7 +47,7 @@ class TaskRunner:
         command += ' && echo Task succeeded)'
         command += f' >& {log_file}&"'
         if self.verbose:
-            self.logger.info(command)
+            logger.info(command)
         subprocess.check_call(command, shell=True)
         return os.path.join(working_dir, log_file)
 
@@ -73,8 +73,7 @@ class TaskRunner:
                     lines = fd.readlines()
                     if lines and lines[-1].startswith('Task succeeded'):
                         my_log_files.remove(log_file)
-                        logger.info('Done:', os.path.basename(log_file),
-                                    time.asctime())
+                        logger.info('Done: %s', os.path.basename(log_file))
             time.sleep(interval)
         if my_log_files:
             message = 'Logs for dead or unresponsive tasks: {}'\
@@ -82,23 +81,25 @@ class TaskRunner:
             raise RuntimeError(message)
 
 
-def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800):
+def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
+                             remote_hosts=None, verbose=False):
     """
     Submit JH tasks on remote nodes.
     """
     setup = os.environ['LCATR_SETUP_SCRIPT']
-    task_runner = TaskRunner(task_script, cwd, setup)
+    task_runner = TaskRunner(task_script, cwd, setup, verbose=verbose)
     num_tasks = len(device_names)
 
     num_rafts = 25
-    remote_hosts = []
-    for i in range(1, 11):
-        host = f'lsst-dc{i:02}'
-        # Skip current host, since it is the parent node.
-        if host in socket.gethostname():
-            continue
-        remote_hosts.extend([host]*num_rafts)
-    np.random.shuffle(remote_hosts)
+    if remote_hosts is None:
+        remote_hosts = []
+        for i in range(1, 11):
+            host = f'lsst-dc{i:02}'
+            # Skip current host, since it is the parent node.
+            if host in socket.gethostname():
+                continue
+            remote_hosts.extend([host]*num_rafts)
+        np.random.shuffle(remote_hosts)
 
     log_dir = os.path.join(cwd, 'logging')
     os.makedirs(log_dir, exist_ok=True)
@@ -107,7 +108,7 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800):
     with multiprocessing.Pool(processes=num_tasks) as pool:
         outputs = []
         for device_name, remote_host in zip(device_names, remote_hosts):
-            task_name = os.path.basename(script_name).split('.')[0]
+            task_name = os.path.basename(task_script).split('.')[0]
             log_file =  os.path.join(log_dir, f'{task_name}_{device_name}.log')
             if os.path.isfile(log_file):
                 os.remove(log_file)
