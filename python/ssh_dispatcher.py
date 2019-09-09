@@ -3,14 +3,12 @@ Use ssh to run task scripts on remote nodes that are connected to
 a common file system and keep track of remote tasks via log files.
 """
 import os
-import glob
 import copy
 import time
 import socket
 import logging
 import subprocess
 import multiprocessing
-from collections import defaultdict
 import numpy as np
 from parsl_execution import get_lcatr_envs
 
@@ -70,7 +68,7 @@ class TaskRunner:
         Create a log filename from the task_id and clean up any
         existing log files in the working directory.
         """
-        script, working_dir, _ = self.params
+        script, _, _ = self.params
         task_name = os.path.basename(script).split('.')[0]
         my_log_file = os.path.join(self.log_dir, f'{task_name}_{task_id}.log')
         self._task_ids[my_log_file] = task_id
@@ -177,7 +175,7 @@ class TaskRunner:
                 outputs.append(pool.apply_async(self, args))
             pool.close()
             pool.join()
-            [_.get() for _ in outputs]
+            _ = [_.get() for _ in outputs]
 
 
 def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
@@ -225,5 +223,3 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
         task_runner.submit_jobs(devices_todo, remote_hosts=remote_hosts)
         devices_todo = task_runner.monitor_tasks(max_time=max_time)
         retries += 1
-
-    return None
