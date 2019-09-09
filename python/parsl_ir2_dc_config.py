@@ -25,7 +25,7 @@ worker_nodes = set([
     'lsst-dc06',
     'lsst-dc07',
     'lsst-dc08',
-    'lsst-dc09',
+#    'lsst-dc09',
     'lsst-dc10'
 ])
 
