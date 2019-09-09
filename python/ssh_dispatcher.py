@@ -172,6 +172,7 @@ class TaskRunner:
             for device_name, remote_host in zip(device_names, remote_hosts):
                 self.make_log_file(device_name)
                 args = remote_host, device_name
+                time.sleep(0.1)
                 outputs.append(pool.apply_async(self, args))
             pool.close()
             pool.join()
