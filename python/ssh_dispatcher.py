@@ -91,7 +91,8 @@ def ir2_hosts():
         if host in socket.gethostname():
             continue
         remote_hosts.append(host)
-    yield np.random.choice(remote_hosts)
+    while True:
+        yield np.random.choice(remote_hosts)
 
 def ssh_device_analysis_pool(task_script, device_names, cwd='.', max_time=1800,
                              remote_hosts=None, verbose=False):
