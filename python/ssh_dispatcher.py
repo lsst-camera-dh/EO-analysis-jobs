@@ -9,7 +9,6 @@ import socket
 import logging
 import subprocess
 import multiprocessing
-import numpy as np
 from parsl_execution import get_lcatr_envs
 
 __all__ = ['ssh_device_analysis_pool']
@@ -19,8 +18,8 @@ logging.basicConfig(format='%(asctime)s %(name)s: %(message)s')
 
 def ir2_hosts():
     """
-    Return a generator that serves up random lsst-dc* remote hosts,
-    excluding the current host.
+    Return a generator that serves up lsst-dc* remote hosts in
+    sequence, excluding the current host.
     """
     remote_hosts = []
     for i in range(1, 11):
@@ -28,8 +27,11 @@ def ir2_hosts():
         if host in socket.gethostname():
             continue
         remote_hosts.append(host)
+    num_hosts = len(remote_hosts)
+    index = -1
     while True:
-        yield np.random.choice(remote_hosts)
+        index += 1
+        yield remote_hosts[index % num_hosts]
 
 
 class TaskRunner:
