@@ -104,14 +104,15 @@ class TaskRunner:
 
     def monitor_tasks(self, max_time=None, interval=1, logger=None):
         """
-        Static function to keep track of remote processes by
-        inspecting log files.
+        Function to keep track of remote processes by inspecting the
+        log files.
 
         Parameters
         ----------
         max_time: float [None]
-            Maximum time allowed for the parent task to complete
-            Note that this does not kill on-going subprocesses.
+            Maximum time allowed for the parent task to complete.
+            Note that processes on the remote nodes are not killed
+            if the parent task times out.
         interval: float [1]
             Polling interval in seconds for checking log files for
             task completion.
@@ -120,7 +121,7 @@ class TaskRunner:
 
         Raises
         ------
-        RuntimeError:  This will be raised if max_time is exceeded.
+        RuntimeError:  This will be raised if max_time is reached.
         """
         if logger is None:
             logger = logging.getLogger('TaskRunner.monitor_tasks')
@@ -210,7 +211,7 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
 
     Raises
     ------
-    RuntimeError:  This will be raised if max_time is exceeded.
+    RuntimeError:  This will be raised if max_time is reached.
     """
     cwd = os.path.abspath(cwd)
     if setup is None:
