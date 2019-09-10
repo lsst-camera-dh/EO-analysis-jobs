@@ -51,7 +51,9 @@ __all__ = ['make_file_prefix',
            'qe_task',
            'tearing_task',
            'repackage_summary_files',
-           'mondiode_value']
+           'mondiode_value',
+           'run_jh_tasks',
+           'run_python_task_or_cl_script']
 
 
 class GlobPattern:
@@ -744,3 +746,16 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
         run_device_analysis_pool(jh_task, device_names,
                                  processes=processes, cwd=cwd,
                                  walltime=walltime)
+
+
+def run_python_task_or_cl_script(python_task, cl_script, device_names=None,
+                                 processes=None, walltime=3600):
+    if (os.environ.get('LCATR_USE_PARSL', False) == 'True'
+        or os.environ.get('LCATR_USE_SSH_DISPATCHER', False) == 'True'):
+        # Run command-line verions using parsl or ssh_dispatcher.
+        run_jh_tasks(cl_script, device_names=device_names,
+                     processes=processes, walltime=walltime),
+    else:
+        # Run python version using multiprocessing directly.
+        run_jh_tasks(python_task, device_names=device_names,
+                     processes=processes, walltime=walltime)

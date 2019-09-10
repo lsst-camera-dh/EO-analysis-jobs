@@ -70,7 +70,7 @@ def get_lcatr_envs():
 def parsl_device_analysis_pool(task_func, device_names, processes=None,
                                cwd=None, walltime=3600):
     """
-    Use a multiprocessing.Pool to run a device-level analysis task
+    Use parsl in ad hoc mode to run a device-level analysis task
     over a collection of device names.  The task_func should be
     implemented as pickleable function that takes the desired device
     name as its single argument.
