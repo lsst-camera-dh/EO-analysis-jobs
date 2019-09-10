@@ -88,23 +88,23 @@ class TaskRunner:
 
     def make_log_file(self, task_id, clean_up=True):
         """
-        Create a log filename from the task_id and clean up any
-        existing log files in the working directory.
+        Create a log filename from the task name and task_id and
+        clean up any existing log files in the logging directory.
         """
         script, _, _ = self.params
         task_name = os.path.basename(script).split('.')[0]
-        my_log_file = os.path.join(self.log_dir, f'{task_name}_{task_id}.log')
-        self.task_ids[my_log_file] = task_id
-        self.log_files[task_id] = my_log_file
-        if clean_up and os.path.isfile(my_log_file):
-            os.remove(my_log_file)
-        return my_log_file
+        log_file = os.path.join(self.log_dir, f'{task_name}_{task_id}.log')
+        self.task_ids[log_file] = task_id
+        self.log_files[task_id] = log_file
+        if clean_up and os.path.isfile(log_file):
+            os.remove(log_file)
+        return log_file
 
     def launch_script(self, remote_host, task_id, *args):
         """
         Function to launch the script as a remote process via ssh.
         """
-        logger = logging.getLogger('TaskRunner.__call__')
+        logger = logging.getLogger('TaskRunner.launch_script')
         logger.setLevel(logging.INFO)
 
         script, working_dir, setup = self.params
@@ -123,7 +123,7 @@ class TaskRunner:
         logger.info('Launching %s on %s', script, remote_host)
         subprocess.check_call(command, shell=True)
 
-    def monitor_tasks(self, max_time=None, interval=1, logger=None):
+    def monitor_tasks(self, max_time=None, interval=1):
         """
         Function to keep track of remote processes by inspecting the
         log files.
@@ -137,16 +137,13 @@ class TaskRunner:
         interval: float [1]
             Polling interval in seconds for checking log files for
             task completion.
-        logger: logging.Logger [None]
-            Logger object. If None, then make one.
 
         Raises
         ------
         RuntimeError:  This will be raised if max_time is reached.
         """
-        if logger is None:
-            logger = logging.getLogger('TaskRunner.monitor_tasks')
-            logger.setLevel(logging.INFO)
+        logger = logging.getLogger('TaskRunner.monitor_tasks')
+        logger.setLevel(logging.INFO)
 
         # Poll log files for completion of each task:
         log_files = list(self.log_files.values())
@@ -166,12 +163,16 @@ class TaskRunner:
                     if lines and lines[-1].startswith('Task failed'):
                         if self.retries[task_id] >= self.max_retries:
                             log_files.remove(log_file)
-                            logger.info('Failed: %s',
-                                        os.path.basename(log_file))
+                            logger.info('Failed: %s after %d attempt(s)',
+                                        os.path.basename(log_file),
+                                        self.max_retries + 1)
                         else:
                             to_retry.append(task_id)
                             self.retries[task_id] += 1
             if to_retry:
+                logger.info('Retrying tasks for: ')
+                for item in to_retry:
+                    logger.info('  ' + item)
                 self.submit_jobs(to_retry)
             time.sleep(interval)
         if log_files:
