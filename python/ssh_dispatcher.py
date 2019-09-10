@@ -181,7 +181,7 @@ class TaskRunner:
 
 
 def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
-                             max_time=1800, remote_hosts=None, verbose=False,
+                             max_time=None, remote_hosts=None, verbose=False,
                              max_retries=1):
     """
     Submit JH tasks on remote nodes.
@@ -198,10 +198,11 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
         Setup script for task runtime environment.  If None, then
         the script pointed to by the `LCATR_SETUP_SCRIPT` environment
         variable will be used.
-    max_time: float [1800]
-        Maximum execution time in seconds for all subprocess. If this time
-        is exceeded, then a RuntimeError will be raised.
-    remote_hosts: list-like [None]
+    max_time: float [None]
+        Maximum execution time in seconds for the parent task. If this
+        time is exceeded, then a RuntimeError will be raised.  If None,
+        then no time limit is imposed.
+    remote_hosts: iterable [None]
         Iterable that provides the remote hosts for each process. If None,
         then the lsst-dc* hosts will be used.
     verbose: bool [False]
