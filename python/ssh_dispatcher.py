@@ -79,7 +79,7 @@ class TaskRunner:
             os.remove(my_log_file)
         return my_log_file
 
-    def __call__(self, remote_host, *args):
+    def __call__(self, remote_host, task_id, *args):
         """
         Function call-back for launching the remote process via ssh.
         """
@@ -87,15 +87,15 @@ class TaskRunner:
         logger.setLevel(logging.INFO)
 
         script, working_dir, setup = self.params
-        task_id = args[0]
         log_file = self._log_files[task_id]
         command = f'ssh {remote_host} '
         command += f'"cd {working_dir}; source {setup}; '
         for key, value in self.lcatr_envs.items():
             command += f'export {key}={value}; '
-        command += f'({script} '
+        command += f'({script} {task_id} '
         command += ' '.join([str(_) for _ in args])
-        command += ' && echo Task succeeded || echo Task failed)'
+        command += ' && echo Task succeeded on \`hostname\`'
+        command += ' || echo Task failed on \`hostname\`)'
         command += f' >& {log_file}&"'
         if self.verbose:
             logger.info(command)
