@@ -205,7 +205,7 @@ class GetAmplifierGains:
 
     def __call__(self, file_pattern):
         if self.run is None:
-            return _get_amplifer_gains(file_pattern)
+            return _get_amplifier_gains(file_pattern)
         # Extract the det_name from the file pattern.
         match = re.search('R\d\d_S\d\d', file_pattern)
         if match is None:

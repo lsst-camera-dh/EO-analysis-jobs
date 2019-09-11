@@ -148,6 +148,7 @@ class TaskRunner:
         # Poll log files for completion of each task:
         log_files = list(self.log_files.values())
         t0 = time.time()
+        failures = []
         while log_files:
             if max_time is not None and time.time() - t0 > max_time:
                 break
@@ -166,19 +167,25 @@ class TaskRunner:
                             logger.info('Failed: %s after %d attempt(s)',
                                         os.path.basename(log_file),
                                         self.max_retries + 1)
+                            failures.append(task_id)
                         else:
                             to_retry.append(task_id)
                             self.retries[task_id] += 1
             if to_retry:
                 logger.info('Retrying tasks for: ')
                 for item in to_retry:
-                    logger.info('  ' + item)
+                    logger.info('  %s', item)
                 self.submit_jobs(to_retry)
             time.sleep(interval)
+        messages = []
         if log_files:
-            message = 'Logs for dead or unresponsive tasks: {}'\
-                      .format([os.path.basename(_) for _ in log_files])
-            raise RuntimeError(message)
+            messages.append('\n  Unresponsive tasks: {}'\
+                            .format([self.task_ids[_] for _ in log_files]))
+        if failures:
+            messages.append('  Failed tasks after {} retries: {}'\
+                            .format(self.max_retries, failures))
+        if messages:
+            raise RuntimeError('\n'.join(messages))
 
     def submit_jobs(self, device_names):
         """
