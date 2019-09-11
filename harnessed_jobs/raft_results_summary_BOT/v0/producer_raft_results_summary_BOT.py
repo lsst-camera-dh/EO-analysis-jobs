@@ -80,7 +80,8 @@ if __name__ == '__main__':
         = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
                        'raft_results_summary_BOT', 'v0', 'raft_results_task.py')
 
+    installed_rafts = camera_info.get_installed_raft_names()
     run_python_task_or_cl_script(raft_results_task, raft_results_task_script,
-                                 device_names=camera_info.get_raft_names())
+                                 device_names=installed_rafts)
 
     make_focal_plane_plots()

@@ -9,7 +9,7 @@ from camera_components import camera_info
 from bot_eo_validators import validate_raft_results
 
 results = []
-results = validate_raft_results(results, camera_info.get_raft_names())
+results = validate_raft_results(results, camera_info.get_installed_raft_names())
 
 #
 # Validate focal plane heat map plots

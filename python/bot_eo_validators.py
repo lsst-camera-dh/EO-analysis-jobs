@@ -192,7 +192,7 @@ def validate_read_noise(results, det_names):
                                                    metadata=metadata))
 
     # Persist the raft-level overscan correlation plots.
-    for raft in camera_info.get_raft_names():
+    for raft in camera_info.get_installed_raft_names():
         metadata = dict(TESTTYPE='FE55', TEST_CATEGORY='EO', RAFT=raft, RUN=run)
         file_prefix = make_file_prefix(run, raft)
         filename = '%s_overscan_correlations.png' % file_prefix
@@ -666,7 +666,7 @@ def validate_raft_results(results, raft_names):
 
 if __name__ == '__main__':
     det_names = camera_info.get_det_names()
-    raft_names = camera_info.get_raft_names()
+    raft_names = camera_info.get_installed_raft_names()
 
     results = []
     results = validate_fe55(results, det_names)

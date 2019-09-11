@@ -694,8 +694,8 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
         remote nodes, so all dependencies should be imported in the
         bodies of the functions.
     device_names: list-like container of device names [None]
-        List of sensors, rafts, etc..  If None, then all of the
-        science sensors in the focal plane is used.
+        List of sensors or rafts on which to operate.  If None, then
+        the installed sensors in the focal plane is used.
     processes: int [None]
         Number of processes to run in parallel. If None, then all
         available processes can be potentially used.
@@ -717,11 +717,14 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     """
     if device_names is None:
         device_names = camera_info.get_det_names()
-    rafts = os.environ.get('LCATR_RAFTS', None)
-    if rafts is not None:
-        rafts = rafts.split('_')
-        device_names = [det_name for det_name in device_names
-                        if det_name[:3] in rafts]
+
+    # Restrict to installed rafts or sensors.
+    override_rafts = os.environ.get('LCATR_RAFTS', None)
+    if override_rafts is not None:
+        installed_rafts = override_rafts.split('_')
+    else:
+        installed_rafts = camera_info.get_installed_raft_names()
+    device_names = [_ for _ in device_names if _[:3] in installed_rafts]
 
     cwd = os.path.abspath('.')
 

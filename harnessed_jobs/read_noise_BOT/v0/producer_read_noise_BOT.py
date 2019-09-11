@@ -20,6 +20,7 @@ if 'biasnoise' in get_analysis_types():
                        'harnessed_jobs', 'read_noise_BOT',
                        'v0', 'raft_jh_noise_correlations.py')
 
+    installed_rafts = camera_info.get_installed_raft_names()
     run_python_task_or_cl_script(raft_jh_noise_correlations,
                                  raft_jh_noise_correlations_script,
-                                 device_names=camera_info.get_raft_names())
+                                 device_names=installed_rafts)
