@@ -6,15 +6,24 @@ Producer script for raft-level bright defects analysis.
 def run_bright_pixels_task(sensor_id):
     "Single sensor execution of the bright pixels task."
     import lsst.eotest.sensor as sensorTest
+    import lsst.eotest.image_utils as imutils
     import siteUtils
     import eotestUtils
 
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
+    acq_jobname = siteUtils.getProcessName('dark_raft_acq')
     dark_files = siteUtils.dependency_glob('S*/%s_dark_dark_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('dark_raft_acq'),
+                                           jobname=acq_jobname,
                                            description='Dark files:')
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
-                                           description='Super bias frame:')[0]
+    bias_files = siteUtils.dependency_glob('S*/%s_dark_bias_*.fits' % sensor_id,
+                                           jobname=acq_jobname,
+                                           description='Bias files:')
+    bias_files = sorted(bias_files)[1:] # Skip the first frame
+    nframes = len(bias_files)
+    bias_frame = f'{sensor_id}_dark_acq_median_bias_{nframes}.fits'
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     gains = eotestUtils.getSensorGains(jobname='fe55_raft_analysis',
