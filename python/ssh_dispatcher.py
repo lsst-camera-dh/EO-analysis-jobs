@@ -232,7 +232,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     setup: str [None]
         Setup script for task runtime environment.  If None, then
         the script pointed to by the `LCATR_SETUP_SCRIPT` environment
-        variable will be used.
+        variable will be used, if it is set. Otherwise, `$INST_DIR/setup.sh`
+        will be used.
     max_time: float [None]
         Maximum execution time in seconds for the parent task. If this
         time is exceeded, then a RuntimeError will be raised.  If None,
@@ -251,7 +252,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     """
     cwd = os.path.abspath(cwd)
     if setup is None:
-        setup = os.environ['LCATR_SETUP_SCRIPT']
+        setup = os.environ.get('LCATR_SETUP_SCRIPT',
+                               os.path.join(os.environ['INST_DIR'], 'setup.sh'))
 
     task_runner = TaskRunner(task_script, cwd, setup, max_retries=max_retries,
                              remote_hosts=remote_hosts, verbose=verbose)
