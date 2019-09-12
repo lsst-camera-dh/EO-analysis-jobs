@@ -54,19 +54,6 @@ def python_wrapper(func, *args, cwd=None, lcatr_envs=None, logger=None,
     return result
 
 
-def get_lcatr_envs():
-    """
-    Extract the LCATR_* environment variables for updating the runtime
-    environment of the harnessed job code to be executed in
-    parsl_wrapper.
-    """
-    lcatr_envs = dict()
-    for key, value in os.environ.items():
-        if key.startswith('LCATR'):
-            lcatr_envs[key] = value
-    return lcatr_envs
-
-
 def parsl_device_analysis_pool(task_func, device_names, processes=None,
                                cwd=None, walltime=3600):
     """
@@ -130,7 +117,7 @@ def parsl_device_analysis_pool(task_func, device_names, processes=None,
         logger.info(f"launching parsl job for task {i} and {device_name}")
         time.sleep(1)
         outputs.append(parsl_wrapper(task_func, device_name, cwd=cwd,
-                                     lcatr_envs=get_lcatr_envs(),
+                                     lcatr_envs=siteUtils.get_lcatr_envs(),
                                      logger=None, walltime=walltime))
 
     # Check the resolution of the AppFutures by asking for the result.

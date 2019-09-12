@@ -10,7 +10,7 @@ import logging
 import subprocess
 import multiprocessing
 from collections import defaultdict
-from parsl_execution import get_lcatr_envs
+import siteUtils
 
 __all__ = ['ssh_device_analysis_pool']
 
@@ -81,7 +81,7 @@ class TaskRunner:
         self.verbose = verbose
         self.log_dir = os.path.join(working_dir, 'logging')
         os.makedirs(self.log_dir, exist_ok=True)
-        self.lcatr_envs = get_lcatr_envs()
+        self.lcatr_envs = siteUtils.get_lcatr_envs()
         self.task_ids = dict()
         self.log_files = dict()
         self.retries = defaultdict(zero_func)
