@@ -21,10 +21,11 @@ class Ir2Hosts:
     Iterator class to provide lsst-dc* host names in a cyclic fashion.
     """
     def __init__(self):
+        bad_nodes = os.environ.get('LCATR_BAD_NODES', '').split('_')
         self.hosts = []
         for i in range(1, 11):
             host = f'lsst-dc{i:02}'
-            if host in socket.gethostname():
+            if host in socket.gethostname() or host in bad_nodes:
                 continue
             self.hosts.append(host)
         self.num_hosts = len(self.hosts)
