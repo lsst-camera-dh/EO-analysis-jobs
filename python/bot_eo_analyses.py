@@ -754,7 +754,7 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
 def run_python_task_or_cl_script(python_task, cl_script, device_names=None,
                                  processes=None, walltime=3600):
     if (os.environ.get('LCATR_USE_PARSL', False) == 'True'
-        or os.environ.get('LCATR_USE_SSH_DISPATCHER', False) == 'True'):
+        or siteUtils.getUnitType() == 'LCA-10134_Cryostat'):
         # Run command-line verions using parsl or ssh_dispatcher.
         run_jh_tasks(cl_script, device_names=device_names,
                      processes=processes, walltime=walltime),
