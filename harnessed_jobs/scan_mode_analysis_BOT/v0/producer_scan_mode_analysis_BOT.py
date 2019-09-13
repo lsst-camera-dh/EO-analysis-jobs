@@ -12,6 +12,7 @@ if 'scan' in get_analysis_types():
         = os.path.join(os.environ['EOANALYSISJOBSDIR'],
                        'harnessed_jobs', 'scan_mode_analysis_BOT',
                        'v0', 'scan_mode_analysis_jh_task.py')
+    installed_rafts = camera_info.get_installed_raft_names()
     run_python_task_or_cl_script(scan_mode_analysis_jh_task,
                                  scan_mode_script,
-                                 device_names=camera_info.get_raft_names())
+                                 device_names=installed_rafts)

@@ -78,7 +78,7 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None,
         return parsl_device_analysis_pool(task_func, device_names,
                                           processes=processes, cwd=cwd)
 
-    if os.environ.get('LCATR_USE_SSH_DISPATCHER', False) == 'True':
+    if siteUtils.getUnitType() == 'LCA-10134_Cryostat':
         return ssh_device_analysis_pool(task_func, device_names, cwd=cwd)
 
     if processes is None:
@@ -124,25 +124,14 @@ def sensor_analyses(run_task_func, raft_id=None, processes=None, cwd=None,
         The maximum number of processes to have running at once.
         If None, then set to 1 or one less than the number of cores,
         whichever is larger.
-    cwd: str [None]
+    cwd: str [None] Deprecated.
         Working directory to cd to for parsl multi-node processing.
         If None, then use `cwd = os.path.abspath('.')`.
-    walltime: float [3600]
+    walltime: float [3600] Deprecated.
         Walltime in seconds for parsl app execution.  If the app does not
         return within walltime, a parsl.app.errors.AppTimeout exception
         will be raised.  This is not used for non-parsl processing.
-
-    Raises
-    ------
-    parsl.app.errors.AppTimeout
     """
-    if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
-        if cwd is None:
-            cwd = os.path.abspath('.')
-        return parsl_sensor_analyses(run_task_func, raft_id=raft_id,
-                                     processes=processes, cwd=cwd,
-                                     walltime=walltime)
-
     if raft_id is None:
         raft_id = siteUtils.getUnitId()
 

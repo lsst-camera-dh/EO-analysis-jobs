@@ -10,7 +10,7 @@ import logging
 import subprocess
 import multiprocessing
 from collections import defaultdict
-from parsl_execution import get_lcatr_envs
+import siteUtils
 
 __all__ = ['ssh_device_analysis_pool']
 
@@ -21,10 +21,11 @@ class Ir2Hosts:
     Iterator class to provide lsst-dc* host names in a cyclic fashion.
     """
     def __init__(self):
+        bad_nodes = os.environ.get('LCATR_BAD_NODES', '').split('_')
         self.hosts = []
         for i in range(1, 11):
             host = f'lsst-dc{i:02}'
-            if host in socket.gethostname():
+            if host in socket.gethostname() or host in bad_nodes:
                 continue
             self.hosts.append(host)
         self.num_hosts = len(self.hosts)
@@ -81,7 +82,7 @@ class TaskRunner:
         self.verbose = verbose
         self.log_dir = os.path.join(working_dir, 'logging')
         os.makedirs(self.log_dir, exist_ok=True)
-        self.lcatr_envs = get_lcatr_envs()
+        self.lcatr_envs = siteUtils.get_lcatr_envs()
         self.task_ids = dict()
         self.log_files = dict()
         self.retries = defaultdict(zero_func)
@@ -148,6 +149,7 @@ class TaskRunner:
         # Poll log files for completion of each task:
         log_files = list(self.log_files.values())
         t0 = time.time()
+        failures = []
         while log_files:
             if max_time is not None and time.time() - t0 > max_time:
                 break
@@ -166,19 +168,25 @@ class TaskRunner:
                             logger.info('Failed: %s after %d attempt(s)',
                                         os.path.basename(log_file),
                                         self.max_retries + 1)
+                            failures.append(task_id)
                         else:
                             to_retry.append(task_id)
                             self.retries[task_id] += 1
             if to_retry:
                 logger.info('Retrying tasks for: ')
                 for item in to_retry:
-                    logger.info('  ' + item)
+                    logger.info('  %s', item)
                 self.submit_jobs(to_retry)
             time.sleep(interval)
+        messages = []
         if log_files:
-            message = 'Logs for dead or unresponsive tasks: {}'\
-                      .format([os.path.basename(_) for _ in log_files])
-            raise RuntimeError(message)
+            messages.append('\n  Unresponsive tasks: {}'\
+                            .format([self.task_ids[_] for _ in log_files]))
+        if failures:
+            messages.append('  Failed tasks after {} retries: {}'\
+                            .format(self.max_retries, failures))
+        if messages:
+            raise RuntimeError('\n'.join(messages))
 
     def submit_jobs(self, device_names):
         """
@@ -224,7 +232,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     setup: str [None]
         Setup script for task runtime environment.  If None, then
         the script pointed to by the `LCATR_SETUP_SCRIPT` environment
-        variable will be used.
+        variable will be used, if it is set. Otherwise, `$INST_DIR/setup.sh`
+        will be used.
     max_time: float [None]
         Maximum execution time in seconds for the parent task. If this
         time is exceeded, then a RuntimeError will be raised.  If None,
@@ -243,7 +252,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     """
     cwd = os.path.abspath(cwd)
     if setup is None:
-        setup = os.environ['LCATR_SETUP_SCRIPT']
+        setup = os.environ.get('LCATR_SETUP_SCRIPT',
+                               os.path.join(os.environ['INST_DIR'], 'setup.sh'))
 
     task_runner = TaskRunner(task_script, cwd, setup, max_retries=max_retries,
                              remote_hosts=remote_hosts, verbose=verbose)
