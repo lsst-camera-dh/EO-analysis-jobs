@@ -2,6 +2,7 @@
 """
 Validator script for raft-level dark defects analysis.
 """
+import glob
 import lsst.eotest.sensor as sensorTest
 import lcatr.schema
 import siteUtils
@@ -21,6 +22,10 @@ for slot, sensor_id in raft.items():
                               DATE=eotestUtils.utc_now_isoformat(),
                               CCD_MANU=ccd_vendor)
     results.append(siteUtils.make_fileref(mask_file))
+
+    bias_frame = glob.glob(f'{sensor_id}_*_median_bias.fits')[0]
+    eotestUtils.addHeaderData(bias_frame, DATE=eotestUtils.utc_now_isoformat())
+    results.append(siteUtils.make_fileref(bias_frame, folder=slot))
 
     superflat = '%s_median_sflat.fits' % sensor_id
     eotestUtils.addHeaderData(superflat, DATE=eotestUtils.utc_now_isoformat())

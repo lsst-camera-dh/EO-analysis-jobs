@@ -72,11 +72,10 @@ def persist_fe55_analysis_results():
                                       CCD_MANU=ccd_vendor)
 
         #
-        # Persist the mean bias FITS file.
+        # Persist the median bias FITS file.
         #
-        bias_mean_file \
-            = glob.glob('%(sensor_id)s_mean_bias_*.fits' % locals())[0]
-        results.append(siteUtils.make_fileref(bias_mean_file, folder=slot))
+        bias_median_file = glob.glob(f'{sensor_id}_*_median_bias.fits')[0]
+        results.append(siteUtils.make_fileref(bias_median_file, folder=slot))
 
         # Persist the png files.
         metadata = dict(CCD_MANU=ccd_vendor, LSST_NUM=sensor_id,

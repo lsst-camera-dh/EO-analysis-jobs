@@ -18,11 +18,8 @@ def run_bright_pixels_task(sensor_id):
     bias_files = siteUtils.dependency_glob('S*/%s_dark_bias_*.fits' % sensor_id,
                                            jobname=acq_jobname,
                                            description='Bias files:')
-    bias_files = sorted(bias_files)[1:] # Skip the first frame
-    nframes = len(bias_files)
-    bias_frame = f'{sensor_id}_dark_acq_median_bias_{nframes}.fits'
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    bias_frame = eotestUtils.make_median_bias_frame(bias_files, sensor_id,
+                                                    'dark_raft_acq')
 
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)

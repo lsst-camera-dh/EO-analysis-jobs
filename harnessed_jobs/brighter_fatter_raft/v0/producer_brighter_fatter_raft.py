@@ -12,8 +12,8 @@ def run_bf_task(sensor_id):
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat1*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
-    bias_frame = siteUtils.dependency_glob('S*/%s_*bias*.fits' % sensor_id,
-                                           jobname='fe55_raft_analysis',
+    bias_frame = siteUtils.dependency_glob('%s_sflat*median_bias.fits'
+                                           % sensor_id,
                                            description='Superbias files:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)

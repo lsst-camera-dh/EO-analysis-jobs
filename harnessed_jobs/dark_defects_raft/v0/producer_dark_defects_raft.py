@@ -9,12 +9,17 @@ def run_dark_pixels_task(sensor_id):
     import siteUtils
     import eotestUtils
 
+    acq_jobname = siteUtils.getProcessName('sflat_raft_acq')
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
     sflat_files = siteUtils.dependency_glob('S*/%s_sflat_500_flat_H*.fits' % sensor_id,
-                                            jobname=siteUtils.getProcessName('sflat_raft_acq'),
+                                            jobname=acq_jobname,
                                             description='Superflat files:')
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
-                                           description='Super bias frame:')[0]
+
+    bias_files = siteUtils.dependency_glob('S*/%s_sflat_bias*.fits' % sensor_id,
+                                           jobname=acq_jobname,
+                                           description='Bias files:')
+    bias_frame = eotestUtils.make_median_bias_frame(bias_files, sensor_id,
+                                                    'sflat_raft_acq')
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
 

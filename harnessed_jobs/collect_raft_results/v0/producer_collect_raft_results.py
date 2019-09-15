@@ -69,7 +69,7 @@ for slot, res_file in results_files.items():
                         in zip(results['AMP'], results['GAIN'])])
 
 # Collect super bias files for bias frame subtraction.
-bias_frames = slot_dependency_glob('*mean_bias_*.fits', 'fe55_raft_analysis')
+bias_frames = slot_dependency_glob('*median_bias.fits', 'dark_defects_raft')
 
 title = '%s, %s' % (raft_id, run_number)
 file_prefix = '%s_%s' % (raft_id, run_number)
@@ -84,11 +84,11 @@ dark_mosaic.plot(title='%s, medianed dark frames' % title,
 plt.savefig('%s_medianed_dark.png' % file_prefix)
 del dark_mosaic
 
-mean_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
-mean_bias.plot(title='%s, mean bias frames' % title, annotation='ADU/pixel',
-               rotate180=True)
-plt.savefig('%s_mean_bias.png' % file_prefix)
-del mean_bias
+median_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
+median_bias.plot(title='%s, median bias frames' % title, annotation='ADU/pixel',
+                 rotate180=True)
+plt.savefig('%s_median_bias.png' % file_prefix)
+del median_bias
 
 sflat_high = raftTest.RaftMosaic(slot_dependency_glob('*superflat_high.fits',
                                                       'cte_raft'),
