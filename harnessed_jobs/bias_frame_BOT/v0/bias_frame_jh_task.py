@@ -8,12 +8,6 @@ def bias_frame_jh_task(det_name):
     import siteUtils
     import json
     from bot_eo_analyses import glob_pattern, bias_frame_task
-    if os.environ.get('LCATR_USE_PARSL', 'False') == 'True':
-        suffix = 'with_parsl'
-        import parsl
-        print("parsl:", parsl)
-    else:
-        suffix = 'without_parsl'
 
     run = siteUtils.getRunNumber()
     acq_jobname = siteUtils.getProcessName('BOT_acq')

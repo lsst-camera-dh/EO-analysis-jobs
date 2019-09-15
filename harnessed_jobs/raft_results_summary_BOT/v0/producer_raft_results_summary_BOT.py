@@ -4,7 +4,6 @@ Producer script for BOT raft-level results summaries.
 """
 import os
 import matplotlib.pyplot as plt
-from lsst.obs.lsst.imsim import ImsimMapper
 import siteUtils
 from camera_components import camera_info
 from focal_plane_plotting import plot_focal_plane, hist_amp_data
@@ -37,7 +36,7 @@ def make_focal_plane_plots():
                   'bright_fatter_BOT': (('bf_xcorr', 'bf_ycorr'), (None, None),
                                         (None, None))}
 
-    camera = ImsimMapper().camera
+    camera = camera_info.camera_object
 
     run = siteUtils.getRunNumber()
     unit_id = siteUtils.getUnitId()
@@ -80,7 +79,8 @@ if __name__ == '__main__':
         = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
                        'raft_results_summary_BOT', 'v0', 'raft_results_task.py')
 
+    installed_rafts = camera_info.get_installed_raft_names()
     run_python_task_or_cl_script(raft_results_task, raft_results_task_script,
-                                 device_names=camera_info.get_raft_names())
+                                 device_names=installed_rafts)
 
     make_focal_plane_plots()
