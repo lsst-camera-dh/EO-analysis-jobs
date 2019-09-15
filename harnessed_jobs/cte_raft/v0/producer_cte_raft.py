@@ -13,7 +13,8 @@ def run_cte_task(sensor_id):
     import eotestUtils
 
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+    bias_frame = siteUtils.dependency_glob('%s_sflat*median_bias.fits'
+                                           % sensor_id,
                                            description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)

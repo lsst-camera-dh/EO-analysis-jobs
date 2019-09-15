@@ -16,7 +16,8 @@ def run_trap_task(sensor_id):
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
     # Omit rolloff defects mask since a trap in the rolloff edge region can
     # affect the entire column.
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+    bias_frame = siteUtils.dependency_glob('%s_sflat*median_bias.fits'
+                                           % sensor_id,
                                            description='Super bias frame:')[0]
     mask_files = [item for item in mask_files
                   if item.find('rolloff_defects') == -1]

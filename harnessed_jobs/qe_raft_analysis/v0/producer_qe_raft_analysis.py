@@ -32,7 +32,8 @@ def run_qe_task(sensor_id):
         print()
         sys.stdout.flush()
 
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+    bias_frame = siteUtils.dependency_glob('%s_sflat*median_bias.fits'
+                                           % sensor_id,
                                            description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)

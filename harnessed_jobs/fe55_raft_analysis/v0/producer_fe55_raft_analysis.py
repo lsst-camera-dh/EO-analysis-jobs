@@ -13,22 +13,22 @@ def run_fe55_task(sensor_id):
     import lsst.eotest.image_utils as imutils
     import lsst.eotest.sensor as sensorTest
     import siteUtils
+    import eotestUtils
 
     file_prefix = '%s_%s' % (sensor_id, siteUtils.getRunNumber())
+    acq_jobname = siteUtils.getProcessName('fe55_raft_acq')
     fe55_files = siteUtils.dependency_glob('S*/%s_fe55_fe55_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                           jobname=acq_jobname,
                                            description='Fe55 files:')
     # Reverse sort the fe55 files to avoid transient effects arising
     # from using frames taken right after cool down that could bias
     # the gain measurement.
     fe55_files = sorted(fe55_files, reverse=True)
     bias_files = siteUtils.dependency_glob('S*/%s_fe55_bias_*.fits' % sensor_id,
-                                           jobname=siteUtils.getProcessName('fe55_raft_acq'),
+                                           jobname=acq_jobname,
                                            description='Bias files:')
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    nf = len(bias_files)
-    bias_frame = '%(sensor_id)s_mean_bias_%(nf)i.fits' % locals()
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    bias_frame = eotestUtils.make_median_bias_frame(bias_files, sensor_id,
+                                                    'fe55_raft_acq', skip=0)
 
     #
     # Create a png zoom of the upper right corner of segment 1 for an Fe55
@@ -85,9 +85,9 @@ def run_fe55_task(sensor_id):
                             '%s_gains.png' % file_prefix)
 
     siteUtils.make_png_file(sensorTest.plot_flat,
-                            '%s_mean_bias.png' % file_prefix,
+                            '%s_median_bias.png' % file_prefix,
                             bias_frame,
-                            title='%s, mean bias frame' % sensor_id,
+                            title='%s, median bias frame' % sensor_id,
                             annotation='ADU/pixel, overscan-subtracted')
 
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]

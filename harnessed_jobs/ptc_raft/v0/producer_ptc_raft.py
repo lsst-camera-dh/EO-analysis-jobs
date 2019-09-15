@@ -12,7 +12,8 @@ def run_ptc_task(sensor_id):
     flat_files = siteUtils.dependency_glob('S*/%s_flat*flat?_*.fits' % sensor_id,
                                            jobname=siteUtils.getProcessName('flat_pair_raft_acq'),
                                            description='Flat files:')
-    bias_frame = siteUtils.dependency_glob('%s_mean_bias*.fits' % sensor_id,
+    bias_frame = siteUtils.dependency_glob('%s_sflat*median_bias.fits'
+                                           % sensor_id,
                                            description='Super bias frame:')[0]
     mask_files = \
         eotestUtils.glob_mask_files(pattern='%s_*mask.fits' % sensor_id)
