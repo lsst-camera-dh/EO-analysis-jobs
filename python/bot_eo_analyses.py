@@ -718,12 +718,15 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     if device_names is None:
         device_names = camera_info.get_det_names()
 
-    # Restrict to installed rafts or sensors.
+    # Restrict to installed rafts or sensors.  This function call
+    # also writes the camera_info cache file for the eT db query.
+    installed_rafts = camera_info.get_installed_raft_names()
+
+    # Check if rafts are over-ridden in the lcatr.cfg file.
     override_rafts = os.environ.get('LCATR_RAFTS', None)
     if override_rafts is not None:
         installed_rafts = override_rafts.split('_')
-    else:
-        installed_rafts = camera_info.get_installed_raft_names()
+
     device_names = [_ for _ in device_names if _[:3] in installed_rafts]
 
     cwd = os.path.abspath('.')
