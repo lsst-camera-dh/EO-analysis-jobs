@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     max_divisidero_tearing \
         = sensorTest.ana_divisidero_tearing(sflat_files, raft_unit_id, run)
-    plt.savefig('f{raft_unit_id}_{run}_divisidero.png')
+    plt.savefig(f'{raft_unit_id}_{run}_divisidero.png')
 
     with open(f'{raft_unit_id}_{run}_max_divisidero.json', 'w') as fd:
         json.dump(max_divisidero_tearing, fd)
