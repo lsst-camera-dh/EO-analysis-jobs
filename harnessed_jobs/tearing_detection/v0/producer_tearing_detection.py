@@ -49,7 +49,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import siteUtils
     import camera_components
-    import lsst.eotest.sensor as sensorTest
+    import lsst.eotest.raft as raftTest
     from multiprocessor_execution import sensor_analyses
 
     processes = 9                # Reserve 1 process per CCD.
@@ -68,10 +68,10 @@ if __name__ == '__main__':
     sflat_files = dict()
     for item in files:
         slot = det_map[os.path.basename(item).split('_')[0]]
-        sflat_files[slot] = [item]
+        sflat_files[slot] = item
 
     max_divisidero_tearing \
-        = sensorTest.ana_divisidero_tearing(sflat_files, raft_unit_id, run)
+        = raftTest.ana_divisidero_tearing(sflat_files, raft_unit_id, run)
     plt.savefig(f'{raft_unit_id}_{run}_divisidero.png')
 
     with open(f'{raft_unit_id}_{run}_max_divisidero.json', 'w') as fd:
