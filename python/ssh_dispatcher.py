@@ -114,7 +114,7 @@ class TaskRunner:
         command += f'"cd {working_dir}; source {setup}; '
         for key, value in self.lcatr_envs.items():
             command += f'export {key}={value}; '
-        command += f'(echo; {script} {task_id} '
+        command += f'(echo; ipython {script} {task_id} '
         command += ' '.join([str(_) for _ in args])
         command += r' && echo Task succeeded on \`hostname\`'
         command += r' || echo Task failed on \`hostname\`)'
