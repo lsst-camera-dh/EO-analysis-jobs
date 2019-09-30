@@ -1,0 +1,21 @@
+# -*- python -*-
+{
+    'schema_name' : 'divisidero_tearing',
+    'schema_version' : 0,
+    'slot' : str,
+    'sensor_id' : str,
+    'max_deviation_10_11' : float,
+    'max_deviation_11_12' : float,
+    'max_deviation_12_13' : float,
+    'max_deviation_13_14' : float,
+    'max_deviation_14_15' : float,
+    'max_deviation_15_16' : float,
+    'max_deviation_16_17' : float,
+    'max_deviation_00_01' : float,
+    'max_deviation_01_02' : float,
+    'max_deviation_02_03' : float,
+    'max_deviation_03_04' : float,
+    'max_deviation_04_05' : float,
+    'max_deviation_05_06' : float,
+    'max_deviation_06_07' : float
+}

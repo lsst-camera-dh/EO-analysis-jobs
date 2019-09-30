@@ -42,8 +42,37 @@ def run_tearing_detection(sensor_id):
     with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
         pickle.dump(tearing_stats, output)
 
+
 if __name__ == '__main__':
+    import os
+    import json
+    import matplotlib.pyplot as plt
+    import siteUtils
+    import camera_components
+    import lsst.eotest.raft as raftTest
     from multiprocessor_execution import sensor_analyses
 
     processes = 9                # Reserve 1 process per CCD.
     sensor_analyses(run_tearing_detection, processes=processes)
+
+    # Divisidero tearing analysis.
+    run = siteUtils.getRunNumber()
+    raft_unit_id = siteUtils.getUnitId()
+    files = siteUtils.dependency_glob('*median_sflat.fits',
+                                      jobname='dark_defects_raft',
+                                      description='Superflat files:')
+    raft = camera_components.Raft.create_from_etrav(raft_unit_id,
+                                                    db_name='Prod')
+    det_map = dict([(sensor_id, slot) for slot, sensor_id in raft.items()])
+
+    sflat_files = dict()
+    for item in files:
+        slot = det_map[os.path.basename(item).split('_')[0]]
+        sflat_files[slot] = item
+
+    max_divisidero_tearing \
+        = raftTest.ana_divisidero_tearing(sflat_files, raft_unit_id, run)
+    plt.savefig(f'{raft_unit_id}_{run}_divisidero.png')
+
+    with open(f'{raft_unit_id}_{run}_max_divisidero.json', 'w') as fd:
+        json.dump(max_divisidero_tearing, fd)
