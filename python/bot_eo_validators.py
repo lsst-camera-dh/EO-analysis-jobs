@@ -5,6 +5,7 @@ from __future__ import print_function
 import os
 import glob
 from collections import OrderedDict
+import json
 import pickle
 import numpy as np
 from astropy.io import fits
@@ -41,7 +42,7 @@ def run_validator(*det_task_names):
 
 
 def report_missing_data(validator, missing_data, components='detectors',
-                        total=189):
+                        total=205):
     """Summarize the missing data for the specified components."""
     if len(missing_data) == total:
         print("{}: missing data for all {} {}".format(validator, total,
@@ -619,8 +620,49 @@ def validate_tearing(results, det_names):
     png_files = sorted(glob.glob('*_tearing.png'))
     results.extend(persist_tearing_png_files(png_files))
 
-    report_missing_data("validate_tearing", missing_det_names)
+    missing_raft_names = set()
+    for raft_name in camera_info.get_installed_raft_names():
+        try:
+            divisidero_plot = glob.glob(f'{raft_name}_*_divisidero.png')[0]
+        except IndexError:
+            missing_raft_names.add(raft_name)
+            continue
 
+        md = dict(DATA_PRODUCT='divisidero_tearing_plot', LsstId=raft_name)
+        results.append(siteUtils.make_fileref(divisidero_plot, metadata=md))
+
+        try:
+            with open(glob.glob(f'{raft_name}*max_divisidero.json')[0], 'r') \
+                 as fd:
+                max_devs = json.load(fd)
+        except IndexError:
+            missing_raft_names.add(raft_name)
+            continue
+
+        fields = ('max_deviation_10_11',
+                  'max_deviation_11_12',
+                  'max_deviation_12_13',
+                  'max_deviation_13_14',
+                  'max_deviation_14_15',
+                  'max_deviation_15_16',
+                  'max_deviation_16_17',
+                  'max_deviation_00_01',
+                  'max_deviation_01_02',
+                  'max_deviation_02_03',
+                  'max_deviation_03_04',
+                  'max_deviation_04_05',
+                  'max_deviation_05_06',
+                  'max_deviation_06_07')
+
+        divisidero_schema = lcatr.schema.get('divisidero_tearing')
+        for slot, values in max_devs.items():
+            data = {field: max_dev for field, max_dev in zip(fields, values)}
+            results.append(lcatr.schema.valid(divisidero_schema, slot=slot,
+                                              sensor_id=slot, **data))
+
+    report_missing_data("validate_tearing", missing_det_names)
+    report_missing_data("validate_tearing", sorted(list(missing_raft_names)),
+                        components='rafts', total=25)
     return results
 
 
