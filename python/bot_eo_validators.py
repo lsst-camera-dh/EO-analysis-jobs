@@ -656,9 +656,15 @@ def validate_tearing(results, det_names):
 
         divisidero_schema = lcatr.schema.get('divisidero_tearing')
         for slot, values in max_devs.items():
-            data = {field: max_dev for field, max_dev in zip(fields, values)}
+            data = dict()
+            for field, max_dev in zip(fields, values):
+                if np.isfinite(max_dev):
+                    data[field] = max_dev
+                else:
+                    data[field] = -1
+            det_name = f'{raft_name}_{slot}'
             results.append(lcatr.schema.valid(divisidero_schema, slot=slot,
-                                              sensor_id=slot, **data))
+                                              sensor_id=det_name, **data))
 
     report_missing_data("validate_tearing", missing_det_names)
     report_missing_data("validate_tearing", sorted(list(missing_raft_names)),
