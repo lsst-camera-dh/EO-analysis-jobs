@@ -656,6 +656,10 @@ def validate_tearing(results, det_names):
 
         divisidero_schema = lcatr.schema.get('divisidero_tearing')
         for slot, values in max_devs.items():
+            if len(values) == 7:
+                # Pad the values for a WF sensor so that the schema
+                # entries are all set, as required.
+                values = [-1]*7 + list(values)
             data = dict()
             for field, max_dev in zip(fields, values):
                 if np.isfinite(max_dev):

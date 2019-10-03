@@ -18,8 +18,6 @@ def raft_results_task(raft_name):
         plt.savefig(filename)
         plt.close()
 
-    slot_names = camera_info.get_slot_names()
-
     # Get results files for each CCD in the raft.
     try:
         results_files \
@@ -37,8 +35,8 @@ def raft_results_task(raft_name):
     mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
 
     total_num, rolloff_mask \
-        = sensorTest.pixel_counts(bias_frames[slot_names[0]],
-                                  input_mask=mask_files[slot_names[0]])
+        = sensorTest.pixel_counts(list(bias_frames.values())[0],
+                                  input_mask=list(mask_files.values())[0])
 
     # Exposure time (in seconds) for 95th percentile dark current shot
     # noise calculation.

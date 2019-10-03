@@ -31,7 +31,7 @@ def get_overscans(infile, oscan_indices=None):
     else:
         y0, y1, x0, x1 = oscan_indices
     overscans = dict()
-    for amp in imutils.allAmps():
+    for amp in imutils.allAmps(infile):
         oscan_data = afw_image.ImageF(infile, imutils.dm_hdu(amp)).getArray()
         overscans[amp] = copy.deepcopy(oscan_data[y0:y1, x0:x1])
     return overscans
@@ -45,7 +45,7 @@ def get_mean_overscans(infiles, oscan_indices=None):
         y0, y1, x0, x1 = oscan_indices
     mean_overscans = defaultdict(list)
     for infile in infiles:
-        for amp in imutils.allAmps():
+        for amp in imutils.allAmps(infiles[0]):
             oscan_data \
                 = afw_image.ImageF(infile, imutils.dm_hdu(amp)).getArray()
             mean_overscans[amp].append(copy.deepcopy(oscan_data[y0:y1, x0:x1]))
@@ -144,12 +144,11 @@ def correlated_noise(bias_files, target=0, make_plots=False, plot_corr=True,
 def plot_correlated_noise(correlation_data, bias_stats, plot_corr=True,
                           title='', figsize=(8, 8)):
     f1, ax1 = plt.subplots(4, 4, figsize=figsize)
-    ax1 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                ax1.ravel())}
+    ax1 = {amp: subplot for amp, subplot in zip(correlation_data, ax1.ravel())}
     f1.suptitle(title)
     f2, ax2 = plt.subplots(4, 4, figsize=figsize)
-    ax2 = {amp: subplot for amp, subplot in zip(imutils.allAmps(),
-                                                ax2.ravel())}
+    ax2 = {amp: subplot for amp, subplot in zip(correlation_data, ax2.ravel())}
+
     f2.suptitle(title)
     for amp, corr_data in correlation_data.items():
         reduced_mean_oscan, fdata1, fdiff = corr_data

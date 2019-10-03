@@ -20,7 +20,8 @@ if 'biasnoise' in get_analysis_types():
                        'harnessed_jobs', 'read_noise_BOT',
                        'v0', 'raft_jh_noise_correlations.py')
 
-    installed_rafts = camera_info.get_installed_raft_names()
+    # Run raft-level noise correlations just on science rafts for now.
+    installed_rafts = camera_info.installed_science_rafts
     run_python_task_or_cl_script(raft_jh_noise_correlations,
                                  raft_jh_noise_correlations_script,
                                  device_names=installed_rafts)
