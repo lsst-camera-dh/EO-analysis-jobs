@@ -201,7 +201,7 @@ class GetAmplifierGains:
             else:
                 with open(et_results_file, 'rb') as fd:
                     self.et_results = pickle.load(fd)
-            print("using gains from run", self.run)
+            print("GetAmplifierGains: Using gains from run", self.run)
 
     def __call__(self, file_pattern):
         if self.run is None:
@@ -209,11 +209,14 @@ class GetAmplifierGains:
         # Extract the det_name from the file pattern.
         match = re.search('R\d\d_S\d\d', file_pattern)
         if match is None:
-            raise RuntimeError("GetAmplifierGains.__call__: "
-                               f"no det_name match in {file_pattern}")
+            message = f"no det_name match in {file_pattern}"
+            raise RuntimeError("GetAmplifierGains.__call__: " + message)
         det_name = file_pattern[match.start(): match.end()]
+        print("GetAmplifierGains.__call__: retrieving gains from eT.")
         gains = self.et_results.get_amp_gains(det_name)
         if not gains:
+            print("GetAmplifierGains.__call__: "
+                  "gains from eT not found, using unit gains.")
             return {amp: 1 for amp in range(1, 17)}
         return gains
 
@@ -221,16 +224,21 @@ def _get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
     if (os.environ.get('LCATR_USE_UNIT_GAINS', 'False') == 'True'
         or file_pattern is None):
+        print("_get_amplifier_gains: using unit gains")
         return {amp: 1 for amp in range(1, 17)}
 
     # Attempt to retrieve gains from fe55_analysis_BOT then ptc_BOT.
     # If neither are available, then use unit gains.
+    print("_get_amplifier_gains: trying fe55_analysis_BOT")
     results_files = siteUtils.dependency_glob(file_pattern,
                                               jobname='fe55_analysis_BOT')
     if not results_files:
+        print("_get_amplifier_gains: trying ptc_BOT")
         results_files = siteUtils.dependency_glob(file_pattern,
                                                   jobname='ptc_BOT')
     if not results_files:
+        print("_get_amplifier_gains: both fe55 and ptc retrievals failed. "
+              "using unit gains.")
         return {amp: 1 for amp in range(1, 17)}
 
     eotest_results_file = results_files[0]
@@ -424,7 +432,7 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
     png_files.append(superflat_file.replace('.fits', '.png'))
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
                             superflat_file,
-                            title=('%s, %s, CTE supeflat, %s flux '
+                            title=('%s, %s, CTE superflat, %s flux '
                                    % (run, det_name, flux_level)),
                             annotation='ADU/pixel', flatten=True, binsize=4)
 
