@@ -6,6 +6,7 @@ def cte_jh_task(det_name):
     """JH version of single sensor execution of the CTE task."""
     import os
     import glob
+    import shutil
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, cte_task, plot_cte_results
@@ -28,6 +29,9 @@ def cte_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
+    results_file = siteUtils.dependency_glob(eotest_results_file,
+                                             jobname='fe55_analysis_BOT')[0]
+    shutil.copy(results_file, eotest_results_file)
 
     bias_frame = bias_filename(file_prefix)
 
