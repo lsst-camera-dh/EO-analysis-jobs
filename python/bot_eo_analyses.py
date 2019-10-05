@@ -183,7 +183,7 @@ def _get_gain_run(bot_eo_config_file=None):
                                    inline_comment_prefixes=('#',))
     cp.optionxform = str
     cp.read(_get_bot_eo_config_file(bot_eo_config_file))
-    if 'ANAYSIS_RUNS' not in cp:
+    if 'ANALYSIS_RUNS' not in cp:
         return None
     for analysis_type, run in cp.items('ANALYSIS_RUNS'):
         if analysis_type.lower() == 'gain':
