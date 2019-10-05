@@ -33,10 +33,14 @@ def raft_jh_noise_correlations(raft_name):
         # slot_name is the last '_'-delimited field before '.fits'.
         slot_name = item.split('_')[-1].split('.')[0]
         bias_frame_dict[seqno][slot_name] = item
+    bias_frame_files = dict()
     for seqno in bias_frame_dict:
         if len(bias_frame_dict[seqno]) == 9:
             bias_frame_files = bias_frame_dict[seqno]
             break
+        else:
+            if len(bias_frame_dict[seqno]) > len(bias_frame_files):
+                bias_frame_files = bias_frame_dict[seqno]
     logger.info("bias frame files for raft_noise_correlations:")
     for key, value in bias_frame_files.items():
         logger.info("   %s", value)

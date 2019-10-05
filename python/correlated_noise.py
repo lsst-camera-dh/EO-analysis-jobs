@@ -195,16 +195,20 @@ def raft_level_oscan_correlations(bias_files, buffer=10, title='',
         the numpy array containing the correlation coefficients.
     """
     slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
-    bbox = None
     overscans = []
+
+    ccd0 = sensorTest.MaskedCCD(list(bias_files.values())[0])
+    bbox = ccd0.amp_geom.serial_overscan
+    bbox.grow(-buffer)
     for slot in slots:
-        ccd = sensorTest.MaskedCCD(bias_files[slot])
-        if bbox is None:
-            bbox = ccd.amp_geom.serial_overscan
-            bbox.grow(-buffer)
-        for amp in ccd:
-            image = ccd[amp].getImage()
-            overscans.append(image.Factory(image, bbox).getArray())
+        if slot not in bias_files:
+            for amp in ccd0:
+                overscans.append(np.zeros((bbox.getHeight(), bbox.getWidth())))
+        else:
+            ccd = sensorTest.MaskedCCD(bias_files[slot])
+            for amp in ccd:
+                image = ccd[amp].getImage()
+                overscans.append(image.Factory(image, bbox).getArray())
     namps = len(overscans)
     data = np.array([np.corrcoef(overscans[i[0]].ravel(),
                                  overscans[i[1]].ravel())[0, 1]
