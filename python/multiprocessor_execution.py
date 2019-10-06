@@ -12,7 +12,7 @@ try:
     from parsl_execution import parsl_sensor_analyses, \
         parsl_device_analysis_pool
 except ImportError as eobj:
-    warnings.warn(f'ImportError: {eobj}')
+    #warnings.warn(f'ImportError: {eobj}')
     pass
 from ssh_dispatcher import ssh_device_analysis_pool
 
@@ -79,7 +79,9 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None,
                                           processes=processes, cwd=cwd)
 
     if siteUtils.getUnitType() == 'LCA-10134_Cryostat':
-        return ssh_device_analysis_pool(task_func, device_names, cwd=cwd)
+        max_time = os.environ.get('LCATR_MAX_JOB_TIME', None)
+        return ssh_device_analysis_pool(task_func, device_names, cwd=cwd,
+                                        max_time=max_time)
 
     if processes is None:
         # Use the maximum number of cores available, reserving one for

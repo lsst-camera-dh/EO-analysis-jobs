@@ -32,11 +32,16 @@ def raft_results_task(raft_name):
     # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
     bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits')
-    mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
-
+    try:
+        mask_files = get_raft_files_by_slot(raft_name,
+                                            'edge_rolloff_mask.fits')
+    except FileNotFoundError:
+        input_mask = None
+    else:
+        input_mask = list(mask_files.values())[0]
     total_num, rolloff_mask \
         = sensorTest.pixel_counts(list(bias_frames.values())[0],
-                                  input_mask=list(mask_files.values())[0])
+                                  input_mask=input_mask)
 
     # Exposure time (in seconds) for 95th percentile dark current shot
     # noise calculation.
