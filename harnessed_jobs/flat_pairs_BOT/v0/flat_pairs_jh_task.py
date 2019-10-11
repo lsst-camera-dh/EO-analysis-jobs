@@ -22,14 +22,7 @@ def flat_pairs_jh_task(det_name):
         return None
 
     mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    try:
-        eotest_results_file \
-            = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
-                                        jobname='fe55_analysis_BOT')[0]
-    except IndexError:
-        print("flat_pairs_jh_task: Fe55 eotest results file not found for ",
-              file_prefix, ".  Using unit gains.")
-        eotest_results_file = None
+    eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(file_prefix)
 
