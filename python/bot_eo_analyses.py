@@ -209,7 +209,7 @@ class GetAmplifierGains:
         if self.run is None:
             return _get_amplifier_gains(file_pattern)
         # Extract the det_name from the file pattern.
-        match = re.search('R\d\d_S\d\d', file_pattern)
+        match = re.search('R\d\d_S\w\d', file_pattern)
         if match is None:
             message = f"no det_name match in {file_pattern}"
             raise RuntimeError("GetAmplifierGains.__call__: " + message)
