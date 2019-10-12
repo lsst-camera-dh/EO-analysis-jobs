@@ -60,7 +60,11 @@ def raft_results_task(raft_name):
                 eotest_results.add_seg_result(amp, 'MAX_FRAC_DEV', 0.)
             eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
                                           np.float(shot_noise[i]))
-            eotest_results['TOTAL_NOISE'][i] = total_noise[i]
+            try:
+                eotest_results['TOTAL_NOISE'][i] = total_noise[i]
+            except KeyError:
+                eotest_results.add_seg_result(amp, 'TOTAL_NOISE',
+                                              np.float(total_noise[i]))
         eotest_results.write(filename)
 
     run = siteUtils.getRunNumber()
