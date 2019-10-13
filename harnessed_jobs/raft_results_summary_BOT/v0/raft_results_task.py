@@ -32,11 +32,16 @@ def raft_results_task(raft_name):
     # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
     bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits')
-    mask_files = get_raft_files_by_slot(raft_name, 'edge_rolloff_mask.fits')
-
+    try:
+        mask_files = get_raft_files_by_slot(raft_name,
+                                            'edge_rolloff_mask.fits')
+    except FileNotFoundError:
+        input_mask = None
+    else:
+        input_mask = list(mask_files.values())[0]
     total_num, rolloff_mask \
         = sensorTest.pixel_counts(list(bias_frames.values())[0],
-                                  input_mask=list(mask_files.values())[0])
+                                  input_mask=input_mask)
 
     # Exposure time (in seconds) for 95th percentile dark current shot
     # noise calculation.
@@ -55,7 +60,11 @@ def raft_results_task(raft_name):
                 eotest_results.add_seg_result(amp, 'MAX_FRAC_DEV', 0.)
             eotest_results.add_seg_result(amp, 'DC95_SHOT_NOISE',
                                           np.float(shot_noise[i]))
-            eotest_results['TOTAL_NOISE'][i] = total_noise[i]
+            try:
+                eotest_results['TOTAL_NOISE'][i] = total_noise[i]
+            except KeyError:
+                eotest_results.add_seg_result(amp, 'TOTAL_NOISE',
+                                              np.float(total_noise[i]))
         eotest_results.write(filename)
 
     run = siteUtils.getRunNumber()
