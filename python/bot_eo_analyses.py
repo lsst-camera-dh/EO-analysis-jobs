@@ -65,7 +65,7 @@ class GlobPattern:
                                       'data', 'BOT_jh_glob_patterns.ini')
         cfg_file = os.environ.get('LCATR_JH_GLOB_PATTERN_FILE', default_config)
         config.read(cfg_file)
-        self.task_patterns = {k: v for k, v in config.items('BOT_acq')}
+        self.task_patterns = dict(config.items('BOT_acq'))
 
     def __call__(self, task, det_name):
         pattern = self.task_patterns[task]
@@ -114,7 +114,7 @@ def fe55_task(run, det_name, fe55_files):
                                 png_files[-1], pixel_coord='x',
                                 pix0='p3', pix1='p5')
 
-    except:
+    except Exception:
         # Encountered error processing data or generating pngs so skip
         # these plots.
         pass
@@ -158,6 +158,44 @@ def fe55_task(run, det_name, fe55_files):
                 output.write('{}\n'.format(item))
 
 
+def gain_stability_task(run, det_name, fe55_files):
+    """
+    This task fits the Fe55 clusters to the cluster data from each frame
+    sequence and writes a pickle file with the gains as a function of
+    sequence number and MJD-OBS.
+
+    Parameters
+    ----------
+    run: str
+        Run number.
+    det_name: str
+        Sensor name in the focal plane, e.g., 'R22_S11'.
+    fe55_files: list
+        Raw Fe55 for the sensor being consider.  The MJD-OBS values
+        will be extracted from these files.
+
+    Returns:
+    (pandas.DataFrame, str), i.e., a tuple of the data frame containing
+    the gain sequence and the file name of the output pickle file.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+
+    # Extract MJD-OBS values into a dict to provide look up table in
+    # case there are missing sequence frames in the psf results table.
+    mjd_obs = dict()
+    for item in fe55_files:
+        with fits.open(item) as hdus:
+            mjd_obs[hdus[0].header['SEQNUM']] = hdus[0].header['MJD-OBS']
+
+    psf_results_file = sorted(glob.glob(f'{file_prefix}_psf_results*.fits'))[0]
+    df = sensorTest.gain_sequence(det_name, psf_results_file)
+    df['mjd'] = [mjd_obs[seqnum] for seqnum in df['seqnum']]
+    outfile = f'{file_prefix}_gain_sequence.pkl'
+    df.to_pickle(outfile)
+
+    return df, outfile
+
+
 def _get_bot_eo_config_file(bot_eo_config_file=None):
     """Get the BOT EO config file describing the acquisitions and
     EO analyses to perform.
@@ -171,7 +209,7 @@ def _get_bot_eo_config_file(bot_eo_config_file=None):
         for line in fd:
             if line.startswith('bot_eo_acq_cfg'):
                 return line.strip().split('=')[1].strip()
-
+    return None
 
 def _get_gain_run(bot_eo_config_file=None):
     """Get the run number to use for gain values from the
@@ -192,6 +230,11 @@ def _get_gain_run(bot_eo_config_file=None):
 
 
 class GetAmplifierGains:
+    """
+    Functor class to provide gains either from an ET db lookup or
+    from the EO test results file, depending on the traveler instance
+    configuration.
+    """
     def __init__(self, bot_eo_config_file=None,
                  et_results_file='et_results.pkl'):
         self.run = _get_gain_run(bot_eo_config_file)
@@ -247,7 +290,7 @@ def _get_amplifier_gains(file_pattern=None):
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
     gains = data['GAIN']
-    return {amp: gain for amp, gain in zip(amps, gains)}
+    return dict(zip(amps, gains))
 
 try:
     get_amplifier_gains = GetAmplifierGains()
@@ -768,11 +811,17 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
 
 def run_python_task_or_cl_script(python_task, cl_script, device_names=None,
                                  processes=None, walltime=3600):
+    """
+    If we are running a traveler for the Cryostat, use the
+    ssh_dispatcher to run jobs in parallel on the diagnostic cluster,
+    otherwsie we are running at TS8, so use multiprocessing on the
+    current node.
+    """
     if (os.environ.get('LCATR_USE_PARSL', False) == 'True'
         or siteUtils.getUnitType() == 'LCA-10134_Cryostat'):
         # Run command-line verions using parsl or ssh_dispatcher.
         run_jh_tasks(cl_script, device_names=device_names,
-                     processes=processes, walltime=walltime),
+                     processes=processes, walltime=walltime)
     else:
         # Run python version using multiprocessing directly.
         run_jh_tasks(python_task, device_names=device_names,

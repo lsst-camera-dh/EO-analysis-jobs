@@ -14,7 +14,8 @@ def bias_frame_jh_task(det_name):
     nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 10)
     bias_files \
         = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name),
-                                    acq_jobname=acq_jobname)[:nbias]
+                                    acq_jobname=acq_jobname,
+                                    description='Bias frames:')[:nbias]
     if not bias_files:
         print("bias_frame_task: Needed data files are missing for detector",
               det_name)
