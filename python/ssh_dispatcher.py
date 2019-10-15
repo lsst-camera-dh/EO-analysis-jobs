@@ -101,7 +101,7 @@ class TaskRunner:
             os.remove(log_file)
         return log_file
 
-    def launch_script(self, remote_host, task_id, *args):
+    def launch_script(self, remote_host, task_id, niceness=10, *args):
         """
         Function to launch the script as a remote process via ssh.
         """
@@ -114,7 +114,7 @@ class TaskRunner:
         command += f'"cd {working_dir}; source {setup}; '
         for key, value in self.lcatr_envs.items():
             command += f'export {key}={value}; '
-        command += f'(echo; ipython {script} {task_id} '
+        command += f'(echo; nice -n {niceness} ipython {script} {task_id} '
         command += ' '.join([str(_) for _ in args])
         command += r' && echo Task succeeded on \`hostname\`'
         command += r' || echo Task failed on \`hostname\`)'

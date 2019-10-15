@@ -80,8 +80,9 @@ def run_device_analysis_pool(task_func, device_names, processes=None, cwd=None,
 
     if siteUtils.getUnitType() == 'LCA-10134_Cryostat':
         max_time = os.environ.get('LCATR_MAX_JOB_TIME', None)
+        verbose = os.environ.get('LCATR_VERBOSE_SSH_DISPATCH', False) == 'True'
         return ssh_device_analysis_pool(task_func, device_names, cwd=cwd,
-                                        max_time=max_time)
+                                        max_time=max_time, verbose=verbose)
 
     if processes is None:
         # Use the maximum number of cores available, reserving one for
