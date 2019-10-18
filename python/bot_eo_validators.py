@@ -151,7 +151,7 @@ def validate_fe55(results, det_names):
         if 'gainstability' in analysis_types:
             try:
                 gain_stability_file \
-                    = glob.glob(f'{file_prefix}_gain_sequence.pkl')[0]
+                    = glob.glob(f'{file_prefix}_gain_sequence.pickle')[0]
             except IndexError:
                 missing_gain_stability_det_names.append(det_name)
             else:
