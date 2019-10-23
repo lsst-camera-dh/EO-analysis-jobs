@@ -23,8 +23,7 @@ def bright_defects_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    mask_files = get_mask_files(det_name)
-
+    mask_files = sorted(glob.glob(f'{file_prefix}*mask*.fits'))
     bias_frame = bias_filename(run, det_name)
 
     return bright_defects_task(run, det_name, dark_files, gains,
