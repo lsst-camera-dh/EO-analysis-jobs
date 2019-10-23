@@ -27,6 +27,7 @@ import multiscope
 
 __all__ = ['make_file_prefix',
            'glob_pattern',
+           'get_mask_files',
            'get_amplifier_gains',
            'bias_filename',
            'get_raft_files_by_slot',
@@ -75,6 +76,39 @@ class GlobPattern:
 glob_pattern = GlobPattern()
 
 
+def get_mask_files(det_name):
+    """
+    Get the mask files from previous jobs for the specified sensor.
+
+    Parameters
+    ----------
+    det_name: str
+        The detector name in the focal plane, e.g., 'R22_S11'.
+    verbose: bool [True]
+        If True, then print the mask file paths that were found.
+
+    Returns
+    -------
+    list of mask file paths.
+    """
+    badpixel_run = siteUtils.get_analysis_run('badpixel')
+    if badpixel_run is not None:
+        with open('hj_fp_server.pkl', 'rb') as fd:
+            hj_fp_server = pickle.load(fd)
+        mask_files = hj_fp_server.get_files('pixel_defects_BOT',
+                                            f'{det_name}*mask*.fits',
+                                            run=badpixel_run)
+        print(f"Mask files from run {badpixel_run} and {det_name}:")
+        for item in mask_files:
+            print(item)
+        print()
+        return mask_files
+
+    description = f"Mask files found for {det_name}:"
+    return siteUtils.dependency_glob(f'*{det_name}*mask*.fits',
+                                     description=description)
+
+
 def make_file_prefix(run, component_name):
     """
     Compose the run number and component name into string prefix
@@ -83,14 +117,32 @@ def make_file_prefix(run, component_name):
     return "{}_{}".format(component_name, run)
 
 
-def bias_filename(file_prefix, check_is_file=True):
+def make_bias_filename(run, det_name):
+    """Make the bias filename from the run and det_name."""
+    file_prefix = make_file_prefix(run, det_name)
+    return f'{file_prefix}_median_bias.fits'
+
+
+def bias_filename(run, det_name):
     """
-    Name of bias frame file derived from stacked bias files.
+    The bias frame file derived from stacked bias files.
     """
-    filename = '{}_median_bias.fits'.format(file_prefix)
-    if check_is_file and not os.path.isfile(filename):
-        # Look for bias file from prerequisite job.
-        return siteUtils.dependency_glob(filename)[0]
+    bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is None:
+        filename = make_bias_filename(run, det_name)
+        if not os.path.isfile(filename):
+            # Look for bias file from prerequisite job.
+            return siteUtils.dependency_glob(filename,
+                                             description='Bias frames:')[0]
+    else:
+        # Retrieve bias file from previous run.
+        with open('hj_fp_server.pkl', 'rb') as fd:
+            hj_fp_server = pickle.load(fd)
+        filename = hj_fp_server.get_files('bias_frame_BOT',
+                                          f'*{det_name}*median_bias.fits',
+                                          run=bias_run)[0]
+    print("Bias frame:")
+    print(filename)
     return filename
 
 
@@ -99,7 +151,7 @@ def fe55_task(run, det_name, fe55_files):
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
     png_files = []
 
     try:
@@ -196,39 +248,6 @@ def gain_stability_task(run, det_name, fe55_files):
     return df, outfile
 
 
-def _get_bot_eo_config_file(bot_eo_config_file=None):
-    """Get the BOT EO config file describing the acquisitions and
-    EO analyses to perform.
-    """
-    if bot_eo_config_file is not None:
-        return bot_eo_config_file
-
-    # Find the BOT-level EO configuration file from the acq.cfg file.
-    acq_cfg = os.path.join(os.environ['LCATR_CONFIG_DIR'], 'acq.cfg')
-    with open(acq_cfg, 'r') as fd:
-        for line in fd:
-            if line.startswith('bot_eo_acq_cfg'):
-                return line.strip().split('=')[1].strip()
-    return None
-
-def _get_gain_run(bot_eo_config_file=None):
-    """Get the run number to use for gain values from the
-    BOT EO config file.  If no run was specified, return None,
-    indicating that the gain results from the current run
-    should be used.
-    """
-    cp = configparser.ConfigParser(allow_no_value=True,
-                                   inline_comment_prefixes=('#',))
-    cp.optionxform = str
-    cp.read(_get_bot_eo_config_file(bot_eo_config_file))
-    if 'ANALYSIS_RUNS' not in cp:
-        return None
-    for analysis_type, run in cp.items('ANALYSIS_RUNS'):
-        if analysis_type.lower() == 'gain':
-            return run
-    return None
-
-
 class GetAmplifierGains:
     """
     Functor class to provide gains either from an ET db lookup or
@@ -237,7 +256,9 @@ class GetAmplifierGains:
     """
     def __init__(self, bot_eo_config_file=None,
                  et_results_file='et_results.pkl'):
-        self.run = _get_gain_run(bot_eo_config_file)
+        self.run \
+            = siteUtils.get_analysis_run('gain',
+                                         bot_eo_config_file=bot_eo_config_file)
         if self.run is not None:
             if not os.path.isfile(et_results_file):
                 self.et_results = siteUtils.ETResults(self.run)
@@ -302,8 +323,7 @@ except KeyError as eobj:
 
 def bias_frame_task(run, det_name, bias_files):
     """Create a median bias file for use by downstream tasks."""
-    file_prefix = make_file_prefix(run, det_name)
-    bias_frame = bias_filename(file_prefix, check_is_file=False)
+    bias_frame = make_bias_filename(run, det_name)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
 
@@ -596,10 +616,10 @@ def qe_jh_task(det_name):
 #        print("No correction for non-uniform illumination will be applied.")
 #        print()
 #        sys.stdout.flush()
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
 
     return qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
                    mask_files=mask_files, bias_frame=bias_frame,
@@ -679,7 +699,7 @@ def repackage_summary_files():
 
 def get_analysis_types(bot_eo_config_file=None):
     """"Get the analysis types to be performed from the BOT-level EO config."""
-    bot_eo_config_file = _get_bot_eo_config_file(bot_eo_config_file)
+    bot_eo_config_file = siteUtils.get_bot_eo_config_file(bot_eo_config_file)
 
     # Read in the analyses to be performed from the config file.
     cp = configparser.ConfigParser(allow_no_value=True,
@@ -789,6 +809,12 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     # Query eT database for file paths from a previous run, if
     # specified, and store in a pickle file.
     hj_fp_server = siteUtils.HarnessedJobFilePaths()
+
+    # Query for file paths for other analysis runs, if specified in
+    # the bot_eo_config_file.
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('badpixel'))
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('bias'))
+
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:
         pickle.dump(hj_fp_server, output)

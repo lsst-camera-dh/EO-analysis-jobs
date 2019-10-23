@@ -9,7 +9,8 @@ def cte_jh_task(det_name):
     import shutil
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, cte_task, plot_cte_results
+        get_amplifier_gains, bias_filename, cte_task, plot_cte_results,\
+        get_mask_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -25,7 +26,7 @@ def cte_jh_task(det_name):
         print("cte_task: Superflat files not found for detector", det_name)
         return None
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
@@ -37,7 +38,7 @@ def cte_jh_task(det_name):
     else:
         shutil.copy(results_file, eotest_results_file)
 
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
 
     # Omit rolloff defects mask since it would mask some of the edges used
     # in the eper method.

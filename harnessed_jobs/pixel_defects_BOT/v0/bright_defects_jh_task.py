@@ -7,7 +7,7 @@ def bright_defects_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, bright_defects_task
+        get_amplifier_gains, bias_filename, bright_defects_task, get_mask_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -23,9 +23,9 @@ def bright_defects_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
 
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
 
     return bright_defects_task(run, det_name, dark_files, gains,
                                mask_files=mask_files, bias_frame=bias_frame)

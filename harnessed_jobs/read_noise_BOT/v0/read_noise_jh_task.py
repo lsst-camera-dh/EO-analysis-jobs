@@ -9,7 +9,7 @@ def read_noise_jh_task(det_name):
     import logging
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, read_noise_task
+        get_amplifier_gains, read_noise_task, get_mask_files
 
     logger = logging.getLogger('read_noise_jh_task')
     logger.setLevel(logging.INFO)
@@ -29,7 +29,7 @@ def read_noise_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
 
     return read_noise_task(run, det_name, bias_files, gains,
                            mask_files=mask_files)

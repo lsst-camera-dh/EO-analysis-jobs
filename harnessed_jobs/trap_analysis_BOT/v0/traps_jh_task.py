@@ -7,7 +7,7 @@ def traps_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, traps_task
+        get_amplifier_gains, bias_filename, traps_task, get_mask_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -21,7 +21,7 @@ def traps_jh_task(det_name):
         return None
     trap_file = trap_files[0]
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
 
     # Omit rolloff defects mask since a trap in the rolloff edge region can
     # affect the entire column.
@@ -31,7 +31,7 @@ def traps_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
 
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
 
     return traps_task(run, det_name, trap_file, gains, mask_files=mask_files,
                       bias_frame=bias_frame)
