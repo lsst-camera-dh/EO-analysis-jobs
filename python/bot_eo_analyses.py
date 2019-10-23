@@ -84,8 +84,6 @@ def get_mask_files(det_name):
     ----------
     det_name: str
         The detector name in the focal plane, e.g., 'R22_S11'.
-    verbose: bool [True]
-        If True, then print the mask file paths that were found.
 
     Returns
     -------
