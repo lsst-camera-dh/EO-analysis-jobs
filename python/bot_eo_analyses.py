@@ -682,17 +682,18 @@ def tearing_task(run, det_name, flat_files, bias_frame=None):
         pickle.dump(tearing_stats, output)
 
 
-def get_raft_files_by_slot(raft_name, file_suffix):
+def get_raft_files_by_slot(raft_name, file_suffix, jobname=None):
     """Return a dictionary of raft filenames, keyed by slot_name."""
-    run = siteUtils.getRunNumber()
+    run = '*'
     template = '{}_{}_{}_' + file_suffix
     raft_files = dict()
     for slot_name in camera_info.get_slot_names():
-        filename = template.format(raft_name, slot_name, run)
-        if os.path.isfile(filename):
-            raft_files[slot_name] = filename
+        pattern = template.format(raft_name, slot_name, run)
+        filenames = glob.glob(pattern)
+        if filenames:
+            raft_files[slot_name] = filenames[0]
         else:
-            filenames = siteUtils.dependency_glob(filename)
+            filenames = siteUtils.dependency_glob(pattern, jobname=jobname)
             if filenames:
                 raft_files[slot_name] = filenames[0]
     if not raft_files:

@@ -31,7 +31,8 @@ def raft_results_task(raft_name):
     # files.  This info will be used in computing the pixel defect
     # compliance.  Use one of the median bias files for this since they
     # should be available no matter which analysis tasks are run.
-    bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits')
+    bias_frames = get_raft_files_by_slot(raft_name, 'median_bias.fits',
+                                         jobname='bias_frame_BOT')
     try:
         mask_files = get_raft_files_by_slot(raft_name,
                                             'edge_rolloff_mask.fits')
