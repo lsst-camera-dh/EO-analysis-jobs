@@ -26,7 +26,7 @@ def flat_pairs_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(run, det_name)
-    dark_frame = medianed_dark_frame(run, det_name)
+    dark_frame = medianed_dark_frame(det_name)
 
     return flat_pairs_task(run, det_name, flat_files, gains,
                            mask_files=mask_files, bias_frame=bias_frame,

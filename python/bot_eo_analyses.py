@@ -122,12 +122,11 @@ def make_bias_filename(run, det_name):
     return f'{file_prefix}_median_bias.fits'
 
 
-def medianed_dark_frame(run, det_name):
+def medianed_dark_frame(det_name):
     """
     The medianed dark frame from the pixel defects task.
     """
-    file_prefix = make_file_prefix(run, det_name)
-    pattern = f'{file_prefix}_median_dark_bp.fits'
+    pattern = f'{det_name}*_median_dark_bp.fits'
     dark_run = siteUtils.get_analysis_run('dark')
     if dark_run is None:
         return siteUtils.dependency_glob(pattern, description='Dark frame:')[0]
