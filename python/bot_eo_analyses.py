@@ -29,6 +29,7 @@ __all__ = ['make_file_prefix',
            'glob_pattern',
            'get_mask_files',
            'get_amplifier_gains',
+           'medianed_dark_frame',
            'bias_filename',
            'get_raft_files_by_slot',
            'get_analysis_types',
@@ -119,6 +120,26 @@ def make_bias_filename(run, det_name):
     """Make the bias filename from the run and det_name."""
     file_prefix = make_file_prefix(run, det_name)
     return f'{file_prefix}_median_bias.fits'
+
+
+def medianed_dark_frame(run, det_name):
+    """
+    The medianed dark frame from the pixel defects task.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+    pattern = f'{file_prefix}_median_dark_bp.fits'
+    dark_run = siteUtils.get_analysis_run('dark')
+    if dark_run is None:
+        return siteUtils.dependency_glob(pattern, description='Dark frame:')[0]
+
+    # Retrieve bias file from previous run.
+    with open('hj_fp_server.pkl', 'rb') as fd:
+        hj_fp_server = pickle.load(fd)
+    filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
+                                      run=dark_run)[0]
+    print("Dark frame:")
+    print(filename)
+    return filename
 
 
 def bias_filename(run, det_name):
@@ -530,7 +551,7 @@ def find_flat2_bot(file1):
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
-                    bias_frame=None, mondiode_func=None):
+                    bias_frame=None, mondiode_func=None, dark_frame=None):
     """Single sensor execution of the flat pairs task."""
     file_prefix = make_file_prefix(run, det_name)
 
@@ -538,7 +559,8 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
              use_exptime=use_exptime, flat2_finder=flat2_finder,
-             bias_frame=bias_frame, mondiode_func=mondiode_func)
+             bias_frame=bias_frame, mondiode_func=mondiode_func,
+             dark_frame=dark_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -812,6 +834,7 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     # the bot_eo_config_file.
     hj_fp_server.query_file_paths(siteUtils.get_analysis_run('badpixel'))
     hj_fp_server.query_file_paths(siteUtils.get_analysis_run('bias'))
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('dark'))
 
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:

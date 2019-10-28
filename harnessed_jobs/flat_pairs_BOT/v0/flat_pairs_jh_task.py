@@ -8,7 +8,7 @@ def flat_pairs_jh_task(det_name):
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, flat_pairs_task, mondiode_value,\
-        get_mask_files
+        get_mask_files, medianed_dark_frame
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -26,10 +26,11 @@ def flat_pairs_jh_task(det_name):
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(run, det_name)
+    dark_frame = medianed_dark_frame(run, det_name)
 
     return flat_pairs_task(run, det_name, flat_files, gains,
                            mask_files=mask_files, bias_frame=bias_frame,
-                           mondiode_func=mondiode_value)
+                           mondiode_func=mondiode_value, dark_frame=dark_frame)
 
 
 if __name__ == '__main__':
