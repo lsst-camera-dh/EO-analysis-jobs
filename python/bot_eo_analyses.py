@@ -77,6 +77,45 @@ class GlobPattern:
 glob_pattern = GlobPattern()
 
 
+def mondiode_value(flat_file, exptime, factor=5,
+                   pd_filename='Photodiode_Readings.txt'):
+    """
+    Compute the mean current measured by the monitoring photodiode.
+
+    Parameters
+    ----------
+    flat_file: str
+        Path to the flat frame FITS file.   The pd data file
+        is assumed to be in the same directory.
+    exptime: float
+        Exposure time in seconds.
+    factor: float [5]
+        Factor to use to extract the baseline current values from the
+        data using ythresh = (min(y) + max(y))/factor + min(y)
+    pd_filename: str ['Photodiode_Readings.txt']
+        Basename of photodiode readings file.
+
+    Returns
+    -------
+    float: The mean current.
+    """
+    # Try reading the MONDIODE keyword first.
+    with fits.open(flat_file) as hdulist:
+        if 'MONDIODE' in hdulist[0].header:
+            return hdulist[0].header['MONDIODE']
+
+    # Compute the value from the photodiode readings file.
+    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
+    x, y = np.recfromtxt(pd_file).transpose()
+    # Threshold for finding baseline current values:
+    ythresh = (min(y) + max(y))/factor + min(y)
+    # Subtract the median of the baseline values to get a calibrated
+    # current.
+    y -= np.median(y[np.where(y < ythresh)])
+    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
+    return integral/exptime
+
+
 def get_mask_files(det_name):
     """
     Get the mask files from previous jobs for the specified sensor.
@@ -226,6 +265,47 @@ def fe55_task(run, det_name, fe55_files):
         for item in png_files:
             if os.path.isfile(item):
                 output.write('{}\n'.format(item))
+
+
+def flat_gain_stability_task(run, det_name, flat_files, mask_files=(),
+                             bias_frame=None, dark_frame=None,
+                             mondiode_func=mondiode_value):
+    """
+    Task to compute the median signal level in each amp of each flat
+    frame as a function of mjd and seqnum.
+
+    Parameters
+    ----------
+    run: str
+        Run number.
+    det_name: str
+        Sensor name in the focal plane, e.g., 'R22_S11'.
+    flat_files: list
+        Sequence of flat files all taken with the same exposure time and
+        incident flux.
+    mask_files: list-like [()]
+        Mask files to apply for computing image statistics.
+    bias_frame: str [None]
+        Medianed bias frame to use for bias subtraction.
+    dark_frame: str [None]
+        Medianed dark frame to use for dark subtraction.
+    mondiode_func: function [bot_eo_analyses.mondiode_value]
+        Function to use for computing monitoring diode current.
+
+    Returns
+    -------
+    (pandas.DataFrame, output_file) containing the time history of the median
+        signals from each amp and the name of the output pickle file containing
+        these data.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+    outfile = f'{file_prefix}_flat_signal_sequence.pickle'
+    df = sensorTest.flat_signal_sequence(flat_files, bias_frame=bias_frame,
+                                         dark_frame=dark_frame,
+                                         mask_files=mask_files,
+                                         mondiode_func=mondiode_func)
+    df.to_pickle(outfile)
+    return df, outfile
 
 
 def gain_stability_task(run, det_name, fe55_files):
@@ -734,45 +814,6 @@ def get_analysis_types(bot_eo_config_file=None):
         analysis_types.append(analysis_type)
 
     return analysis_types
-
-
-def mondiode_value(flat_file, exptime, factor=5,
-                   pd_filename='Photodiode_Readings.txt'):
-    """
-    Compute the mean current measured by the monitoring photodiode.
-
-    Parameters
-    ----------
-    flat_file: str
-        Path to the flat frame FITS file.   The pd data file
-        is assumed to be in the same directory.
-    exptime: float
-        Exposure time in seconds.
-    factor: float [5]
-        Factor to use to extract the baseline current values from the
-        data using ythresh = (min(y) + max(y))/factor + min(y)
-    pd_filename: str ['Photodiode_Readings.txt']
-        Basename of photodiode readings file.
-
-    Returns
-    -------
-    float: The mean current.
-    """
-    # Try reading the MONDIODE keyword first.
-    with fits.open(flat_file) as hdulist:
-        if 'MONDIODE' in hdulist[0].header:
-            return hdulist[0].header['MONDIODE']
-
-    # Compute the value from the photodiode readings file.
-    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
-    x, y = np.recfromtxt(pd_file).transpose()
-    # Threshold for finding baseline current values:
-    ythresh = (min(y) + max(y))/factor + min(y)
-    # Subtract the median of the baseline values to get a calibrated
-    # current.
-    y -= np.median(y[np.where(y < ythresh)])
-    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
-    return integral/exptime
 
 
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):

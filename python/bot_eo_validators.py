@@ -24,7 +24,8 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_dark_defects', 'validate_traps', 'validate_dark_current',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
            'validate_brighter_fatter',
-           'validate_qe', 'validate_tearing', 'validate_raft_results']
+           'validate_qe', 'validate_tearing', 'validate_raft_results',
+           'validate_flat_gain_stability']
 
 
 def run_validator(*det_task_names):
@@ -609,6 +610,26 @@ def validate_qe(results, det_names):
 
     report_missing_data("validate_qe", missing_det_names)
 
+    return results
+
+
+def validate_flat_gain_stability(results, det_names):
+    """Valdiate the output files from the flat_gain_stability analysis"""
+    if 'gainstability' not in get_analysis_types():
+        return results
+
+    run = siteUtils.getRunNumber()
+    missing_det_names = []
+    for det_name in det_names:
+        file_prefix = make_file_prefix(run, det_name)
+        results_file = f'{file_prefix}_flat_signal_sequence.pickle'
+        if not os.path.isfile(results_file):
+            missing_det_names.append(det_name)
+        else:
+            md = dict(DATA_PRODUCT='flat_gain_stability_results')
+            results.append(siteUtils.make_fileref(results_file, metadata=md))
+
+    report_missing_data('validate_flat_gain_stability', missing_det_names)
     return results
 
 
