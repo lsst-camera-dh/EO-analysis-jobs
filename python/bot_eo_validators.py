@@ -630,6 +630,13 @@ def validate_flat_gain_stability(results, det_names):
             results.append(siteUtils.make_fileref(results_file, metadata=md))
 
     report_missing_data('validate_flat_gain_stability', missing_det_names)
+
+    unit_id = siteUtils.getUnitId()
+    gain_stability_plot = f'{unit_id}_{run}_flat_gain_stability.png'
+    md = dict(DATA_PRODUCT='flat_gain_stability_plot', LsstId=unit_id)
+    results.append(siteUtils.make_fileref(gain_stability_plot,
+                                          metadata=md))
+
     return results
 
 
