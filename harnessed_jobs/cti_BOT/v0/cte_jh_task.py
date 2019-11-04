@@ -8,6 +8,7 @@ def cte_jh_task(det_name):
     import glob
     import shutil
     import siteUtils
+    import lsst.eotest.sensor as sensorTest
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, cte_task, plot_cte_results,\
         get_mask_files
@@ -32,10 +33,10 @@ def cte_jh_task(det_name):
     gains = get_amplifier_gains(eotest_results_file)
 
     # Write gains to local eotest_results_file, which cte_task will update.
-    results = EOTestResults(eotest_results_file)
+    results = sensorTest.EOTestResults(eotest_results_file)
     for amp, gain in gains.items():
         results.add_seg_result(amp, 'GAIN', gain)
-        results.write()
+    results.write()
 
     bias_frame = bias_filename(run, det_name)
 
