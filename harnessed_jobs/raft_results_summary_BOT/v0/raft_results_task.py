@@ -75,6 +75,13 @@ def raft_results_task(raft_name):
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
 
+    # Update the gains in the results files with the retrieved values.
+    for slot_name, ccd_gains in gains.items():
+        results = sensorTest.EOTestResults(results_files[slot_name])
+        for amp, gain in ccd_gains.items():
+            results.add_seg_result(amp, 'GAIN', gain)
+        results.write()
+
     # Extract dark currents for each amplifier in the raft.
     dark_currents = dict()
     for slot_name, results_file in results_files.items():
