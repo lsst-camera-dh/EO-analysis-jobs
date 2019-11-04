@@ -30,13 +30,12 @@ def cte_jh_task(det_name):
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    try:
-        results_file = siteUtils.dependency_glob(eotest_results_file,
-                                                 jobname='fe55_analysis_BOT')[0]
-    except IndexError:
-        pass
-    else:
-        shutil.copy(results_file, eotest_results_file)
+
+    # Write gains to local eotest_results_file, which cte_task will update.
+    results = EOTestResults(eotest_results_file)
+    for amp, gain in gains.items():
+        results.add_seg_result(amp, 'GAIN', gain)
+        results.write()
 
     bias_frame = bias_filename(run, det_name)
 
