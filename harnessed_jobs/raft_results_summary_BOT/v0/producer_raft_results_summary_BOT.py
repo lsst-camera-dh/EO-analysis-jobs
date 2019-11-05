@@ -53,8 +53,7 @@ def make_focal_plane_plots():
     unit_id = siteUtils.getUnitId()
     et_results = siteUtils.ETResults(run)
     for schema_name, configs in fp_configs.items():
-        for column, z_range, units, use_log10, \
-            inv_scale_factor in zip(*configs):
+        for column, z_range, units, use_log10, scale_factor in zip(*configs):
             fig = plt.figure(figsize=(12, 10))
             ax = fig.add_subplot(1, 1, 1)
             try:
@@ -65,7 +64,7 @@ def make_focal_plane_plots():
             else:
                 plot_focal_plane(ax, amp_data, camera=camera, z_range=z_range,
                                  use_log10=use_log10,
-                                 inv_scale_factor=inv_scale_factor)
+                                 scale_factor=scale_factor)
                 if units is not None:
                     plt.title('Run {}, {} ({})'.format(run, column, units))
                 else:
@@ -75,7 +74,8 @@ def make_focal_plane_plots():
 
                 # Histogram the amp-level data.
                 plt.figure()
-                hist_amp_data(amp_data, column, hist_range=z_range)
+                hist_amp_data(amp_data, column, hist_range=z_range,
+                              use_log10=use_log10, scale_factor=scale_factor)
                 if units is not None:
                     plt.title('Run {}, {} ({})'.format(run, column, units))
                 else:
