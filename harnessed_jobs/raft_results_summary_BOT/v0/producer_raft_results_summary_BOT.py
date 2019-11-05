@@ -39,7 +39,7 @@ def make_focal_plane_plots():
                               (False, False, False, False),
                               ('1e-6', '1e-6', '1e-6', '1e-6')),
                   'flat_pairs_BOT': (('max_frac_dev', 'full_well'),
-                                     ((0, 0.05), None), (None, None),
+                                     ((0, 0.05), (0, 2e5)), (None, None),
                                      (False, False), ('1', '1')),
                   'ptc_BOT': (('ptc_gain', 'ptc_a00'), ((0.5, 1.5), (0, 5e-6)),
                               ('e-/ADU', None), (False, False), ('1', '1')),
