@@ -60,11 +60,17 @@ def validate_bias_frame(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
-        bias_frames = glob.glob('{}_median_bias.fits'.format(file_prefix))
-        if bias_frames:
-            results.append(siteUtils.make_fileref(bias_frames[0]))
-        else:
-            missing_det_names.append(det_name)
+        bias_frame = f'{file_prefix}_median_bias.fits'
+        rolloff_mask = f'{file_prefix}_edge_rolloff_mask.fits'
+
+        # Add/update the metadata to the primary HDU of these files.
+        for fitsfile in (bias_frame, rolloff_mask):
+            if os.path.isfile(fitsfile):
+                eotestUtils.addHeaderData(fitsfile, TESTTYPE='BIAS',
+                                          DATE=eotestUtils.utc_now_isoformat())
+                results.append(lcatr.schema.fileref.make(fitsfile))
+            else:
+                missing_det_names.append(det_name)
     report_missing_data('validate_bias_frames', missing_det_names)
     return results
 

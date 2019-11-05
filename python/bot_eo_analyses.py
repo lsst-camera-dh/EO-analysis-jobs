@@ -130,7 +130,8 @@ def get_mask_files(det_name):
     list of mask file paths.
     """
     badpixel_run = siteUtils.get_analysis_run('badpixel')
-    if badpixel_run is not None:
+    bias_run = siteUtils.get_analysis_run('bias')
+    if badpixel_run is not None or bias_run is not None:
         with open('hj_fp_server.pkl', 'rb') as fd:
             hj_fp_server = pickle.load(fd)
         mask_files = hj_fp_server.get_files('pixel_defects_BOT',
@@ -140,6 +141,15 @@ def get_mask_files(det_name):
         for item in mask_files:
             print(item)
         print()
+        rolloff_mask_files = hj_fp_server.get_files('bias_frame_BOT',
+                                                    f'{det_name}_*mask*.fits',
+                                                    run=bias_run)
+        print(f"Edge rollooff mask file from run {bias_run} and {det_name}:")
+        for item in rolloff_mask_files:
+            print(item)
+        print()
+
+        mask_files.extend(rolloff_mask_files)
         return mask_files
 
     description = f"Mask files found for {det_name}:"
@@ -424,6 +434,9 @@ def bias_frame_task(run, det_name, bias_files):
     bias_frame = make_bias_filename(run, det_name)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    file_prefix = make_file_prefix(run, det_name)
+    rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
+    sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
 
 
 def get_scan_mode_files(raft_name):
