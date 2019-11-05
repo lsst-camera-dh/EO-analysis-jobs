@@ -69,8 +69,3 @@ def plot_all_rafts(run, results_dir='.', cut=None, y_range = (0.998, 1.002),
     plt.suptitle(f'Run {run}')
     unit_id = siteUtils.getUnitId()
     plt.savefig(f'{unit_id}_{run}_flat_gain_stability.png')
-
-if __name__ == '__main__':
-    run = '6792D'
-    results_dir = '/gpfs/slac/lsst/fs3/g/data/jchiang/BOT_testing/6792D_flat_gain_stability/jh_stage/LCA-10134_Cryostat/LCA-10134_Cryostat-0001/flat_gain_stability_BOT/v0/16'
-
