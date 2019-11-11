@@ -15,7 +15,7 @@ import eotestUtils
 import lsst.eotest.sensor as sensorTest
 from camera_components import camera_info
 from tearing_detection import persist_tearing_png_files
-from bot_eo_analyses import make_file_prefix
+from bot_eo_analyses import make_file_prefix, get_analysis_types
 
 
 __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
@@ -24,7 +24,8 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_dark_defects', 'validate_traps', 'validate_dark_current',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
            'validate_brighter_fatter',
-           'validate_qe', 'validate_tearing', 'validate_raft_results']
+           'validate_qe', 'validate_tearing', 'validate_raft_results',
+           'validate_flat_gain_stability']
 
 
 def run_validator(*det_task_names):
@@ -59,11 +60,17 @@ def validate_bias_frame(results, det_names):
     missing_det_names = []
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
-        bias_frames = glob.glob('{}_median_bias.fits'.format(file_prefix))
-        if bias_frames:
-            results.append(siteUtils.make_fileref(bias_frames[0]))
-        else:
-            missing_det_names.append(det_name)
+        bias_frame = f'{file_prefix}_median_bias.fits'
+        rolloff_mask = f'{file_prefix}_edge_rolloff_mask.fits'
+
+        # Add/update the metadata to the primary HDU of these files.
+        for fitsfile in (bias_frame, rolloff_mask):
+            if os.path.isfile(fitsfile):
+                eotestUtils.addHeaderData(fitsfile, TESTTYPE='BIAS',
+                                          DATE=eotestUtils.utc_now_isoformat())
+                results.append(lcatr.schema.fileref.make(fitsfile))
+            else:
+                missing_det_names.append(det_name)
     report_missing_data('validate_bias_frames', missing_det_names)
     return results
 
@@ -91,7 +98,9 @@ def validate_scan(results, det_names):
 def validate_fe55(results, det_names):
     """Validate and persist fe55 gain and psf results."""
     run = siteUtils.getRunNumber()
+    analysis_types = get_analysis_types()
     missing_det_names = []
+    missing_gain_stability_det_names = []
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
@@ -146,7 +155,21 @@ def validate_fe55(results, det_names):
                     gain=gain_value, gain_error=gain_error, psf_sigma=sigma,
                     slot=slot, raft=raft))
 
+        if 'gainstability' in analysis_types:
+            try:
+                gain_stability_file \
+                    = glob.glob(f'{file_prefix}_gain_sequence.pickle')[0]
+            except IndexError:
+                missing_gain_stability_det_names.append(det_name)
+            else:
+                md = dict(DATA_PRODUCT='gain_stability_results')
+                results.append(siteUtils.make_fileref(gain_stability_file,
+                                                      metadata=md))
+
     report_missing_data('validate_fe55', missing_det_names)
+    if 'gain_stability' in analysis_types:
+        report_missing_data('validate_gain_stability',
+                            missing_gain_stability_det_names)
 
     return results
 
@@ -596,6 +619,33 @@ def validate_qe(results, det_names):
     return results
 
 
+def validate_flat_gain_stability(results, det_names):
+    """Valdiate the output files from the flat_gain_stability analysis"""
+    if 'gainstability' not in get_analysis_types():
+        return results
+
+    run = siteUtils.getRunNumber()
+    missing_det_names = []
+    for det_name in det_names:
+        file_prefix = make_file_prefix(run, det_name)
+        results_file = f'{file_prefix}_flat_signal_sequence.pickle'
+        if not os.path.isfile(results_file):
+            missing_det_names.append(det_name)
+        else:
+            md = dict(DATA_PRODUCT='flat_gain_stability_results')
+            results.append(siteUtils.make_fileref(results_file, metadata=md))
+
+    report_missing_data('validate_flat_gain_stability', missing_det_names)
+
+    unit_id = siteUtils.getUnitId()
+    gain_stability_plot = f'{unit_id}_{run}_flat_gain_stability.png'
+    md = dict(DATA_PRODUCT='flat_gain_stability_plot', LsstId=unit_id)
+    results.append(siteUtils.make_fileref(gain_stability_plot,
+                                          metadata=md))
+
+    return results
+
+
 def validate_tearing(results, det_names):
     """Validate the tearing analysis results."""
     run = siteUtils.getRunNumber()
@@ -714,27 +764,3 @@ def validate_raft_results(results, raft_names):
                         components='rafts', total=21)
 
     return results
-
-
-if __name__ == '__main__':
-    det_names = camera_info.get_det_names()
-    raft_names = camera_info.get_installed_raft_names()
-
-    results = []
-    results = validate_fe55(results, det_names)
-    results = validate_read_noise(results, det_names)
-    results = validate_bright_defects(results, det_names)
-    results = validate_dark_defects(results, det_names)
-    results = validate_traps(results, det_names)
-    results = validate_dark_current(results, det_names)
-    results = validate_cte(results, det_names)
-    results = validate_flat_pairs(results, det_names)
-    results = validate_ptc(results, det_names)
-    results = validate_qe(results, det_names)
-    results = validate_tearing(results, det_names)
-    results = validate_raft_results(results, raft_names)
-
-    results.extend(siteUtils.jobInfo())
-
-    lcatr.schema.write_file(results)
-    lcatr.schema.validate_file()

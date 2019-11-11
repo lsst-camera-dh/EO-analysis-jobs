@@ -8,8 +8,10 @@ def cte_jh_task(det_name):
     import glob
     import shutil
     import siteUtils
+    import lsst.eotest.sensor as sensorTest
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, cte_task, plot_cte_results
+        get_amplifier_gains, bias_filename, cte_task, plot_cte_results,\
+        get_mask_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -25,19 +27,19 @@ def cte_jh_task(det_name):
         print("cte_task: Superflat files not found for detector", det_name)
         return None
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
 
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    try:
-        results_file = siteUtils.dependency_glob(eotest_results_file,
-                                                 jobname='fe55_analysis_BOT')[0]
-    except IndexError:
-        pass
-    else:
-        shutil.copy(results_file, eotest_results_file)
 
-    bias_frame = bias_filename(file_prefix)
+    # Write gains to local eotest_results_file, which cte_task will update.
+    namps = 16 if 'SW' not in det_name else 8
+    results = sensorTest.EOTestResults(eotest_results_file, namps=namps)
+    for amp, gain in gains.items():
+        results.add_seg_result(amp, 'GAIN', gain)
+    results.write()
+
+    bias_frame = bias_filename(run, det_name)
 
     # Omit rolloff defects mask since it would mask some of the edges used
     # in the eper method.

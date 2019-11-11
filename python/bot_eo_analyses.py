@@ -27,7 +27,9 @@ import multiscope
 
 __all__ = ['make_file_prefix',
            'glob_pattern',
+           'get_mask_files',
            'get_amplifier_gains',
+           'medianed_dark_frame',
            'bias_filename',
            'get_raft_files_by_slot',
            'get_analysis_types',
@@ -65,7 +67,7 @@ class GlobPattern:
                                       'data', 'BOT_jh_glob_patterns.ini')
         cfg_file = os.environ.get('LCATR_JH_GLOB_PATTERN_FILE', default_config)
         config.read(cfg_file)
-        self.task_patterns = {k: v for k, v in config.items('BOT_acq')}
+        self.task_patterns = dict(config.items('BOT_acq'))
 
     def __call__(self, task, det_name):
         pattern = self.task_patterns[task]
@@ -73,6 +75,86 @@ class GlobPattern:
 
 
 glob_pattern = GlobPattern()
+
+
+def mondiode_value(flat_file, exptime, factor=5,
+                   pd_filename='Photodiode_Readings.txt'):
+    """
+    Compute the mean current measured by the monitoring photodiode.
+
+    Parameters
+    ----------
+    flat_file: str
+        Path to the flat frame FITS file.   The pd data file
+        is assumed to be in the same directory.
+    exptime: float
+        Exposure time in seconds.
+    factor: float [5]
+        Factor to use to extract the baseline current values from the
+        data using ythresh = (min(y) + max(y))/factor + min(y)
+    pd_filename: str ['Photodiode_Readings.txt']
+        Basename of photodiode readings file.
+
+    Returns
+    -------
+    float: The mean current.
+    """
+    # Try reading the MONDIODE keyword first.
+    with fits.open(flat_file) as hdulist:
+        if 'MONDIODE' in hdulist[0].header:
+            return hdulist[0].header['MONDIODE']
+
+    # Compute the value from the photodiode readings file.
+    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
+    x, y = np.recfromtxt(pd_file).transpose()
+    # Threshold for finding baseline current values:
+    ythresh = (min(y) + max(y))/factor + min(y)
+    # Subtract the median of the baseline values to get a calibrated
+    # current.
+    y -= np.median(y[np.where(y < ythresh)])
+    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
+    return integral/exptime
+
+
+def get_mask_files(det_name):
+    """
+    Get the mask files from previous jobs for the specified sensor.
+
+    Parameters
+    ----------
+    det_name: str
+        The detector name in the focal plane, e.g., 'R22_S11'.
+
+    Returns
+    -------
+    list of mask file paths.
+    """
+    badpixel_run = siteUtils.get_analysis_run('badpixel')
+    bias_run = siteUtils.get_analysis_run('bias')
+    if badpixel_run is not None or bias_run is not None:
+        with open('hj_fp_server.pkl', 'rb') as fd:
+            hj_fp_server = pickle.load(fd)
+        mask_files = hj_fp_server.get_files('pixel_defects_BOT',
+                                            f'{det_name}*mask*.fits',
+                                            run=badpixel_run)
+        print(f"Mask files from run {badpixel_run} and {det_name}:")
+        for item in mask_files:
+            print(item)
+        print()
+        rolloff_mask_files = hj_fp_server.get_files('bias_frame_BOT',
+                                                    f'{det_name}_*mask*.fits',
+                                                    run=bias_run)
+        print(f"Edge rollooff mask file from run {bias_run} and {det_name}:")
+        for item in rolloff_mask_files:
+            print(item)
+        print()
+
+        mask_files.extend(rolloff_mask_files)
+        return mask_files
+
+    description = f"Mask files found for {det_name}:"
+    return siteUtils.dependency_glob(f'*{det_name}*mask*.fits',
+                                     description=description)
 
 
 def make_file_prefix(run, component_name):
@@ -83,14 +165,51 @@ def make_file_prefix(run, component_name):
     return "{}_{}".format(component_name, run)
 
 
-def bias_filename(file_prefix, check_is_file=True):
+def make_bias_filename(run, det_name):
+    """Make the bias filename from the run and det_name."""
+    file_prefix = make_file_prefix(run, det_name)
+    return f'{file_prefix}_median_bias.fits'
+
+
+def medianed_dark_frame(det_name):
     """
-    Name of bias frame file derived from stacked bias files.
+    The medianed dark frame from the pixel defects task.
     """
-    filename = '{}_median_bias.fits'.format(file_prefix)
-    if check_is_file and not os.path.isfile(filename):
-        # Look for bias file from prerequisite job.
-        return siteUtils.dependency_glob(filename)[0]
+    pattern = f'{det_name}*_median_dark_bp.fits'
+    dark_run = siteUtils.get_analysis_run('dark')
+    if dark_run is None:
+        return siteUtils.dependency_glob(pattern, description='Dark frame:')[0]
+
+    # Retrieve bias file from previous run.
+    with open('hj_fp_server.pkl', 'rb') as fd:
+        hj_fp_server = pickle.load(fd)
+    filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
+                                      run=dark_run)[0]
+    print("Dark frame:")
+    print(filename)
+    return filename
+
+
+def bias_filename(run, det_name):
+    """
+    The bias frame file derived from stacked bias files.
+    """
+    bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is None:
+        filename = make_bias_filename(run, det_name)
+        if not os.path.isfile(filename):
+            # Look for bias file from prerequisite job.
+            return siteUtils.dependency_glob(filename,
+                                             description='Bias frames:')[0]
+    else:
+        # Retrieve bias file from previous run.
+        with open('hj_fp_server.pkl', 'rb') as fd:
+            hj_fp_server = pickle.load(fd)
+        filename = hj_fp_server.get_files('bias_frame_BOT',
+                                          f'*{det_name}*median_bias.fits',
+                                          run=bias_run)[0]
+    print("Bias frame:")
+    print(filename)
     return filename
 
 
@@ -99,7 +218,7 @@ def fe55_task(run, det_name, fe55_files):
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
     png_files = []
 
     try:
@@ -114,7 +233,7 @@ def fe55_task(run, det_name, fe55_files):
                                 png_files[-1], pixel_coord='x',
                                 pix0='p3', pix1='p5')
 
-    except:
+    except Exception:
         # Encountered error processing data or generating pngs so skip
         # these plots.
         pass
@@ -158,43 +277,96 @@ def fe55_task(run, det_name, fe55_files):
                 output.write('{}\n'.format(item))
 
 
-def _get_bot_eo_config_file(bot_eo_config_file=None):
-    """Get the BOT EO config file describing the acquisitions and
-    EO analyses to perform.
+def flat_gain_stability_task(run, det_name, flat_files, mask_files=(),
+                             bias_frame=None, dark_frame=None,
+                             mondiode_func=mondiode_value):
     """
-    if bot_eo_config_file is not None:
-        return bot_eo_config_file
+    Task to compute the median signal level in each amp of each flat
+    frame as a function of mjd and seqnum.
 
-    # Find the BOT-level EO configuration file from the acq.cfg file.
-    acq_cfg = os.path.join(os.environ['LCATR_CONFIG_DIR'], 'acq.cfg')
-    with open(acq_cfg, 'r') as fd:
-        for line in fd:
-            if line.startswith('bot_eo_acq_cfg'):
-                return line.strip().split('=')[1].strip()
+    Parameters
+    ----------
+    run: str
+        Run number.
+    det_name: str
+        Sensor name in the focal plane, e.g., 'R22_S11'.
+    flat_files: list
+        Sequence of flat files all taken with the same exposure time and
+        incident flux.
+    mask_files: list-like [()]
+        Mask files to apply for computing image statistics.
+    bias_frame: str [None]
+        Medianed bias frame to use for bias subtraction.
+    dark_frame: str [None]
+        Medianed dark frame to use for dark subtraction.
+    mondiode_func: function [bot_eo_analyses.mondiode_value]
+        Function to use for computing monitoring diode current.
 
-
-def _get_gain_run(bot_eo_config_file=None):
-    """Get the run number to use for gain values from the
-    BOT EO config file.  If no run was specified, return None,
-    indicating that the gain results from the current run
-    should be used.
+    Returns
+    -------
+    (pandas.DataFrame, output_file) containing the time history of the median
+        signals from each amp and the name of the output pickle file containing
+        these data.
     """
-    cp = configparser.ConfigParser(allow_no_value=True,
-                                   inline_comment_prefixes=('#',))
-    cp.optionxform = str
-    cp.read(_get_bot_eo_config_file(bot_eo_config_file))
-    if 'ANALYSIS_RUNS' not in cp:
-        return None
-    for analysis_type, run in cp.items('ANALYSIS_RUNS'):
-        if analysis_type.lower() == 'gain':
-            return run
-    return None
+    file_prefix = make_file_prefix(run, det_name)
+    outfile = f'{file_prefix}_flat_signal_sequence.pickle'
+    df = sensorTest.flat_signal_sequence(flat_files, bias_frame=bias_frame,
+                                         dark_frame=dark_frame,
+                                         mask_files=mask_files,
+                                         mondiode_func=mondiode_func)
+    df.to_pickle(outfile)
+    return df, outfile
+
+
+def gain_stability_task(run, det_name, fe55_files):
+    """
+    This task fits the Fe55 clusters to the cluster data from each frame
+    sequence and writes a pickle file with the gains as a function of
+    sequence number and MJD-OBS.
+
+    Parameters
+    ----------
+    run: str
+        Run number.
+    det_name: str
+        Sensor name in the focal plane, e.g., 'R22_S11'.
+    fe55_files: list
+        Raw Fe55 for the sensor being consider.  The MJD-OBS values
+        will be extracted from these files.
+
+    Returns:
+    (pandas.DataFrame, str), i.e., a tuple of the data frame containing
+    the gain sequence and the file name of the output pickle file.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+
+    # Extract MJD-OBS values into a dict to provide look up table in
+    # case there are missing sequence frames in the psf results table.
+    mjd_obs = dict()
+    for item in fe55_files:
+        with fits.open(item) as hdus:
+            mjd_obs[hdus[0].header['SEQNUM']] = hdus[0].header['MJD-OBS']
+
+    psf_results_file = sorted(glob.glob(f'{file_prefix}_psf_results*.fits'))[0]
+    df = sensorTest.gain_sequence(det_name, psf_results_file)
+    df['mjd'] = [mjd_obs[seqnum] for seqnum in df['seqnum']]
+    outfile = f'{file_prefix}_gain_sequence.pickle'
+    df.to_pickle(outfile)
+
+    return df, outfile
 
 
 class GetAmplifierGains:
+    """
+    Functor class to provide gains either from an ET db lookup or
+    from the EO test results file, depending on the traveler instance
+    configuration.
+    """
     def __init__(self, bot_eo_config_file=None,
                  et_results_file='et_results.pkl'):
-        self.run = _get_gain_run(bot_eo_config_file)
+        self.run \
+            = siteUtils.get_analysis_run('gain',
+                                         bot_eo_config_file=bot_eo_config_file)
         if self.run is not None:
             if not os.path.isfile(et_results_file):
                 self.et_results = siteUtils.ETResults(self.run)
@@ -247,7 +419,7 @@ def _get_amplifier_gains(file_pattern=None):
     data = sensorTest.EOTestResults(eotest_results_file)
     amps = data['AMP']
     gains = data['GAIN']
-    return {amp: gain for amp, gain in zip(amps, gains)}
+    return dict(zip(amps, gains))
 
 try:
     get_amplifier_gains = GetAmplifierGains()
@@ -259,10 +431,12 @@ except KeyError as eobj:
 
 def bias_frame_task(run, det_name, bias_files):
     """Create a median bias file for use by downstream tasks."""
-    file_prefix = make_file_prefix(run, det_name)
-    bias_frame = bias_filename(file_prefix, check_is_file=False)
+    bias_frame = make_bias_filename(run, det_name)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    file_prefix = make_file_prefix(run, det_name)
+    rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
+    sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
 
 
 def get_scan_mode_files(raft_name):
@@ -469,7 +643,7 @@ def find_flat2_bot(file1):
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
-                    bias_frame=None, mondiode_func=None):
+                    bias_frame=None, mondiode_func=None, dark_frame=None):
     """Single sensor execution of the flat pairs task."""
     file_prefix = make_file_prefix(run, det_name)
 
@@ -477,7 +651,8 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
     task.run(file_prefix, flat_files, mask_files, gains,
              linearity_spec_range=linearity_spec_range,
              use_exptime=use_exptime, flat2_finder=flat2_finder,
-             bias_frame=bias_frame, mondiode_func=mondiode_func)
+             bias_frame=bias_frame, mondiode_func=mondiode_func,
+             dark_frame=dark_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -553,10 +728,10 @@ def qe_jh_task(det_name):
 #        print("No correction for non-uniform illumination will be applied.")
 #        print()
 #        sys.stdout.flush()
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
+    mask_files = get_mask_files(det_name)
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
     gains = get_amplifier_gains(eotest_results_file)
-    bias_frame = bias_filename(file_prefix)
+    bias_frame = bias_filename(run, det_name)
 
     return qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
                    mask_files=mask_files, bias_frame=bias_frame,
@@ -600,17 +775,18 @@ def tearing_task(run, det_name, flat_files, bias_frame=None):
         pickle.dump(tearing_stats, output)
 
 
-def get_raft_files_by_slot(raft_name, file_suffix):
+def get_raft_files_by_slot(raft_name, file_suffix, jobname=None):
     """Return a dictionary of raft filenames, keyed by slot_name."""
-    run = siteUtils.getRunNumber()
+    run = '*'
     template = '{}_{}_{}_' + file_suffix
     raft_files = dict()
     for slot_name in camera_info.get_slot_names():
-        filename = template.format(raft_name, slot_name, run)
-        if os.path.isfile(filename):
-            raft_files[slot_name] = filename
+        pattern = template.format(raft_name, slot_name, run)
+        filenames = glob.glob(pattern)
+        if filenames:
+            raft_files[slot_name] = filenames[0]
         else:
-            filenames = siteUtils.dependency_glob(filename)
+            filenames = siteUtils.dependency_glob(pattern, jobname=jobname)
             if filenames:
                 raft_files[slot_name] = filenames[0]
     if not raft_files:
@@ -636,7 +812,7 @@ def repackage_summary_files():
 
 def get_analysis_types(bot_eo_config_file=None):
     """"Get the analysis types to be performed from the BOT-level EO config."""
-    bot_eo_config_file = _get_bot_eo_config_file(bot_eo_config_file)
+    bot_eo_config_file = siteUtils.get_bot_eo_config_file(bot_eo_config_file)
 
     # Read in the analyses to be performed from the config file.
     cp = configparser.ConfigParser(allow_no_value=True,
@@ -651,45 +827,6 @@ def get_analysis_types(bot_eo_config_file=None):
         analysis_types.append(analysis_type)
 
     return analysis_types
-
-
-def mondiode_value(flat_file, exptime, factor=5,
-                   pd_filename='Photodiode_Readings.txt'):
-    """
-    Compute the mean current measured by the monitoring photodiode.
-
-    Parameters
-    ----------
-    flat_file: str
-        Path to the flat frame FITS file.   The pd data file
-        is assumed to be in the same directory.
-    exptime: float
-        Exposure time in seconds.
-    factor: float [5]
-        Factor to use to extract the baseline current values from the
-        data using ythresh = (min(y) + max(y))/factor + min(y)
-    pd_filename: str ['Photodiode_Readings.txt']
-        Basename of photodiode readings file.
-
-    Returns
-    -------
-    float: The mean current.
-    """
-    # Try reading the MONDIODE keyword first.
-    with fits.open(flat_file) as hdulist:
-        if 'MONDIODE' in hdulist[0].header:
-            return hdulist[0].header['MONDIODE']
-
-    # Compute the value from the photodiode readings file.
-    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
-    x, y = np.recfromtxt(pd_file).transpose()
-    # Threshold for finding baseline current values:
-    ythresh = (min(y) + max(y))/factor + min(y)
-    # Subtract the median of the baseline values to get a calibrated
-    # current.
-    y -= np.median(y[np.where(y < ythresh)])
-    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
-    return integral/exptime
 
 
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
@@ -746,6 +883,13 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     # Query eT database for file paths from a previous run, if
     # specified, and store in a pickle file.
     hj_fp_server = siteUtils.HarnessedJobFilePaths()
+
+    # Query for file paths for other analysis runs, if specified in
+    # the bot_eo_config_file.
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('badpixel'))
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('bias'))
+    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('dark'))
+
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:
         pickle.dump(hj_fp_server, output)
@@ -768,11 +912,17 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
 
 def run_python_task_or_cl_script(python_task, cl_script, device_names=None,
                                  processes=None, walltime=3600):
+    """
+    If we are running a traveler for the Cryostat, use the
+    ssh_dispatcher to run jobs in parallel on the diagnostic cluster,
+    otherwsie we are running at TS8, so use multiprocessing on the
+    current node.
+    """
     if (os.environ.get('LCATR_USE_PARSL', False) == 'True'
         or siteUtils.getUnitType() == 'LCA-10134_Cryostat'):
         # Run command-line verions using parsl or ssh_dispatcher.
         run_jh_tasks(cl_script, device_names=device_names,
-                     processes=processes, walltime=walltime),
+                     processes=processes, walltime=walltime)
     else:
         # Run python version using multiprocessing directly.
         run_jh_tasks(python_task, device_names=device_names,

@@ -7,7 +7,7 @@ def dark_defects_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, dark_defects_task
+        get_amplifier_gains, bias_filename, dark_defects_task, get_mask_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -21,8 +21,8 @@ def dark_defects_jh_task(det_name):
               det_name)
         return None
 
-    mask_files = sorted(glob.glob('{}_*mask.fits'.format(file_prefix)))
-    bias_frame = bias_filename(file_prefix)
+    mask_files = sorted(glob.glob(f'{file_prefix}*mask*.fits'))
+    bias_frame = bias_filename(run, det_name)
 
     return dark_defects_task(run, det_name, sflat_files, mask_files=mask_files,
                              bias_frame=bias_frame)
