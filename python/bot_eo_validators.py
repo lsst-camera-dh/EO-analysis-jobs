@@ -38,6 +38,14 @@ def run_validator(*det_task_names):
         validator = eval('validate_{}'.format(det_task_name))
         results = validator(results, camera_info.get_det_names())
     results.extend(siteUtils.jobInfo())
+
+    # Persist the bot_eo_acq_cfg file so that the analysis
+    # configuration for this job is saved.
+    acq_config = siteUtils.get_job_acq_configs()
+    bot_eo_acq_cfg = os.path.basename(acq_config['bot_eo_acq_cfg'])
+    if os.path.isfile(bot_eo_acq_cfg):
+        results.append(lcatr.schema.fileref.make(bot_eo_acq_cfg))
+
     lcatr.schema.write_file(results)
     lcatr.schema.validate_file()
 
