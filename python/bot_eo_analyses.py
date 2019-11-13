@@ -7,6 +7,7 @@ import re
 import glob
 import copy
 import time
+import shutil
 import pickle
 import warnings
 from collections import defaultdict
@@ -918,6 +919,12 @@ def run_python_task_or_cl_script(python_task, cl_script, device_names=None,
     otherwsie we are running at TS8, so use multiprocessing on the
     current node.
     """
+    # Copy the bot_eo_acq_cfg file to the current working directory
+    # so it can be persisted in the eT and DataCatalog.
+    acq_config = siteUtils.get_job_acq_configs()
+    bot_eo_acq_cfg = acq_config['bot_eo_acq_cfg']
+    shutil.copy(bot_eo_acq_cfg, '.')
+
     if (os.environ.get('LCATR_USE_PARSL', False) == 'True'
         or siteUtils.getUnitType() == 'LCA-10134_Cryostat'):
         # Run command-line verions using parsl or ssh_dispatcher.
