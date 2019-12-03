@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 QA plots for raft-level acquisitions.
 """

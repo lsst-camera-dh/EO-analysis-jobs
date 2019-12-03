@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Validator script for BOT flat pairs (linearity and full-well) analysis.
 """

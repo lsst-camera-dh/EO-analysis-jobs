@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Script to collect the EO analysis results for each sensor and write
 an eotest_report.fits file.  Also create raft-level mosaics.

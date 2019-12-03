@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Producer script for BOT gain stability analysis.  The fe55_jh_task.py
 script needs to be executed before this script.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Producer script for raft-level brighter-fatter analysis.
 """

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Command-line script for detector-level bias frame job harness task.
 """
