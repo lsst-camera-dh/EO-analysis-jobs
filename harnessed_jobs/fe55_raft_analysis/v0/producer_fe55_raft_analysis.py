@@ -94,7 +94,8 @@ def run_fe55_task(sensor_id):
     fe55_file = glob.glob('%s_psf_results*.fits' % sensor_id)[0]
     siteUtils.make_png_file(plots.fe55_dists,
                             '%s_fe55_dists.png' % file_prefix,
-                            fe55_file=fe55_file, xrange_scale=3)
+                            fe55_file=fe55_file, xrange_scale=3,
+                            dn_range=dn_range)
 
     siteUtils.make_png_file(plots.psf_dists,
                             '%s_psf_dists.png' % file_prefix,
