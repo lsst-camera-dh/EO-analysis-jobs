@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Script for BOT brighter-fatter analysis.
 """

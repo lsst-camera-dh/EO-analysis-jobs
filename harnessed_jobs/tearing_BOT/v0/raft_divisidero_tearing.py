@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ipython
 """
 Command-line script for divisidero tearing analysis of BOT data.
 """
