@@ -49,6 +49,7 @@ __all__ = ['make_file_prefix',
            'plot_cte_results',
            'find_flat2_bot',
            'flat_pairs_task',
+           'nonlinearity_task',
            'ptc_task',
            'bf_task',
            'qe_task',
@@ -669,6 +670,13 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                             detresp_file=detresp_file, max_dev=0.03,
                             Ne_bounds=linearity_spec_range,
                             use_exptime=use_exptime)
+
+
+def nonlinearity_task(run, det_name, detresp_file, outfile):
+    """Single sensor execution of nonlinearity task."""
+    file_prefix = make_file_prefix(run, det_name)
+    task = sensorTest.NonlinearityTask()
+    task.run(file_prefix, detresp_file, outputfile=outfile)
 
 
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),

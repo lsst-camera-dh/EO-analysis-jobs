@@ -25,7 +25,7 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
            'validate_brighter_fatter',
            'validate_qe', 'validate_tearing', 'validate_raft_results',
-           'validate_flat_gain_stability']
+           'validate_flat_gain_stability', 'validate_nonlinearity']
 
 
 def run_validator(*det_task_names):
@@ -771,4 +771,20 @@ def validate_raft_results(results, raft_names):
     report_missing_data("validate_raft_results", missing_raft_names,
                         components='rafts', total=21)
 
+    return results
+
+
+def validate_nonlinearity(results, det_names):
+    """Validate the nonlinearity analysis results."""
+    run = siteUtils.getRunNumber()
+    results = []
+    missing_det_names = []
+    for det_name in det_names:
+        nlc_file = f'{make_file_prefix(run, det_name)}_nlc.fits'
+        if not os.path.isfile(nlc_file):
+            missing_det_names.append(det_name)
+            continue
+        md = dict(DATA_PRODUCT='nonlinearity_correction')
+        results.append(siteUtils.make_fileref(nlc_file, metadata=md))
+    report_missing_data('validate_nonlinearity', missing_det_names)
     return results
