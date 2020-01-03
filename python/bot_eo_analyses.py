@@ -859,13 +859,14 @@ def get_nlc_func(det_name):
     try:
         nlc_file = siteUtils.dependency_glob(f'{det_name}*_nlc.fits',
                                              jobname='nonlinearity_BOT')[0]
-        print(f"Using nonlinear correction file {nlc_file}.")
-    except IndexError:
+    except IndexError as eobj:
+        print(f"{det_name}*_nlc.fits not found:", eobj)
         return None
 
     try:
         nlc = sensorTest.NonlinearityCorrection.create_from_fits_file(nlc_file)
-    except ValueError:
+    except ValueError as eobj:
+        print(f"Error creating nlc from {nlc_file}:", eobj)
         nlc = None
 
     return nlc
