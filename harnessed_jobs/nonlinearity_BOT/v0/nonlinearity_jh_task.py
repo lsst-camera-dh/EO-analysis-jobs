@@ -13,7 +13,7 @@ def nonlinearity_jh_task(det_name):
 
     try:
         detresp_file \
-            = siteUtils.dependency_glob(f'{file_prefix}_det_response.fits',
+            = siteUtils.dependency_glob(f'{det_name}*_det_response.fits',
                                         jobname='flat_pairs_BOT')[0]
     except IndexError:
         print("nonlinearity_task: detector response file not found for",

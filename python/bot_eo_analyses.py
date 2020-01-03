@@ -147,7 +147,7 @@ def get_mask_files(det_name):
         rolloff_mask_files = hj_fp_server.get_files('bias_frame_BOT',
                                                     f'{det_name}_*mask*.fits',
                                                     run=bias_run)
-        print(f"Edge rollooff mask file from run {bias_run} and {det_name}:")
+        print(f"Edge rolloff mask file from run {bias_run} and {det_name}:")
         for item in rolloff_mask_files:
             print(item)
         print()
@@ -857,10 +857,18 @@ def get_nlc_func(det_name):
     detector.
     """
     try:
-        nlc_file = siteUtils.dependency_glob(f'{det_name}*_nlc.fits')[0]
+        nlc_file = siteUtils.dependency_glob(f'{det_name}*_nlc.fits',
+                                             jobname='nonlinearity_BOT')[0]
+        print(f"Using nonlinear correction file {nlc_file}.")
     except IndexError:
         return None
-    return sensorTest.NonlinearityCorrection.create_from_fits_file(nlc_file)
+
+    try:
+        nlc = sensorTest.NonlinearityCorrection.create_from_fits_file(nlc_file)
+    except ValueError:
+        nlc = None
+
+    return nlc
 
 
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
