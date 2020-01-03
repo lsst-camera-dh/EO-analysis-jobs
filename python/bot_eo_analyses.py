@@ -56,6 +56,7 @@ __all__ = ['make_file_prefix',
            'tearing_task',
            'repackage_summary_files',
            'mondiode_value',
+           'get_nlc_func',
            'run_jh_tasks',
            'run_python_task_or_cl_script']
 
@@ -248,7 +249,8 @@ def fe55_task(run, det_name, fe55_files):
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
     task.run(file_prefix, fe55_files, (rolloff_mask_file,),
-             bias_frame=bias_frame, accuracy_req=0.01, hist_nsig=hist_nsig)
+             bias_frame=bias_frame, accuracy_req=0.01, hist_nsig=hist_nsig,
+             linearity_correction=get_nlc_func(det_name))
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -524,7 +526,8 @@ def bright_defects_task(run, det_name, dark_files, gains, mask_files=(),
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
-    task.run(file_prefix, dark_files, mask_files, gains, bias_frame=bias_frame)
+    task.run(file_prefix, dark_files, mask_files, gains, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
 
     title = '%s, medianed dark for bright defects analysis' % file_prefix
     annotation = 'e-/pixel, gain-corrected, bias-subtracted'
@@ -542,7 +545,8 @@ def dark_defects_task(run, det_name, sflat_files, mask_files=(),
     title = '{}, {}'.format(run, det_name)
 
     task = sensorTest.DarkPixelsTask()
-    task.run(file_prefix, sflat_files, mask_files, bias_frame=bias_frame)
+    task.run(file_prefix, sflat_files, mask_files, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
 
     title = '%s, superflat for dark defects analysis' % file_prefix
     siteUtils.make_png_file(sensorTest.plot_flat,
@@ -555,7 +559,8 @@ def traps_task(run, det_name, trap_file, gains, mask_files=(), bias_frame=None):
     """Single sensor execution of the traps analysis task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.TrapTask()
-    task.run(file_prefix, trap_file, mask_files, gains, bias_frame=bias_frame)
+    task.run(file_prefix, trap_file, mask_files, gains, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
 
 
 def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
@@ -565,7 +570,8 @@ def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = temp_set_point
     return task.run(file_prefix, dark_files, mask_files, gains,
-                    bias_frame=bias_frame)
+                    bias_frame=bias_frame,
+                    linearity_correction=get_nlc_func(det_name))
 
 
 def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
@@ -588,7 +594,8 @@ def cte_task(run, det_name, sflat_files, gains, mask_files=(),
 
     task = sensorTest.CteTask()
     task.run(file_prefix, sflat_files, flux_level=flux_level, gains=gains,
-             mask_files=mask_files, bias_frame=bias_frame)
+             mask_files=mask_files, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
     # TODO: refactor CteTask to provide access to the superflat filename
     # instead of recomputing it here.
     superflat_file = '{}_superflat_{}.fits'.format(file_prefix, flux_level)
@@ -654,6 +661,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
              linearity_spec_range=linearity_spec_range,
              use_exptime=use_exptime, flat2_finder=flat2_finder,
              bias_frame=bias_frame, mondiode_func=mondiode_func,
+             linearity_correction=get_nlc_func(det_name),
              dark_frame=dark_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
@@ -676,7 +684,10 @@ def nonlinearity_task(run, det_name, detresp_file, outfile):
     """Single sensor execution of nonlinearity task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.NonlinearityTask()
-    task.run(file_prefix, detresp_file, outputfile=outfile)
+    try:
+        task.run(file_prefix, detresp_file, outputfile=outfile)
+    except Exception:
+        print(f'NonlinearityTask.run failed for {file_prefix}')
 
 
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
@@ -686,7 +697,8 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
 
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
-             flat2_finder=flat2_finder, bias_frame=bias_frame)
+             flat2_finder=flat2_finder, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -702,7 +714,8 @@ def bf_task(run, det_name, flat_files, mask_files=(),
 
     task = sensorTest.BFTask()
     task.run(file_prefix, flat_files, mask_files=mask_files,
-             flat2_finder=flat2_finder, bias_frame=bias_frame)
+             flat2_finder=flat2_finder, bias_frame=bias_frame,
+             linearity_correction=get_nlc_func(det_name))
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
@@ -838,6 +851,18 @@ def get_analysis_types(bot_eo_config_file=None):
     return analysis_types
 
 
+def get_nlc_func(det_name):
+    """
+    Return the nonlinearity correction function for the specified
+    detector.
+    """
+    try:
+        nlc_file = siteUtils.dependency_glob(f'{det_name}*_nlc.fits')[0]
+    except IndexError:
+        return None
+    return sensorTest.NonlinearityCorrection.create_from_fits_file(nlc_file)
+
+
 def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     """
     Run functions to execute tasks under the job harness in parallel.
@@ -895,9 +920,10 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
 
     # Query for file paths for other analysis runs, if specified in
     # the bot_eo_config_file.
-    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('badpixel'))
-    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('bias'))
-    hj_fp_server.query_file_paths(siteUtils.get_analysis_run('dark'))
+    for analysis_type in ('badpixel', 'bias', 'dark', 'linearity',
+                          'nonlinearity'):
+        hj_fp_server.query_file_paths(
+            siteUtils.get_analysis_run(analysis_type))
 
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:
