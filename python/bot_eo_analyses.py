@@ -134,7 +134,7 @@ def get_mask_files(det_name):
     """
     badpixel_run = siteUtils.get_analysis_run('badpixel')
     bias_run = siteUtils.get_analysis_run('bias')
-    if badpixel_run is not None or bias_run is not None:
+    if badpixel_run is not None:
         with open('hj_fp_server.pkl', 'rb') as fd:
             hj_fp_server = pickle.load(fd)
         mask_files = hj_fp_server.get_files('pixel_defects_BOT',
@@ -144,6 +144,11 @@ def get_mask_files(det_name):
         for item in mask_files:
             print(item)
         print()
+    else:
+        mask_files = siteUtils.dependency_glob(f'*{det_name}*mask*.fits',
+                                               jobname='pixel_defects_BOT',
+                                               description='pixel defects masks')
+    if bias_run is not None:
         rolloff_mask_files = hj_fp_server.get_files('bias_frame_BOT',
                                                     f'{det_name}_*mask*.fits',
                                                     run=bias_run)
@@ -151,13 +156,13 @@ def get_mask_files(det_name):
         for item in rolloff_mask_files:
             print(item)
         print()
+    else:
+        rolloff_mask_files = siteUtils.dependency_glob(f'*{det_name}*mask*.fits',
+                                                       description='rolloff masks',
+                                                       jobname='bias_frame_BOT')
+    mask_files.extend(rolloff_mask_files)
 
-        mask_files.extend(rolloff_mask_files)
-        return mask_files
-
-    description = f"Mask files found for {det_name}:"
-    return siteUtils.dependency_glob(f'*{det_name}*mask*.fits',
-                                     description=description)
+    return mask_files
 
 
 def make_file_prefix(run, component_name):
