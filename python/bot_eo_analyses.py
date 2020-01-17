@@ -877,7 +877,7 @@ def get_nlc_func(det_name, bot_eo_config_file=None):
 
     cp = get_bot_eo_config(bot_eo_config_file)
     if 'NLC_PARAMS' in cp:
-        nlc_params = dict(cp.items('NLC_PARAMS'))
+        nlc_params = {k: siteUtils.cast(v) for k, v in cp['NLC_PARAMS'].items()}
     else:
         nlc_params = dict()
 
