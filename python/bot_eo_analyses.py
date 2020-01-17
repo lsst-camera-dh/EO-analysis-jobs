@@ -837,8 +837,8 @@ def repackage_summary_files():
         repackager.write('{}_eotest_results.fits'.format(file_prefix))
 
 
-def get_analysis_types(bot_eo_config_file=None):
-    """"Get the analysis types to be performed from the BOT-level EO config."""
+def get_bot_eo_config(bot_eo_config_file=None):
+    """Get the ConfigParser object from the BOT EO configuration file."""
     bot_eo_config_file = siteUtils.get_bot_eo_config_file(bot_eo_config_file)
 
     # Read in the analyses to be performed from the config file.
@@ -846,6 +846,12 @@ def get_analysis_types(bot_eo_config_file=None):
                                    inline_comment_prefixes=("#", ))
     cp.optionxform = str   # allow for case-sensitive keys
     cp.read(bot_eo_config_file)
+    return cp
+
+
+def get_analysis_types(bot_eo_config_file=None):
+    """"Get the analysis types to be performed from the BOT-level EO config."""
+    cp = get_bot_eo_config(bot_eo_config_file)
 
     analysis_types = []
     if 'ANALYZE' not in cp:
@@ -856,7 +862,7 @@ def get_analysis_types(bot_eo_config_file=None):
     return analysis_types
 
 
-def get_nlc_func(det_name):
+def get_nlc_func(det_name, bot_eo_config_file=None):
     """
     Return the nonlinearity correction function for the specified
     detector.
@@ -869,8 +875,16 @@ def get_nlc_func(det_name):
         print(f'{file_prefix}_nlc.fits not found:', eobj)
         return None
 
+    cp = get_bot_eo_config(bot_eo_config_file)
+    if 'NLC_PARAMS' in cp:
+        nlc_params = dict(cp.items('NLC_PARAMS'))
+    else:
+        nlc_params = dict()
+
     try:
-        nlc = sensorTest.NonlinearityCorrection.create_from_fits_file(nlc_file)
+        nlc = sensorTest.NonlinearityCorrection.create_from_fits_file(
+            nlc_file, **nlc_params)
+
     except ValueError as eobj:
         print(f'Error creating nlc from {nlc_file}:', eobj)
         nlc = None
