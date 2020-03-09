@@ -817,7 +817,7 @@ def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
                     parallel_eper_low parallel_eper_high parallel_cti
                     parallel_overscan_signal parallel_overscan_sum'''.split()
 
-    plot_funcs = {_: plots.__dict__[f'{_}_curves'] for _ in plot_types}
+    plot_funcs = {_: getattr(plots, f'{_}_curves') for _ in plot_types}
 
     for plot_type, plot_func in plot_funcs.items():
         siteUtils.make_png_file(plot_func, f'{file_prefix}_{plot_type}.png')

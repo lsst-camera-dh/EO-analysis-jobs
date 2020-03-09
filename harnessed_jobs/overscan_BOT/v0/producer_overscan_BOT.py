@@ -1,6 +1,6 @@
 #!/usr/bin/env ipython
 """
-Producer script for BOT OVERSCAN analysis.
+Producer script for BOT overscan analysis.
 """
 import os
 from overscan_jh_task import overscan_jh_task
