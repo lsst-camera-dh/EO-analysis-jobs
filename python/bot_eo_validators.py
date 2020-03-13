@@ -25,7 +25,8 @@ __all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
            'validate_brighter_fatter',
            'validate_qe', 'validate_tearing', 'validate_raft_results',
-           'validate_flat_gain_stability', 'validate_nonlinearity']
+           'validate_flat_gain_stability', 'validate_nonlinearity',
+           'validate_overscan']
 
 
 def run_validator(*det_task_names):
@@ -787,4 +788,28 @@ def validate_nonlinearity(results, det_names):
         md = dict(DATA_PRODUCT='nonlinearity_correction')
         results.append(siteUtils.make_fileref(nlc_file, metadata=md))
     report_missing_data('validate_nonlinearity', missing_det_names)
+    return results
+
+
+def validate_overscan(results, det_names):
+    """Validate the overscan analysis results."""
+    run = siteUtils.getRunNumber()
+    results = []
+    missing_det_names = []
+    for det_name in det_names:
+        file_prefix = make_file_prefix(run, det_name)
+        results_file = f'{file_prefix}_overscan_results.fits'
+        if not os.path.isfile(results_file):
+            missing_det_names.append(det_name)
+        else:
+            md = dict(DATA_PRODUCT='overscan_task_results', RUN=run,
+                      DETECTOR=det_name)
+            results.append(siteUtils.make_fileref(results_file, metadata=md))
+        png_files = (glob.glob(f'{file_prefix}_*_eper_*.png')
+                     + glob.glob(f'{file_prefix}_*_overscan_*.png'))
+        md = dict(TEST_CATEGORY='EO', DETECTOR=det_name, RUN=run)
+        results.extend(siteUtils.persist_png_files('', file_prefix,
+                                                   png_files=png_files,
+                                                   metadata=md))
+    report_missing_data('validate_overscan', missing_det_names)
     return results

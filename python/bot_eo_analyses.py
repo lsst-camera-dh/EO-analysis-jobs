@@ -17,6 +17,7 @@ import numpy as np
 from astropy.io import fits
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
+from lsst.eotest.sensor.EOTestPlots import OverscanTestPlots
 import eotestUtils
 import siteUtils
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
@@ -800,6 +801,27 @@ def tearing_task(run, det_name, flat_files, bias_frame=None):
 
     with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
         pickle.dump(tearing_stats, output)
+
+
+def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
+    """Single sensor execution of the overscan task."""
+    file_prefix = make_file_prefix(run, det_name)
+    task = sensorTest.OverscanTask()
+    task.run(file_prefix, flat_files, gains, bias_frame=bias_frame)
+
+    overscan_file = f'{file_prefix}_overscan_results.fits'
+    plots = OverscanTestPlots(file_prefix, overscan_file=overscan_file)
+
+    plot_types = '''serial_eper_low serial_eper_high serial_cti
+                    serial_overscan_signal serial_overscan_sum
+                    parallel_eper_low parallel_eper_high parallel_cti
+                    parallel_overscan_signal parallel_overscan_sum'''.split()
+
+    plot_funcs = {_: getattr(plots, f'{_}_curves') for _ in plot_types}
+
+    for plot_type, plot_func in plot_funcs.items():
+        siteUtils.make_png_file(plot_func, f'{file_prefix}_{plot_type}.png')
+        plt.close()
 
 
 def get_raft_files_by_slot(raft_name, file_suffix, jobname=None):
