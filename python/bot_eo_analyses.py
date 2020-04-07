@@ -135,9 +135,12 @@ def get_mask_files(det_name):
     """
     badpixel_run = siteUtils.get_analysis_run('badpixel')
     bias_run = siteUtils.get_analysis_run('bias')
-    if badpixel_run is not None:
+
+    if badpixel_run is not None or bias_run is not None:
         with open('hj_fp_server.pkl', 'rb') as fd:
             hj_fp_server = pickle.load(fd)
+
+    if badpixel_run is not None:
         mask_files = hj_fp_server.get_files('pixel_defects_BOT',
                                             f'{det_name}*mask*.fits',
                                             run=badpixel_run)
