@@ -47,7 +47,7 @@ def plot_raft(raft_files, cut=None, divide_by_flux=True, y_range=None,
         plt.ylim(*y_range)
 
 
-def plot_all_rafts(run, results_dir='.', cut=None, y_range = (0.998, 1.002),
+def plot_all_rafts(run, results_dir='.', cut=None, y_range=(0.998, 1.002),
                    divide_by_flux=True, figsize=(18, 18)):
     """
     Plot the flat gain stability curve for all 25 rafts in a 5x5 grid.

@@ -16,4 +16,4 @@ if 'gainstability' in get_analysis_types():
     run_python_task_or_cl_script(flat_gain_stability_jh_task,
                                  flat_gain_stability_script)
 
-    plot_all_rafts(siteUtils.getRunNumber())
+    plot_all_rafts(siteUtils.getRunNumber(), y_range=None)
