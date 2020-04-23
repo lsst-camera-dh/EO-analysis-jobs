@@ -716,7 +716,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
                             ptc_file='%s_ptc.fits' % file_prefix)
 
 
-def bf_task(run, det_name, flat_files, mask_files=(),
+def bf_task(run, det_name, flat_files, gains, mask_files=(),
             flat2_finder=None, bias_frame=None):
     """Single sensor execution of the brighter-fatter task."""
     file_prefix = make_file_prefix(run, det_name)
@@ -724,7 +724,7 @@ def bf_task(run, det_name, flat_files, mask_files=(),
     task = sensorTest.BFTask()
     task.run(file_prefix, flat_files, mask_files=mask_files,
              flat2_finder=flat2_finder, bias_frame=bias_frame,
-             linearity_correction=get_nlc_func(det_name))
+             linearity_correction=get_nlc_func(det_name), gains=gains)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)

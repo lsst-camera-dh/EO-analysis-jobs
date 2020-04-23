@@ -7,7 +7,8 @@ def bf_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        bias_filename, bf_task, find_flat2_bot, get_mask_files
+        bias_filename, bf_task, find_flat2_bot, get_mask_files,\
+        get_amplifier_gains
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -25,9 +26,10 @@ def bf_jh_task(det_name):
 
     mask_files = get_mask_files(det_name)
     eotest_results_file = '{}_eotest_results.fits'.format(file_prefix)
+    gains = get_amplifier_gains(eotest_results_file)
     bias_frame = bias_filename(run, det_name)
 
-    return bf_task(run, det_name, flat_files, mask_files=mask_files,
+    return bf_task(run, det_name, flat_files, gains, mask_files=mask_files,
                    flat2_finder=find_flat2_bot, bias_frame=bias_frame)
 
 
