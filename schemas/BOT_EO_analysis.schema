@@ -102,6 +102,10 @@
     'bf_ycorr' : float,
     'bf_ycorr_err' : float,
     'bf_mean' : float,
+    'bf_slopex' :  float,
+    'bf_slopex_err' :  float,
+    'bf_slopey' :  float,
+    'bf_slopey_err' :  float,
     'slot' : str,
     'raft' : str
 },
