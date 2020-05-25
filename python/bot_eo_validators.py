@@ -560,14 +560,21 @@ def validate_brighter_fatter(results, det_names):
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
 
-        columns = (data['AMP'], data['BF_XCORR'], data['BF_XCORR_ERR'],
-                   data['BF_YCORR'], data['BF_YCORR_ERR'], data['BF_MEAN'])
-        for amp, bf_xcorr, bf_xcorr_err, bf_ycorr, bf_ycorr_err, bf_mean \
+        columns = (data['AMP'],
+                   data['BF_XCORR'], data['BF_XCORR_ERR'],
+                   data['BF_YCORR'], data['BF_YCORR_ERR'],
+                   data['BF_SLOPEX'], data['BF_SLOPEX_ERR'],
+                   data['BF_SLOPEY'], data['BF_SLOPEY_ERR'],
+                   data['BF_MEAN'])
+        for amp, bf_xcorr, bf_xcorr_err, bf_ycorr, bf_ycorr_err, \
+            bf_slopex, bf_slopex_err, bf_slopey, bf_slopey_err, bf_mean \
             in zip(*columns):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('brighter_fatter_BOT'),
                 amp=amp, bf_xcorr=bf_xcorr, bf_xcorr_err=bf_xcorr_err,
                 bf_ycorr=bf_ycorr, bf_ycorr_err=bf_ycorr_err,
+                bf_slopex=bf_slopex, bf_slopex_err=bf_slopex_err,
+                bf_slopey=bf_slopey, bf_slopey_err=bf_slopey_err,
                 bf_mean=bf_mean, slot=slot, raft=raft))
 
         # Persist the png files.
