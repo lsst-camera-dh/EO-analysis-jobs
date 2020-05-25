@@ -76,6 +76,7 @@
     'amp' : int,
     'full_well' : float,
     'max_frac_dev' : float,
+    'row_mean_var_slope' : float,
     'slot' : str,
     'raft' : str
 },
