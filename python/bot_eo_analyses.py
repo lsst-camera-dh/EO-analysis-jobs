@@ -82,7 +82,7 @@ glob_pattern = GlobPattern()
 
 
 def mondiode_value(flat_file, exptime, factor=5,
-                   pd_filename='Photodiode_Readings.txt'):
+                   pd_filename='Photodiode_Readings*.txt'):
     """
     Compute the mean current measured by the monitoring photodiode.
 
@@ -96,7 +96,7 @@ def mondiode_value(flat_file, exptime, factor=5,
     factor: float [5]
         Factor to use to extract the baseline current values from the
         data using ythresh = (min(y) + max(y))/factor + min(y)
-    pd_filename: str ['Photodiode_Readings.txt']
+    pd_filename: str ['Photodiode_Readings*.txt']
         Basename of photodiode readings file.
 
     Returns
@@ -109,7 +109,8 @@ def mondiode_value(flat_file, exptime, factor=5,
             return hdulist[0].header['MONDIODE']
 
     # Compute the value from the photodiode readings file.
-    pd_file = os.path.join(os.path.dirname(flat_file), pd_filename)
+    pd_file = glob.glob(os.path.join(os.path.dirname(flat_file),
+                                     pd_filename))[0]
     x, y = np.recfromtxt(pd_file).transpose()
     # Threshold for finding baseline current values:
     ythresh = (min(y) + max(y))/factor + min(y)
