@@ -3,6 +3,7 @@
 Producer script for BOT raft-level results summaries.
 """
 import os
+import subprocess
 import matplotlib.pyplot as plt
 import siteUtils
 from camera_components import camera_info
@@ -101,3 +102,33 @@ if __name__ == '__main__':
                                  device_names=installed_rafts)
 
     make_focal_plane_plots()
+
+    # Make BOT EO report static pages.
+    jh_stage_dir = os.path.join(os.environ['LCATR_STAGE_ROOT'],
+                                os.environ['LCATR_UNIT_TYPE'],
+                                os.environ['LCATR_UNIT_ID'])
+    run_number = os.environ['LCATR_RUN_NUMBER']
+    run_dir = os.path.join(jh_stage_dir, run_number)
+    if not os.path.isdir(run_dir):
+        # This is not being run under the eT web app, so return without
+        # making any pages.
+        return
+
+    # Locations of template files for the static reports.
+    report_template = os.path.join(os.environ['EO_UTILITIES_DIR'], 'templates',
+                                   'eo_html_report.yaml')
+    css_file = os.path.join(os.environ['EO_UTILITIES_DIR'], 'templates',
+                            'style.css')
+    # Set-up symlinked directory to accommodate eo_task.py assumptions
+    # about run folder locations.
+    indir = 'indir'
+    os.makedirs(indir, exist_ok=True)
+    os.symlink(jh_stage_dir, os.path.join(indir, 'bot'))
+    # Write static html to the data area on fs3.
+    htmldir = '/gpfs/slac/lsst/fs3/g/data/bot_eo_reports'
+    command = (f'eotast.py ReportRun --template_file {report_template} '
+               f'--indir {indir} --plot_report_action copy '
+               f'--runs {run_number} '
+               f'--css_file {css_file} --htmldir {htmldir} --overwrite')
+    print(command)
+    subprocess.check_call(command, shell=True)
