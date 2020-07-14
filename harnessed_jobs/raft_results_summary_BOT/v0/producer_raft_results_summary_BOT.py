@@ -124,8 +124,8 @@ if __name__ == '__main__':
     indir = 'indir'
     os.makedirs(indir, exist_ok=True)
     os.symlink(jh_stage_dir, os.path.join(indir, 'bot'))
-    # Write static html to the data area on fs3.
-    htmldir = '/gpfs/slac/lsst/fs3/g/data/bot_eo_reports'
+    # Write static html to the BOT_EO_reports area on fs3.
+    htmldir = '/gpfs/slac/lsst/fs3/g/data/BOT_EO_reports'
     command = (f'eotast.py ReportRun --template_file {report_template} '
                f'--indir {indir} --plot_report_action copy '
                f'--runs {run_number} '
