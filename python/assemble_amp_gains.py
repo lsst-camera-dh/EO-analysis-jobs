@@ -103,18 +103,20 @@ if __name__ == '__main__':
         with open(amp_gain_file, 'r') as fd:
             amp_data = json.load(fd)
 
+    gain_min = 0.5
+    gain_max = 1.6
     amp_gains = defaultdict(dict)
     for det_name, gain_values in amp_data['ts8_fe55_gains'].items():
         for channel, fe55_gain in gain_values.items():
             ptc_gain = amp_data['ts8_ptc_gains'][det_name][channel]
-            if 0.0 < fe55_gain < 1.5:
+            if gain_min < fe55_gain < gain_max:
                 amp_gains[det_name][channel] = fe55_gain
             else:
                 amp_gains[det_name][channel] = ptc_gain
         if det_name in amp_data['bot_fe55_gains']:
             bot_gains = amp_data['bot_fe55_gains'][det_name]
             for channel, bot_gain in bot_gains.items():
-                if 0.0 < bot_gain < 1.5:
+                if gain_min < bot_gain < gain_max:
                     amp_gains[det_name][channel] = bot_gain
     for det_name, corner_raft_gains in amp_data['bot_fe55_gains'].items():
         if det_name not in amp_gains:
@@ -127,14 +129,14 @@ if __name__ == '__main__':
         fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111)
         plot_focal_plane(ax, my_gains, camera=camera_info.camera_object,
-                         z_range=(0.5, 1.5))
+                         z_range=(gain_min, gain_max))
         plt.title(gain_source)
         plt.savefig(f'{gain_source}.png')
 
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111)
     plot_focal_plane(ax, amp_gains, camera=camera_info.camera_object,
-                     z_range=(0.5, 1.5))
+                     z_range=(gain_min, gain_max))
     plt.title('combined ts8 fe55, ts8 ptc, bot_fe55 gains')
     plt.savefig(f'amp_gains.png')
 
