@@ -421,8 +421,12 @@ class GetAmplifierGains:
 
         if self.curated_gains is not None:
             print('GetAmplifierGains.__call__: retrieving curated gains.')
-            return {amp: self.curated_gains[det_name][f'C{_}']
-                    for amp, _ in imutils.channelIds.items()}
+            my_gains = self.curated_gains[det_name]
+            if len(my_gains) == 8:
+                channels = siteUtils.ETResults.wf_amp_names
+            else:
+                channels = siteUtils.ETResults.amp_names
+            return {amp: my_gains[_] for amp, _ in enumerate(channels, 1)}
 
         print("GetAmplifierGains.__call__: retrieving gains from eT.")
         gains = self.et_results.get_amp_gains(det_name)
