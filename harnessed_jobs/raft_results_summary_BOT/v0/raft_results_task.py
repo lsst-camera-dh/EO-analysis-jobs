@@ -95,7 +95,7 @@ def raft_results_task(raft_name):
 
     png_files = []
     # Median bias mosaic
-    median_bias = raftTest.RaftMosaic(bias_frames, bias_subtract=False)
+    median_bias = raftTest.make_raft_mosaic(bias_frames, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
                      annotation='ADU/pixel', rotate180=True)
     png_files.append('{}_median_bias.png'.format(file_prefix))
@@ -108,8 +108,8 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        dark_mosaic = raftTest.RaftMosaic(dark_files, gains=gains,
-                                          bias_frames=bias_frames)
+        dark_mosaic = raftTest.make_raft_mosaic(dark_files, gains=gains,
+                                                bias_frames=bias_frames)
         dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
                          annotation='e-/pixel, gain-corrected, bias-subtracted',
                          rotate180=True)
@@ -124,9 +124,9 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_high = raftTest.RaftMosaic(sflat_high_files, gains=gains,
-                                         bias_frames=bias_frames,
-                                         dark_currents=dark_currents)
+        sflat_high = raftTest.make_raft_mosaic(sflat_high_files, gains=gains,
+                                               bias_frames=bias_frames,
+                                               dark_currents=dark_currents)
         sflat_high.plot(title='%s, high flux superflat' % title,
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
                         rotate180=True)
@@ -141,9 +141,9 @@ def raft_results_task(raft_name):
     except FileNotFoundError as eobj:
         print(eobj)
     else:
-        sflat_low = raftTest.RaftMosaic(sflat_low_files, gains=gains,
-                                        bias_frames=bias_frames,
-                                        dark_currents=dark_currents)
+        sflat_low = raftTest.make_raft_mosaic(sflat_low_files, gains=gains,
+                                              bias_frames=bias_frames,
+                                              dark_currents=dark_currents)
         sflat_low.plot(title='%s, low flux superflat' % title,
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
                        rotate180=True)
@@ -167,9 +167,9 @@ def raft_results_task(raft_name):
         for item in files:
             slot_name = os.path.basename(item).split('_')[-1].split('.')[0]
             lambda_files[slot_name] = item
-        flat = raftTest.RaftMosaic(lambda_files, gains=gains,
-                                   bias_frames=bias_frames,
-                                   dark_currents=dark_currents)
+        flat = raftTest.make_raft_mosaic(lambda_files, gains=gains,
+                                         bias_frames=bias_frames,
+                                         dark_currents=dark_currents)
         flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
                   rotate180=True)
