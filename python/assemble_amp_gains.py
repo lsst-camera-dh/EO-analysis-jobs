@@ -27,7 +27,8 @@ ts8_good_runs = {'LCA-11021_RTM-018': '12120',
                  'LCA-11021_RTM-022': '11671',
                  'LCA-11021_RTM-009': '11415',
                  'LCA-11021_RTM-024': '11351',
-                 'LCA-11021_RTM-017': '11166',
+                 #'LCA-11021_RTM-017': '11166',
+                 'LCA-11021_RTM-017': '11188',
                  'LCA-11021_RTM-012': '11063',
                  'LCA-11021_RTM-013': '10982',
                  'LCA-11021_RTM-014': '10928',
@@ -36,6 +37,7 @@ ts8_good_runs = {'LCA-11021_RTM-018': '12120',
                  'LCA-11021_RTM-025': '10722',
                  'LCA-11021_RTM-011': '10861'}
 
+ts8_gain_scale_factors = {'R41': 1.5, 'R42': 1.5, 'R10': 1.5}
 
 RaftInfo = namedtuple('RaftInfo', ['lsst_id', 'good_run'])
 
@@ -76,6 +78,8 @@ def get_ts8_amp_data(schema_name, field_name):
             det_name = f'{raft_slot}_{row.slot}'
             channel = 'C' + imutils.channelIds[row.amp]
             amp_data[det_name][channel] = row[field_name]
+            if raft_slot in ts8_gain_scale_factors:
+                amp_data[det_name][channel] *= ts8_gain_scale_factors[raft_slot]
     return amp_data
 
 
