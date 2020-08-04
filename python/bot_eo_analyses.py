@@ -1,13 +1,13 @@
 """
 Producer script for BOT analyses.
 """
-from __future__ import print_function
 import os
 import re
 import glob
 import copy
 import time
 import shutil
+import json
 import pickle
 import warnings
 from collections import defaultdict
@@ -377,19 +377,37 @@ class GetAmplifierGains:
     configuration.
     """
     def __init__(self, bot_eo_config_file=None,
-                 et_results_file='et_results.pkl'):
-        self.run \
-            = siteUtils.get_analysis_run('gain',
-                                         bot_eo_config_file=bot_eo_config_file)
+                 et_results_file='et_results.pkl', run=None):
+        if run is None:
+            self.run = siteUtils\
+                .get_analysis_run('gain', bot_eo_config_file=bot_eo_config_file)
+        else:
+            self.run = run
+
         if self.run is not None:
-            if not os.path.isfile(et_results_file):
-                self.et_results = siteUtils.ETResults(self.run)
-                with open(et_results_file, 'wb') as fd:
-                    pickle.dump(self.et_results, fd)
+            if self.run.endswith('.json'):
+                self._get_curated_gains()
             else:
-                with open(et_results_file, 'rb') as fd:
-                    self.et_results = pickle.load(fd)
-            print("GetAmplifierGains: Using gains from run", self.run)
+                self.curated_gains = None
+                self._get_gains_from_run(et_results_file)
+
+    def _get_curated_gains(self):
+        gain_file = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                                 'data', self.run)
+        # Read the curated gains from the json file.
+        with open(gain_file, 'r') as fd:
+            self.curated_gains = json.load(fd)
+        print("GetAmplifierGains: Using gains from", gain_file)
+
+    def _get_gains_from_run(self, et_results_file):
+        if not os.path.isfile(et_results_file):
+            self.et_results = siteUtils.ETResults(self.run)
+            with open(et_results_file, 'wb') as fd:
+                pickle.dump(self.et_results, fd)
+        else:
+            with open(et_results_file, 'rb') as fd:
+                self.et_results = pickle.load(fd)
+        print("GetAmplifierGains: Using gains from run", self.run)
 
     def __call__(self, file_pattern):
         if self.run is None:
@@ -400,6 +418,16 @@ class GetAmplifierGains:
             message = f"no det_name match in {file_pattern}"
             raise RuntimeError("GetAmplifierGains.__call__: " + message)
         det_name = file_pattern[match.start(): match.end()]
+
+        if self.curated_gains is not None:
+            print('GetAmplifierGains.__call__: retrieving curated gains.')
+            my_gains = self.curated_gains[det_name]
+            if len(my_gains) == 8:
+                channels = siteUtils.ETResults.wf_amp_names
+            else:
+                channels = siteUtils.ETResults.amp_names
+            return {amp: my_gains[_] for amp, _ in enumerate(channels, 1)}
+
         print("GetAmplifierGains.__call__: retrieving gains from eT.")
         gains = self.et_results.get_amp_gains(det_name)
         if not gains:
@@ -407,6 +435,7 @@ class GetAmplifierGains:
                   "gains from eT not found, using unit gains.")
             return {amp: 1 for amp in range(1, 17)}
         return gains
+
 
 def _get_amplifier_gains(file_pattern=None):
     """Extract the gains for each amp in an eotest_results file."""
