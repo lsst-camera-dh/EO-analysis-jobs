@@ -92,6 +92,19 @@ def get_bot_amp_data(run, schema_name, field_name):
     return results.get_amp_data(schema_name, field_name)
 
 
+def adjust_gains(amp_gains, gain_max=1.5):
+    """Set some corner raft gains by hand."""
+    my_amp_gains = dict()
+    my_amp_gains['R04_SG0'] = dict(C13=1.25, C14=1.25, C16=1.25, C17=1.25)
+    my_amp_gains['R40_SG1'] = dict(C10=1.18, C11=1.18, C17=1.18)
+    my_amp_gains['R44_SG0'] = dict(C05=1.17)
+    for detname, gains in my_amp_gains.items():
+        for channel, gain in gains.items():
+            if amp_gains[detname][channel] > gain_max:
+                amp_gains[detname][channel] = gain
+    return amp_gains
+
+
 if __name__ == '__main__':
     amp_gain_file = 'bot_ts8_amp_gains.json'
     if not os.path.isfile(amp_gain_file):
@@ -125,6 +138,10 @@ if __name__ == '__main__':
     for det_name, corner_raft_gains in amp_data['bot_fe55_gains'].items():
         if det_name not in amp_gains:
             amp_gains[det_name].update(corner_raft_gains)
+
+    # Adjust some corner raft gains by hand:
+    amp_gains = adjust_gains(amp_gains)
+
     curated_amp_gains = 'curated_amp_gains.json'
     with open(curated_amp_gains, 'w') as output:
         json.dump(amp_gains, output)
