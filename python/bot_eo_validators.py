@@ -476,13 +476,15 @@ def validate_flat_pairs(results, det_names):
         full_well_data = data['FULL_WELL']
         max_frac_dev_data = data['MAX_FRAC_DEV']
         row_mean_var_slope_data = data['ROW_MEAN_VAR_SLOPE']
+        max_observed_signal = data['MAX_OBSERVED_SIGNAL']
 
         for amp, full_well, max_frac_dev, row_mean_var_slope \
             in zip(amps, full_well_data, max_frac_dev_data,
                    row_mean_var_slope_data):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('flat_pairs_BOT'),
-                amp=amp, full_well=full_well, max_frac_dev=max_frac_dev,
+                amp=amp, max_observed_signal=max_observed_signal,
+                max_frac_dev=max_frac_dev,
                 row_mean_var_slope=row_mean_var_slope, slot=slot, raft=raft))
 
         # Persist the png files.
