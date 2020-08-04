@@ -3,7 +3,7 @@
     'schema_name' : 'flat_pairs_raft',
     'schema_version' : 0,
     'amp' : int,
-    'full_well' : float,
+    'max_observed_signal' : float,
     'max_frac_dev' : float,
     'slot' : str,
     'sensor_id' : str
