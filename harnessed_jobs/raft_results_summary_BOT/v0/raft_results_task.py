@@ -97,7 +97,7 @@ def raft_results_task(raft_name):
     # Median bias mosaic
     median_bias = raftTest.make_raft_mosaic(bias_frames, bias_subtract=False)
     median_bias.plot(title='%s, median bias frames' % title,
-                     annotation='ADU/pixel', rotate180=True)
+                     annotation='ADU/pixel', rotate=180)
     png_files.append('{}_median_bias.png'.format(file_prefix))
     plt_savefig(png_files[-1])
     del median_bias
@@ -112,7 +112,7 @@ def raft_results_task(raft_name):
                                                 bias_frames=bias_frames)
         dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
                          annotation='e-/pixel, gain-corrected, bias-subtracted',
-                         rotate180=True)
+                         rotate=180)
         png_files.append('{}_medianed_dark.png'.format(file_prefix))
         plt_savefig(png_files[-1])
         del dark_mosaic
@@ -129,7 +129,7 @@ def raft_results_task(raft_name):
                                                dark_currents=dark_currents)
         sflat_high.plot(title='%s, high flux superflat' % title,
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
-                        rotate180=True)
+                        rotate=180)
         png_files.append('{}_superflat_high.png'.format(file_prefix))
         plt_savefig(png_files[-1])
         del sflat_high
@@ -146,7 +146,7 @@ def raft_results_task(raft_name):
                                               dark_currents=dark_currents)
         sflat_low.plot(title='%s, low flux superflat' % title,
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
-                       rotate180=True)
+                       rotate=180)
         png_files.append('{}_superflat_low.png'.format(file_prefix))
         plt_savefig(png_files[-1])
         del sflat_low
@@ -172,7 +172,7 @@ def raft_results_task(raft_name):
                                          dark_currents=dark_currents)
         flat.plot(title='%s, %s' % (title, wl),
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
-                  rotate180=True)
+                  rotate=180)
         png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
         plt_savefig(png_files[-1])
         del flat
