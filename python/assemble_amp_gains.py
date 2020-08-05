@@ -93,8 +93,11 @@ def get_bot_amp_data(run, schema_name, field_name):
 
 
 def adjust_gains(amp_gains, gain_max=1.5):
-    """Set some corner raft gains by hand."""
+    """Set some corner raft and dead amp gains by hand."""
     my_amp_gains = dict()
+    # The following values for corner raft amps are eye-balled means
+    # of the in-family gain values on the same side of the CCD for
+    # each case.
     my_amp_gains['R04_SG0'] = dict(C13=1.25, C14=1.25, C16=1.25, C17=1.25)
     my_amp_gains['R40_SG1'] = dict(C10=1.18, C11=1.18, C17=1.18)
     my_amp_gains['R44_SG0'] = dict(C05=1.17)
@@ -102,6 +105,9 @@ def adjust_gains(amp_gains, gain_max=1.5):
         for channel, gain in gains.items():
             if amp_gains[detname][channel] > gain_max:
                 amp_gains[detname][channel] = gain
+    # The R30_S00_C10 amp is dead, but a gain of zero causes floating
+    # point errors in the eotest code.
+    amp_gains['R30_S00']['C10'] = 1.
     return amp_gains
 
 
