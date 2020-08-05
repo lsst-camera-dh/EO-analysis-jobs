@@ -17,7 +17,7 @@ def make_focal_plane_plots():
     # Focal plane heat maps
     #
     fp_configs = {'fe55_BOT_analysis': (('gain', 'psf_sigma'),
-                                        ((0.5, 1.5), (3, 5.5)),
+                                        ((0.5, 1.6), (3, 5.5)),
                                         ('e-/ADU', 'micron'),
                                         (False, False),
                                         ('1', '1')),
@@ -41,11 +41,11 @@ def make_focal_plane_plots():
                               ('1e-6', '1e-6', '1e-6', '1e-6')),
                   'flat_pairs_BOT': (('max_frac_dev', 'max_observed_signal',
                                       'row_mean_var_slope'),
-                                     ((0, 0.05), (0, 2e5), (0, 2)),
+                                     ((0, 0.05), (5e4, 2.5e5), (0, 2)),
                                      (None, None, None),
                                      (False, False, False), ('1', '1', '1')),
                   'ptc_BOT': (('ptc_gain', 'ptc_a00', 'ptc_turnoff'),
-                              ((0.5, 1.5), (0, 5e-6), None),
+                              ((0.5, 1.6), (0, 5e-6), None),
                               ('e-/ADU', None, 'e-/ADU'),
                               (False, False, False), ('1', '1', '1')),
                   'bright_fatter_BOT': (('bf_xcorr', 'bf_ycorr'), (None, None),
