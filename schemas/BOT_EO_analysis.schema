@@ -74,7 +74,7 @@
     'schema_name' : 'flat_pairs_BOT',
     'schema_version' : 0,
     'amp' : int,
-    'full_well' : float,
+    'max_observed_signal' : float,
     'max_frac_dev' : float,
     'row_mean_var_slope' : float,
     'slot' : str,

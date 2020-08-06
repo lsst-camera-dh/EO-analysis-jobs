@@ -1,7 +1,6 @@
 """
 Functions to run lcatr.schema validation on BOT EO analysis data products.
 """
-from __future__ import print_function
 import os
 import glob
 from collections import OrderedDict
@@ -473,16 +472,17 @@ def validate_flat_pairs(results, det_names):
         results_file = '%s_eotest_results.fits' % file_prefix
         data = sensorTest.EOTestResults(results_file)
         amps = data['AMP']
-        full_well_data = data['FULL_WELL']
+        max_observed_signal_data = data['MAX_OBSERVED_SIGNAL']
         max_frac_dev_data = data['MAX_FRAC_DEV']
         row_mean_var_slope_data = data['ROW_MEAN_VAR_SLOPE']
 
-        for amp, full_well, max_frac_dev, row_mean_var_slope \
-            in zip(amps, full_well_data, max_frac_dev_data,
+        for amp, max_observed_signal, max_frac_dev, row_mean_var_slope \
+            in zip(amps, max_observed_signal_data, max_frac_dev_data,
                    row_mean_var_slope_data):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('flat_pairs_BOT'),
-                amp=amp, full_well=full_well, max_frac_dev=max_frac_dev,
+                amp=amp, max_observed_signal=max_observed_signal,
+                max_frac_dev=max_frac_dev,
                 row_mean_var_slope=row_mean_var_slope, slot=slot, raft=raft))
 
         # Persist the png files.
