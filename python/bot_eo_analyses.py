@@ -479,9 +479,10 @@ except KeyError as eobj:
     get_amplifier_gains = _get_amplifier_gains
 
 
-def bias_frame_task(run, det_name, bias_files):
+def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     """Create a median bias file for use by downstream tasks."""
-    bias_frame = make_bias_filename(run, det_name)
+    if bias_frame is None:
+        bias_frame = make_bias_filename(run, det_name)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
     file_prefix = make_file_prefix(run, det_name)
