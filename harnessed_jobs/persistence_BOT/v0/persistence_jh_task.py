@@ -6,7 +6,7 @@ def persistence_jh_task(det_name):
     """JH version of the persistence_task."""
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern, \
-        bias_frame_task, get_mask_files, persistence_task
+        bias_frame_task, get_mask_files, get_bot_eo_config, persistence_task
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -21,17 +21,24 @@ def persistence_jh_task(det_name):
               det_name)
         return None
 
-    # We should parse this number from the bot_eo_acq_config file:
-    num_post_exp_bias_frames = 5
+    # Sort by test sequence number, i.e., by filenames.
+    bias_files = sorted(bias_files)
+
+    # Get the number of pre- and post-exposure bias frames from
+    # the bot_eo_config file.
+    pars = get_bot_eo_config()['PERSISTENCE']
+    pre_exp_frames = int(pars['BCOUNT'])
+    post_exp_frames = int(pars['PERSISTENCE'].split()[1])
 
     # Make a superbias frame using the pre-exposure persistence bias
     # files, skipping the first exposure.
     superbias_frame = f'{file_prefix}_persistence_superbias.fits'
-    bias_frame_task(run, det_name, bias_files[1:-num_post_exp_bias_frames],
+    bias_frame_task(run, det_name, bias_files[1:pre_exp_frames],
                     bias_frame=superbias_frame)
 
-    return persistence_task(run, det_name, bias_files[-num_post_bias_frames:],
+    return persistence_task(run, det_name, bias_files[-post_exp_frames:],
                             superbias_frame, get_mask_files(det_name))
+
 
 if __name__ == '__main__':
     import sys
