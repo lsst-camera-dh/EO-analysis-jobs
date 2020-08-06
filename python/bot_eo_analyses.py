@@ -26,8 +26,11 @@ from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
 from multiprocessor_execution import run_device_analysis_pool
-import scope
-import multiscope
+try:
+    import scope
+    import multiscope
+except ImportError:
+    print("scope and/or multiscope not imported")
 
 __all__ = ['make_file_prefix',
            'glob_pattern',
