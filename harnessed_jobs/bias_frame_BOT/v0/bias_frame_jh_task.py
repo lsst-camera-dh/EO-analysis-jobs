@@ -20,7 +20,8 @@ def bias_frame_jh_task(det_name):
         print("bias_frame_task: Needed data files are missing for detector",
               det_name)
         return None
-    return bias_frame_task(run, det_name, bias_files)
+    bias_files = sorted(bias_files)
+    return bias_frame_task(run, det_name, bias_files[1:])
 
 
 if __name__ == '__main__':
