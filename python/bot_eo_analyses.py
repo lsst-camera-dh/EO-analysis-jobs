@@ -898,7 +898,7 @@ def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
     plt.xlabel('test sequence number')
     plt.ylabel('mean residual signal (ADU)')
     plt.title(f'{file_prefix} persistence test')
-    plt.savefig(f'{file_prefix}_persistence_plot.png')
+    plt.savefig(f'{file_prefix}_persistence.png')
     plt.close()
 
 

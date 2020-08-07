@@ -838,7 +838,7 @@ def validate_persistence(results, det_names):
         md = dict(DATA_PRODUCT='persistence_task_results', RUN=run,
                   DETECTOR=det_name)
         results.append(siteUtils.make_fileref(data_file, metadata=md))
-        png_files = [f'{file_prefix}_persistence_plot.png']
+        png_files = [f'{file_prefix}_persistence.png']
         md = dict(TEST_CATEGORY='EO', DETECTOR=det_name, RUN=run)
         results.extend(siteUtils.persist_png_files('', file_prefix,
                                                    png_files=png_files,
