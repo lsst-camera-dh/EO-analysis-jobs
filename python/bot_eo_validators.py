@@ -65,7 +65,7 @@ def report_missing_data(validator, missing_data, components='detectors',
 def validate_bias_frame(results, det_names):
     """Validate and persist medianed bias frames."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
         bias_frame = f'{file_prefix}_median_bias.fits'
@@ -78,7 +78,7 @@ def validate_bias_frame(results, det_names):
                                           DATE=eotestUtils.utc_now_isoformat())
                 results.append(lcatr.schema.fileref.make(fitsfile))
             else:
-                missing_det_names.append(det_name)
+                missing_det_names.add(det_name)
     report_missing_data('validate_bias_frames', missing_det_names)
     return results
 
@@ -107,8 +107,8 @@ def validate_fe55(results, det_names):
     """Validate and persist fe55 gain and psf results."""
     run = siteUtils.getRunNumber()
     analysis_types = get_analysis_types()
-    missing_det_names = []
-    missing_gain_stability_det_names = []
+    missing_det_names = set()
+    missing_gain_stability_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
@@ -121,7 +121,7 @@ def validate_fe55(results, det_names):
         if not os.path.isfile(gain_file) or not psf_results_files:
             # Results for this detector are not available so note
             # that and continue with the others.
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         psf_results = psf_results_files[0]
 
@@ -168,7 +168,7 @@ def validate_fe55(results, det_names):
                 gain_stability_file \
                     = glob.glob(f'{file_prefix}_gain_sequence.pickle')[0]
             except IndexError:
-                missing_gain_stability_det_names.append(det_name)
+                missing_gain_stability_det_names.add(det_name)
             else:
                 md = dict(DATA_PRODUCT='gain_stability_results')
                 results.append(siteUtils.make_fileref(gain_stability_file,
@@ -185,7 +185,7 @@ def validate_fe55(results, det_names):
 def validate_read_noise(results, det_names):
     """Validate and persist read noise results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
@@ -194,7 +194,7 @@ def validate_read_noise(results, det_names):
         if not os.path.isfile(read_noise_file):
             # No data for this detector, so note that and continue
             # with the others.
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         data = sensorTest.EOTestResults(read_noise_file)
         amps = data['AMP']
@@ -239,13 +239,13 @@ def validate_read_noise(results, det_names):
 def validate_bright_defects(results, det_names):
     """Validate and persist bright defects results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         mask_file = '%s_bright_pixel_mask.fits' % file_prefix
         if not os.path.isfile(mask_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(mask_file, TESTTYPE='DARK',
                                   DATE=eotestUtils.utc_now_isoformat())
@@ -280,13 +280,13 @@ def validate_bright_defects(results, det_names):
 def validate_dark_defects(results, det_names):
     """Validate and persist dark defects results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         mask_file = '%s_dark_pixel_mask.fits' % file_prefix
         if not os.path.isfile(mask_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(mask_file, TESTTYPE='SFLAT_500',
                                   DATE=eotestUtils.utc_now_isoformat())
@@ -322,13 +322,13 @@ def validate_dark_defects(results, det_names):
 def validate_traps(results, det_names):
     """Validate and persist trap results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         trap_file = '%s_traps.fits' % file_prefix
         if not os.path.isfile(trap_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(trap_file, TESTTYPE='TRAP',
                                   DATE=eotestUtils.utc_now_isoformat())
@@ -355,13 +355,13 @@ def validate_traps(results, det_names):
 def validate_dark_current(results, det_names):
     """Validate and persist dark current results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         results_file = '%s_eotest_results.fits' % file_prefix
         if not os.path.isfile(results_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         data = sensorTest.EOTestResults(results_file)
 
@@ -393,14 +393,14 @@ def validate_dark_current(results, det_names):
 def validate_cte(results, det_names):
     """Validate the CTE task results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         superflats \
             = sorted(glob.glob('{}_superflat_*.fits'.format(file_prefix)))
         if not superflats:
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         for item in superflats:
             eotestUtils.addHeaderData(item, FILENAME=item,
@@ -456,13 +456,13 @@ def validate_cte(results, det_names):
 def validate_flat_pairs(results, det_names):
     """Validate the flat pair analysis results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         det_resp_data = '%s_det_response.fits' % file_prefix
         if not os.path.isfile(det_resp_data):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(det_resp_data, DETECTOR=det_name,
                                   TESTTYPE='FLAT',
@@ -501,13 +501,13 @@ def validate_flat_pairs(results, det_names):
 def validate_ptc(results, det_names):
     """Validate the PTC results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         ptc_results = '%s_ptc.fits' % file_prefix
         if not os.path.isfile(ptc_results):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(ptc_results, TESTTYPE='FLAT',
                                   DATE=eotestUtils.utc_now_isoformat())
@@ -546,13 +546,13 @@ def validate_ptc(results, det_names):
 def validate_brighter_fatter(results, det_names):
     """Validate the brighter-fatter results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
         bf_results = '%s_bf.fits' % file_prefix
         if not os.path.isfile(bf_results):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         eotestUtils.addHeaderData(bf_results, TESTTYPE='FLAT',
                                   DATE=eotestUtils.utc_now_isoformat())
@@ -592,14 +592,14 @@ def validate_brighter_fatter(results, det_names):
 def validate_qe(results, det_names):
     """Validate the QE results."""
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
 
         qe_results_file = '%s_QE.fits' % file_prefix
         if not os.path.isfile(qe_results_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         with fits.open(qe_results_file) as qe_results:
             qe_data = qe_results['QE_BANDS'].data
@@ -643,12 +643,12 @@ def validate_flat_gain_stability(results, det_names):
         return results
 
     run = siteUtils.getRunNumber()
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
         results_file = f'{file_prefix}_flat_signal_sequence.pickle'
         if not os.path.isfile(results_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
         else:
             md = dict(DATA_PRODUCT='flat_gain_stability_results')
             results.append(siteUtils.make_fileref(results_file, metadata=md))
@@ -668,14 +668,14 @@ def validate_tearing(results, det_names):
     """Validate the tearing analysis results."""
     run = siteUtils.getRunNumber()
     schema = lcatr.schema.get('tearing_detection_BOT')
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
 
         tearing_results_file = '%s_tearing_stats.pkl' % file_prefix
         if not os.path.isfile(tearing_results_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         with open(tearing_results_file, 'rb') as input_:
             tearing_stats = pickle.load(input_)
@@ -751,7 +751,7 @@ def validate_raft_results(results, raft_names):
     md = siteUtils.DataCatalogMetadata(ORIGIN=siteUtils.getSiteName(),
                                        TEST_CATEGORY='EO',
                                        DATA_PRODUCT='EOTEST_RESULTS')
-    missing_raft_names = []
+    missing_raft_names = set()
     for raft_name in raft_names:
         for slot_name in slot_names:
             det_name = '_'.join((raft_name, slot_name))
@@ -759,7 +759,7 @@ def validate_raft_results(results, raft_names):
             results_file = '{}_eotest_results.fits'.format(file_prefix)
             if not os.path.isfile(results_file):
                 if raft_name not in missing_raft_names:
-                    missing_raft_names.append(raft_name)
+                    missing_raft_names.add(raft_name)
                 continue
             eotestUtils.addHeaderData(results_file, DETECTOR=det_name,
                                       DATE=eotestUtils.utc_now_isoformat(),
@@ -788,11 +788,11 @@ def validate_nonlinearity(results, det_names):
     """Validate the nonlinearity analysis results."""
     run = siteUtils.getRunNumber()
     results = []
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         nlc_file = f'{make_file_prefix(run, det_name)}_nlc.fits'
         if not os.path.isfile(nlc_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         md = dict(DATA_PRODUCT='nonlinearity_correction')
         results.append(siteUtils.make_fileref(nlc_file, metadata=md))
@@ -804,12 +804,12 @@ def validate_overscan(results, det_names):
     """Validate the overscan analysis results."""
     run = siteUtils.getRunNumber()
     results = []
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
         results_file = f'{file_prefix}_overscan_results.fits'
         if not os.path.isfile(results_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
         else:
             md = dict(DATA_PRODUCT='overscan_task_results', RUN=run,
                       DETECTOR=det_name)
@@ -828,12 +828,12 @@ def validate_persistence(results, det_names):
     """Validate the persistence analysis results."""
     run = siteUtils.getRunNumber()
     results = []
-    missing_det_names = []
+    missing_det_names = set()
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
         data_file = f'{file_prefix}_persistence_data.pkl'
         if not os.path.isfile(data_file):
-            missing_det_names.append(det_name)
+            missing_det_names.add(det_name)
             continue
         md = dict(DATA_PRODUCT='persistence_task_results', RUN=run,
                   DETECTOR=det_name)
