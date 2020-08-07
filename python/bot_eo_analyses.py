@@ -890,7 +890,11 @@ def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
     for amp in ccd:
         my_df = df.query(f'amp == {amp}')
         plt.scatter(my_df['tseqnum'], my_df['mean_signal'], s=2, label=f'{amp}')
-    plt.legend(fontsize='x-small', ncol=4)
+    xmax = 1.2*(np.max(df['tseqnum']) - np.min(df['tseqnum'])) \
+           + np.min(df['tseqnum'])
+    axis = plt.axis()
+    plt.xlim(axis[0], xmax)
+    plt.legend(fontsize='x-small')
     plt.xlabel('test sequence number')
     plt.ylabel('mean residual signal (ADU)')
     plt.title(f'{file_prefix} persistence test')
