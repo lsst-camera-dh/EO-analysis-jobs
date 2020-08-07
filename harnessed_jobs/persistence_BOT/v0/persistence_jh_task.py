@@ -13,7 +13,7 @@ def persistence_jh_task(det_name):
 
     acq_jobname = siteUtils.getProcessName('BOT_acq')
     bias_files \
-        = siteUtils.dependency_glob(glob_pattern('persistence_bias', det_name),
+        = siteUtils.dependency_glob(glob_pattern('persistence', det_name),
                                     acq_jobname=acq_jobname,
                                     description='Persistence bias frames:')
     if not bias_files:
