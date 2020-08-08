@@ -14,7 +14,9 @@ from collections import defaultdict
 import configparser
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from astropy.io import fits
+import lsst.afw.math as afwMath
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
 from lsst.eotest.sensor.EOTestPlots import OverscanTestPlots
@@ -24,8 +26,11 @@ from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
 from multiprocessor_execution import run_device_analysis_pool
-import scope
-import multiscope
+try:
+    import scope
+    import multiscope
+except ImportError:
+    print("scope and/or multiscope not imported")
 
 __all__ = ['make_file_prefix',
            'glob_pattern',
@@ -55,6 +60,8 @@ __all__ = ['make_file_prefix',
            'bf_task',
            'qe_task',
            'tearing_task',
+           'overscan_task',
+           'persistence_task',
            'repackage_summary_files',
            'mondiode_value',
            'get_nlc_func',
@@ -472,9 +479,10 @@ except KeyError as eobj:
     get_amplifier_gains = _get_amplifier_gains
 
 
-def bias_frame_task(run, det_name, bias_files):
+def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     """Create a median bias file for use by downstream tasks."""
-    bias_frame = make_bias_filename(run, det_name)
+    if bias_frame is None:
+        bias_frame = make_bias_filename(run, det_name)
     amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
     imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
     file_prefix = make_file_prefix(run, det_name)
@@ -855,6 +863,43 @@ def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
     for plot_type, plot_func in plot_funcs.items():
         siteUtils.make_png_file(plot_func, f'{file_prefix}_{plot_type}.png')
         plt.close()
+
+
+def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
+    """Single sensor execution of the persistence analysis."""
+    file_prefix = make_file_prefix(run, det_name)
+    data = defaultdict(list)
+    ccd = None
+    for bias_file in bias_files:
+        ccd = sensorTest.MaskedCCD(bias_file, mask_files=mask_files,
+                                   bias_frame=superbias_frame)
+        tseqnum = ccd.md.get('TSEQNUM')
+        for amp in ccd:
+            amp_image = ccd.unbiased_and_trimmed_image(amp)
+            stats = afwMath.makeStatistics(amp_image,
+                                           afwMath.MEAN | afwMath.STDEV,
+                                           ccd.stat_ctrl)
+            data['tseqnum'].append(tseqnum)
+            data['amp'].append(amp)
+            data['mean_signal'].append(stats.getValue(afwMath.MEAN))
+            data['stdev'].append(stats.getValue(afwMath.STDEV))
+    df = pd.DataFrame(data=data)
+    outfile = f'{file_prefix}_persistence_data.pkl'
+    df.to_pickle(outfile)
+    fig = plt.figure()
+    for amp in ccd:
+        my_df = df.query(f'amp == {amp}')
+        plt.scatter(my_df['tseqnum'], my_df['mean_signal'], s=2, label=f'{amp}')
+    xmax = 1.2*(np.max(df['tseqnum']) - np.min(df['tseqnum'])) \
+           + np.min(df['tseqnum'])
+    axis = plt.axis()
+    plt.xlim(axis[0], xmax)
+    plt.legend(fontsize='x-small')
+    plt.xlabel('test sequence number')
+    plt.ylabel('mean residual signal (ADU)')
+    plt.title(f'{file_prefix} persistence test')
+    plt.savefig(f'{file_prefix}_persistence.png')
+    plt.close()
 
 
 def get_raft_files_by_slot(raft_name, file_suffix, jobname=None):
