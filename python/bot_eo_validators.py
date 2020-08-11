@@ -815,7 +815,8 @@ def validate_overscan(results, det_names):
                       DETECTOR=det_name)
             results.append(siteUtils.make_fileref(results_file, metadata=md))
         png_files = (glob.glob(f'{file_prefix}_*_eper_*.png')
-                     + glob.glob(f'{file_prefix}_*_overscan_*.png'))
+                     + glob.glob(f'{file_prefix}_*_overscan_*.png')
+                     + glob.glob(f'{file_prefix}_*_cti.png'))
         md = dict(TEST_CATEGORY='EO', DETECTOR=det_name, RUN=run)
         results.extend(siteUtils.persist_png_files('', file_prefix,
                                                    png_files=png_files,
