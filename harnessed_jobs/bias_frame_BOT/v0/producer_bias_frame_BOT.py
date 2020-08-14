@@ -22,7 +22,10 @@ if 'bias' in get_analysis_types():
     # Combine data frames by raft.
     raft_names = camera_info.get_installed_raft_names()
     for raft_name in raft_names:
-        det_files = glob.glob(f'*{raft_name}*_bias_frame_stats.pkl')
+        pattern = f'{raft_name}*_bias_frame_stats.pkl'
+        det_files = glob.glob(pattern)
+        if not det_files:
+            continue
         df = pd.concat([pd.read_pickle(_) for _ in det_files],
                        ignore_index=True)
         file_prefix = make_file_prefix(run, raft_name)

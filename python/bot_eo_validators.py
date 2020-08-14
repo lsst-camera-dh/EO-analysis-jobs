@@ -93,11 +93,15 @@ def validate_bias_stability(results, det_names):
         rafts.add(raft)
         file_prefix = make_file_prefix(run, det_name)
         profile_plots = f'{file_prefix}_bias_serial_profiles.png'
+        if not os.path.isfile(profile_plots):
+            continue
         md = dict(raft=raft, slot=slot, run=run)
         results.append(siteUtils.make_fileref(profile_plots, metadata=md))
     for raft in rafts:
         file_prefix = make_file_prefix(run, raft)
         stats_file = f'{file_prefix}_bias_frame_stats.pkl'
+        if not os.path.isfile(stats_file):
+            continue
         md = dict(raft=raft, run=run)
         results.append(siteUtils.make_fileref(stats_file, metadata=md))
     return results

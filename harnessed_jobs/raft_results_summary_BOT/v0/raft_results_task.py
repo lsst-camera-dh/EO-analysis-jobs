@@ -252,7 +252,7 @@ def raft_results_task(raft_name):
         pass
 
     # Make bias frame stats time history plots for the current raft.
-    pattern = f'{raft_name}_bias_frame_stats.pkl'
+    pattern = f'{raft_name}_{run}_bias_frame_stats.pkl'
     try:
         stats_file = siteUtils.dependency_glob(pattern,
                                                jobname='bias_frame_BOT')[0]
@@ -266,7 +266,7 @@ def raft_results_task(raft_name):
         fig = plt.figure(figsize=(16, 16))
         for i, slot in enumerate(slots, 1):
             fig.add_subplot(3, 3, i)
-            df = df_raft.query(f'slot == {slot}')
+            df = df_raft.query(f'slot == "{slot}"')
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
@@ -286,7 +286,7 @@ def raft_results_task(raft_name):
         fig = plt.figure(figsize=(16, 16))
         for i, slot in enumerate(slots, 1):
             fig.add_subplot(3, 3, i)
-            df = df_raft.query(f'slot == {slot}')
+            df = df_raft.query(f'slot == "{slot}"')
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
