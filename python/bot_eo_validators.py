@@ -17,8 +17,9 @@ from tearing_detection import persist_tearing_png_files
 from bot_eo_analyses import make_file_prefix, get_analysis_types
 
 
-__all__ = ['run_validator', 'validate_bias_frame', 'validate_scan',
-           'validate_fe55',
+__all__ = ['run_validator', 'validate_bias_frame',
+           'validate_bias_stability',
+           'validate_scan', 'validate_fe55',
            'validate_read_noise', 'validate_bright_defects',
            'validate_dark_defects', 'validate_traps', 'validate_dark_current',
            'validate_cte', 'validate_flat_pairs', 'validate_ptc',
@@ -80,6 +81,25 @@ def validate_bias_frame(results, det_names):
             else:
                 missing_det_names.add(det_name)
     report_missing_data('validate_bias_frames', missing_det_names)
+    return results
+
+
+def validate_bias_stability(results, det_names):
+    """Validate bias stability results."""
+    run = siteUtils.getRunNumber()
+    rafts = set()
+    for det_name in det_names:
+        raft, slot = det_name.split('_')
+        rafts.add(raft)
+        file_prefix = make_file_prefix(run, det_name)
+        profile_plots = f'{file_prefix}_bias_serial_profiles.png'
+        md = dict(raft=raft, slot=slot, run=run)
+        results.append(siteUtils.make_fileref(profile_plots, metadata=md))
+    for raft in rafts:
+        file_prefix = make_file_prefix(run, raft)
+        stats_file = f'{file_prefix}_bias_frame_stats.pkl'
+        md = dict(raft=raft, run=run)
+        results.append(siteUtils.make_fileref(stats_file, metadata=md))
     return results
 
 
