@@ -265,6 +265,7 @@ def raft_results_task(raft_name):
             slots = 'SG0 SW2 SW0 SG1'.split()
         else:
             slots = 'S20 S21 S22 S10 S11 S12 S00 S01 S02'.split()
+        t0 = int(np.min(df_raft['MJD']))
 
         fig = plt.figure(figsize=(12, 12))
         for i, slot in enumerate(slots, 1):
@@ -273,12 +274,12 @@ def raft_results_task(raft_name):
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
-                plt.scatter(my_df['tseqnum'], my_df['mean'], s=2,
+                plt.scatter(my_df['MJD'] - t0, my_df['mean'], s=2,
                             label=f'{amp}')
             xmin, xmax, _, _ = plt.axis()
             plt.xlim(xmin, 1.2*(xmax - xmin) + xmin)
             plt.legend(fontsize='x-small')
-            plt.xlabel('test sequence number')
+            plt.xlabel(f'MJD - {t0}')
             plt.ylabel('mean signal (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
@@ -294,12 +295,12 @@ def raft_results_task(raft_name):
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
-                plt.scatter(my_df['tseqnum'], my_df['stdev'], s=2,
+                plt.scatter(my_df['MJD'] - t0, my_df['stdev'], s=2,
                             label=f'{amp}')
             xmin, xmax, _, _ = plt.axis()
             plt.xlim(xmin, 1.2*(xmax - xmin) + xmin)
             plt.legend(fontsize='x-small')
-            plt.xlabel('test sequence number')
+            plt.xlabel(f'MJD - {t0}')
             plt.ylabel('stdev (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))

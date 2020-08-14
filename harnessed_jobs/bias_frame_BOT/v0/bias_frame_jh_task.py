@@ -20,8 +20,19 @@ def bias_frame_jh_task(det_name):
         print("bias_frame_task: Needed data files are missing for detector",
               det_name)
         return None
-    bias_files = sorted(bias_files)
-    bias_stability_task(run, det_name, bias_files)
+
+    bias_stability_files \
+        = siteUtils.dependency_glob(glob_pattern('bias_stability', det_name),
+                                    acq_jobname=acq_jobname,
+                                    description='Bias stability frames:')
+    if not bias_stability_files:
+        print("bias_stability_task: Needed data files are missing for detector",
+              det_name)
+        return None
+
+    bias_stability_files = sorted(bias_stability_files)
+    bias_stability_task(run, det_name, bias_stability_files)
+
     return bias_frame_task(run, det_name, bias_files[1:])
 
 
