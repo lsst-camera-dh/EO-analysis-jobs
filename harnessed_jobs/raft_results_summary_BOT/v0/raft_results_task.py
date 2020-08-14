@@ -261,16 +261,20 @@ def raft_results_task(raft_name):
     else:
         file_prefix = make_file_prefix(run, raft_name)
         df_raft = pd.read_pickle(stats_file)
-        slots = '20 21 22 10 11 12 00 01 02'.split()
+        if raft_name in 'R00 R04 R40 R44':
+            slots = 'SG0 SW2 SW0 SG1'.split()
+        else:
+            slots = 'S20 S21 S22 S10 S11 S12 S00 S01 S02'.split()
 
-        fig = plt.figure(figsize=(16, 16))
+        fig = plt.figure(figsize=(12, 12))
         for i, slot in enumerate(slots, 1):
             fig.add_subplot(3, 3, i)
             df = df_raft.query(f'slot == "{slot}"')
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
-                plt.scatter(my_df['tseqnum'], my_df['mean'], s=2, label=f'amp')
+                plt.scatter(my_df['tseqnum'], my_df['mean'], s=2,
+                            label=f'{amp}')
             xmin, xmax, _, _ = plt.axis()
             plt.xlim(xmin, 1.2*(xmax - xmin) + xmin)
             plt.legend(fontsize='x-small')
@@ -278,19 +282,20 @@ def raft_results_task(raft_name):
             plt.ylabel('mean signal (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
-        plt.suptitle(f'{file_prefix}, bias stability')
+        plt.suptitle(f'{file_prefix}, bias stability, mean signal')
         png_file = f'{file_prefix}_bias_stability_mean.png'
         png_files.append(png_file)
         plt_savefig(png_file)
 
-        fig = plt.figure(figsize=(16, 16))
+        fig = plt.figure(figsize=(12, 12))
         for i, slot in enumerate(slots, 1):
             fig.add_subplot(3, 3, i)
             df = df_raft.query(f'slot == "{slot}"')
             amps = sorted(list(set(df['amp'])))
             for amp in amps:
                 my_df = df.query(f'amp == {amp}')
-                plt.scatter(my_df['tseqnum'], my_df['stdev'], s=2, label=f'amp')
+                plt.scatter(my_df['tseqnum'], my_df['stdev'], s=2,
+                            label=f'{amp}')
             xmin, xmax, _, _ = plt.axis()
             plt.xlim(xmin, 1.2*(xmax - xmin) + xmin)
             plt.legend(fontsize='x-small')
@@ -298,7 +303,7 @@ def raft_results_task(raft_name):
             plt.ylabel('stdev (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
-        plt.suptitle(f'{file_prefix}, bias stability')
+        plt.suptitle(f'{file_prefix}, bias stability, stdev')
         png_file = f'{file_prefix}_bias_stability_stdev.png'
         png_files.append(png_file)
         plt_savefig(png_file)
