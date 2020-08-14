@@ -499,6 +499,7 @@ def image_stats(image, nsigma=10):
 
 def bias_stability_task(run, det_name, bias_files, nsigma=10):
     """Compute amp-wise bias stability time histories and serial profiles."""
+    raft, slot = det_name.split('_')
     file_prefix = make_file_prefix(run, det_name)
     data = defaultdict(list)
 
@@ -517,6 +518,8 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
             ax[amp].plot(range(imarr.shape[1]), np.median(imarr, axis=0))
             # Compute 10-sigma clipped mean and stdev
             mean, stdev = image_stats(amp_image, nsigma=nsigma)
+            data['raft'].append(raft)
+            data['slot'].append(slot)
             data['tseqnum'].append(ccd.md.get('TSEQNUM'))
             data['amp'].append(amp)
             data['mean'].append(mean)
