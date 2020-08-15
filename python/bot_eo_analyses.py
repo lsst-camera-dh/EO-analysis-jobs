@@ -42,6 +42,7 @@ __all__ = ['make_file_prefix',
            'get_analysis_types',
            'fe55_task',
            'bias_frame_task',
+           'bias_stability_task',
            'scan_mode_analysis_task',
            'get_scan_mode_files',
            'read_noise_task',
@@ -488,6 +489,58 @@ def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     file_prefix = make_file_prefix(run, det_name)
     rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
     sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
+
+def image_stats(image, nsigma=10):
+    """Compute clipped mean and stdev of the image."""
+    stat_ctrl = afwMath.StatisticsControl(numSigmaClip=nsigma)
+    flags = afwMath.MEANCLIP | afwMath.STDEVCLIP
+    stats = afwMath.makeStatistics(image, flags=flags, sctrl=stat_ctrl)
+    return stats.getValue(afwMath.MEANCLIP), stats.getValue(afwMath.STDEVCLIP)
+
+def bias_stability_task(run, det_name, bias_files, nsigma=10):
+    """Compute amp-wise bias stability time histories and serial profiles."""
+    raft, slot = det_name.split('_')
+    file_prefix = make_file_prefix(run, det_name)
+    data = defaultdict(list)
+
+    fig = plt.figure(figsize=(16, 16))
+    xlabel_amps = (13, 14, 15, 16)
+    ylabel_amps = (1, 5, 9, 13)
+    ax = {amp: fig.add_subplot(4, 4, amp) for amp in range(1, 17)}
+
+    for bias_file in bias_files:
+        with fits.open(bias_file) as hdus:
+            temps = dict()
+            for i in range(1, 10):
+                key = f'TEMP{i}'
+                if key in hdus['REB_COND'].header:
+                    temps[key] = hdus['REB_COND'].header[key]
+        ccd = sensorTest.MaskedCCD(bias_file)
+        for amp in ccd:
+            # Retrieve the per row overscan subtracted imaging section.
+            amp_image = ccd.unbiased_and_trimmed_image(amp)
+            # Plot the median of each column versus serial pixel number.
+            imarr = amp_image.getImage().array
+            ax[amp].plot(range(imarr.shape[1]), np.median(imarr, axis=0))
+            # Compute 10-sigma clipped mean and stdev
+            mean, stdev = image_stats(amp_image, nsigma=nsigma)
+            data['raft'].append(raft)
+            data['slot'].append(slot)
+            data['tseqnum'].append(ccd.md.get('TSEQNUM'))
+            for key, value in temps.items():
+                data[key].append(value)
+            data['MJD'].append(ccd.md.get('MJD-OBS'))
+            data['amp'].append(amp)
+            data['mean'].append(mean)
+            data['stdev'].append(stdev)
+    plt.suptitle(f'{det_name}, Run {run}\nmedian signal (ADU) vs column')
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
+    for amp in ccd:
+        ax[amp].annotate(f'amp {amp}', (0.5, 0.95),
+                         xycoords='axes fraction', ha='center')
+    plt.savefig(f'{file_prefix}_bias_serial_profiles.png')
+    df = pd.DataFrame(data=data)
+    df.to_pickle(f'{file_prefix}_bias_frame_stats.pkl')
 
 
 def get_scan_mode_files(raft_name):
