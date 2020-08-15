@@ -510,8 +510,11 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
 
     for bias_file in bias_files:
         with fits.open(bias_file) as hdus:
-            temps = {f'TEMP{_}': hdus['REB_COND'].header[f'TEMP{_}']
-                     for _ in '123456'}
+            temps = dict()
+            for i in range(1, 10):
+                key = f'TEMP{i}'
+                if key in hdus['REB_COND'].header:
+                    temps[key] = hdus['REB_COND'].header[key]
         ccd = sensorTest.MaskedCCD(bias_file)
         for amp in ccd:
             # Retrieve the per row overscan subtracted imaging section.
@@ -524,8 +527,8 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
             data['raft'].append(raft)
             data['slot'].append(slot)
             data['tseqnum'].append(ccd.md.get('TSEQNUM'))
-            for temp in [f'TEMP{_}' for _ in '123456']:
-                data[temp].append(temps[temp])
+            for key, value in temps.items():
+                data[key].append(value)
             data['MJD'].append(ccd.md.get('MJD-OBS'))
             data['amp'].append(amp)
             data['mean'].append(mean)
