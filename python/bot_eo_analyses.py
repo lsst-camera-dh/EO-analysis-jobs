@@ -540,7 +540,7 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
                          xycoords='axes fraction', ha='center')
     plt.savefig(f'{file_prefix}_bias_serial_profiles.png')
     df = pd.DataFrame(data=data)
-    df.to_pickle(f'{file_prefix}_bias_frame_stats.pkl')
+    df.to_pickle(f'{file_prefix}_bias_frame_stats.pickle')
 
 
 def get_scan_mode_files(raft_name):
@@ -568,7 +568,6 @@ def get_raft_arrays(raft_files):
 
 
 def scan_mode_analysis_task(run, raft_name, scan_mode_files):
-
     """Scan mode analysis task."""
     file_prefix = make_file_prefix(run, raft_name)
     for scan_dir, raft_files in scan_mode_files.items():

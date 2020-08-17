@@ -252,7 +252,7 @@ def raft_results_task(raft_name):
         pass
 
     # Make bias frame stats time history plots for the current raft.
-    pattern = f'{raft_name}_{run}_bias_frame_stats.pkl'
+    pattern = f'{raft_name}_{run}_bias_frame_stats.pickle'
     try:
         stats_file = siteUtils.dependency_glob(pattern,
                                                jobname='bias_frame_BOT')[0]
