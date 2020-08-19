@@ -19,15 +19,12 @@ def raft_results_task(raft_name):
         plt.savefig(filename)
         plt.close()
 
-    if raft_name in 'R00 R04 R40 R44':
-        slot_names = 'SG0 SG1 SW0 SW1'.split()
-    else:
-        slot_names = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
 
     # Get results files for each CCD in the raft.
     try:
         results_files \
             = get_raft_files_by_slot(raft_name, 'eotest_results.fits')
+        print("results_files:", results_files)
     except FileNotFoundError:
         print("No raft-level results for", raft_name)
         results_files = {}
@@ -81,7 +78,7 @@ def raft_results_task(raft_name):
     title = '{}, {}'.format(run, raft_name)
 
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
-             for slot_name in slot_names}
+             for slot_name in results_files}
 
     # Update the gains in the results files with the retrieved values.
     for slot_name, ccd_gains in gains.items():
