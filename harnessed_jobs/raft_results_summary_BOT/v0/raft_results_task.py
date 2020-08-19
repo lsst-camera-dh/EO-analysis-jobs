@@ -13,11 +13,16 @@ def raft_results_task(raft_name):
     import siteUtils
     from camera_components import camera_info
     from bot_eo_analyses import get_raft_files_by_slot, make_file_prefix,\
-        get_amplifier_gains
+        get_amplifier_gains, get_analysis_types
 
     def plt_savefig(filename):
         plt.savefig(filename)
         plt.close()
+
+    if raft_name in 'R00 R04 R40 R44':
+        slot_names = 'SG0 SG1 SW0 SW1'.split()
+    else:
+        slot_names = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
 
     # Get results files for each CCD in the raft.
     try:
@@ -25,7 +30,7 @@ def raft_results_task(raft_name):
             = get_raft_files_by_slot(raft_name, 'eotest_results.fits')
     except FileNotFoundError:
         print("No raft-level results for", raft_name)
-        return None
+        results_files = {}
 
     # Determine the total number of pixels and number of edge rolloff
     # pixels for the types of CCDs in this raft and update the results
@@ -50,13 +55,15 @@ def raft_results_task(raft_name):
     exptime = 15.
 
     # Update the eotest results files.
+    analysis_types = get_analysis_types()
     for filename in results_files.values():
         eotest_results = sensorTest.EOTestResults(filename)
         eotest_results.add_ccd_result('TOTAL_NUM_PIXELS', total_num)
         eotest_results.add_ccd_result('ROLLOFF_MASK_PIXELS', rolloff_mask)
         shot_noise = eotest_results['DARK_CURRENT_95']*exptime
         total_noise = np.sqrt(eotest_results['READ_NOISE']**2 + shot_noise)
-        add_max_frac_dev = 'MAX_FRAC_DEV' not in eotest_results.colnames
+        add_max_frac_dev = ('MAX_FRAC_DEV' not in eotest_results.colnames
+                            and 'linearity' in analysis_types)
         for i, amp in enumerate(eotest_results['AMP']):
             if add_max_frac_dev:
                 eotest_results.add_seg_result(amp, 'MAX_FRAC_DEV', 0.)
@@ -74,14 +81,18 @@ def raft_results_task(raft_name):
     title = '{}, {}'.format(run, raft_name)
 
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
-             for slot_name in results_files}
+             for slot_name in slot_names}
 
     # Update the gains in the results files with the retrieved values.
     for slot_name, ccd_gains in gains.items():
-        results = sensorTest.EOTestResults(results_files[slot_name])
-        for amp, gain in ccd_gains.items():
-            results.add_seg_result(amp, 'GAIN', gain)
-        results.write()
+        try:
+            results = sensorTest.EOTestResults(results_files[slot_name])
+        except KeyError:
+            continue
+        else:
+            for amp, gain in ccd_gains.items():
+                results.add_seg_result(amp, 'GAIN', gain)
+            results.write()
 
     # Extract dark currents for each amplifier in the raft.
     dark_currents = dict()
@@ -194,11 +205,12 @@ def raft_results_task(raft_name):
         pass
 
     try:
-        spec_plots.make_plot('MAX_FRAC_DEV',
-                             'non-linearity (max. fractional deviation)',
-                             spec=0.03, title=title, ybounds=(0, 0.1))
-        png_files.append('%s_linearity.png' % file_prefix)
-        plt_savefig(png_files[-1])
+        if 'linearity' in analysis_types:
+            spec_plots.make_plot('MAX_FRAC_DEV',
+                                 'non-linearity (max. fractional deviation)',
+                                 spec=0.03, title=title, ybounds=(0, 0.1))
+            png_files.append('%s_linearity.png' % file_prefix)
+            plt_savefig(png_files[-1])
     except KeyError:
         pass
 
@@ -243,11 +255,12 @@ def raft_results_task(raft_name):
         pass
 
     try:
-        spec_plots.make_plot('DARK_CURRENT_95',
-                             '95th percentile dark current (e-/pixel/s)',
-                             spec=0.2, title=title, ybounds=(-0.01, 1))
-        png_files.append('%s_dark_current.png' % file_prefix)
-        plt_savefig(png_files[-1])
+        if 'dark' in analysis_types:
+            spec_plots.make_plot('DARK_CURRENT_95',
+                                 '95th percentile dark current (e-/pixel/s)',
+                                 spec=0.2, title=title, ybounds=(-0.01, 1))
+            png_files.append('%s_dark_current.png' % file_prefix)
+            plt_savefig(png_files[-1])
     except KeyError:
         pass
 
