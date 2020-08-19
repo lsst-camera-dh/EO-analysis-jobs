@@ -585,14 +585,14 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
         for seg, scandata in zip(seg_list, raft_arrays):
             slot = 'S' + seg
             det_name = '_'.join((raft_name, slot))
-            disp_plot_title = f'{det_name}, Run {run}, {tm_mode} {counter}'
+            disp_plot_title = f'{det_name}, Run {run}, {tm_mode} {counter:03d}'
             scope.plot_scan_dispersion(scandata, title=disp_plot_title)
             disp_outfile \
                 = f'{det_name}_{run}_{tm_mode}_{counter:03d}_dispersion.png'
             plt.savefig(disp_outfile)
             plt.close()
         # Make the multiscope plots for each raft.
-        title = f'{raft_name}, Run {run}, {tm_mode} {counter}'
+        title = f'{raft_name}, Run {run}, {tm_mode} {counter:03d}'
         multiscope.plot_raft_allchans(raft_arrays, seg_list, suptitle=title)
         outfile = f'{file_prefix}_{tm_mode}_{counter:03d}_multiscope.png'
         plt.savefig(outfile)
