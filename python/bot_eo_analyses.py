@@ -570,22 +570,31 @@ def get_raft_arrays(raft_files):
 def scan_mode_analysis_task(run, raft_name, scan_mode_files):
     """Scan mode analysis task."""
     file_prefix = make_file_prefix(run, raft_name)
+    tm_counter = defaultdict(lambda: -1)
     for scan_dir, raft_files in scan_mode_files.items():
+        tm_mode = 'TM_OFF'
+        with fits.open(list(raft_files.values())[0]) as hdus:
+            reb_cond = hdus['REB_COND'].header
+            if ('AP0_TM' in reb_cond and 'AP1_TM' in reb_cond and
+                reb_cond['AP0_TM'] == 1 and reb_cond['AP1_TM'] == 1):
+                tm_mode = 'TM_ON'
+        tm_counter[tm_mode] += 1
+        counter = tm_counter[tm_mode]
         raft_arrays, seg_list = get_raft_arrays(raft_files)
         # Make the dispersion plots, one per sensor.
         for seg, scandata in zip(seg_list, raft_arrays):
             slot = 'S' + seg
             det_name = '_'.join((raft_name, slot))
-            disp_plot_title = '{}, Run {}, {}'.format(det_name, run, scan_dir)
+            disp_plot_title = f'{det_name}, Run {run}, {tm_mode} {counter:03d}'
             scope.plot_scan_dispersion(scandata, title=disp_plot_title)
             disp_outfile \
-                = '{}_{}_{}_dispersion.png'.format(det_name, run, scan_dir)
+                = f'{det_name}_{run}_{tm_mode}_{counter:03d}_dispersion.png'
             plt.savefig(disp_outfile)
             plt.close()
         # Make the multiscope plots for each raft.
-        title = '{}, Run {}, {}'.format(raft_name, run, scan_dir)
+        title = f'{raft_name}, Run {run}, {tm_mode} {counter:03d}'
         multiscope.plot_raft_allchans(raft_arrays, seg_list, suptitle=title)
-        outfile = '{}_{}_multiscope.png'.format(file_prefix, scan_dir)
+        outfile = f'{file_prefix}_{tm_mode}_{counter:03d}_multiscope.png'
         plt.savefig(outfile)
         plt.close()
 
