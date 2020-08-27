@@ -277,7 +277,7 @@ def raft_results_task(raft_name):
         file_prefix = make_file_prefix(run, raft_name)
         df_raft = pd.read_pickle(stats_file)
         if raft_name in 'R00 R04 R40 R44':
-            slots = 'SG0 SW2 SW0 SG1'.split()
+            slots = 'SG0 SW1 SW0 SG1'.split()
         else:
             slots = 'S20 S21 S22 S10 S11 S12 S00 S01 S02'.split()
         t0 = int(np.min(df_raft['MJD']))
