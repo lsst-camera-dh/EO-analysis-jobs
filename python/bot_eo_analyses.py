@@ -385,7 +385,8 @@ class GetAmplifierGains:
     configuration.
     """
     def __init__(self, bot_eo_config_file=None,
-                 et_results_file='et_results.pkl', run=None):
+                 et_results_file='et_results.pkl', run=None, verbose=True):
+        self.verbose = verbose
         if run is None:
             self.run = siteUtils\
                 .get_analysis_run('gain', bot_eo_config_file=bot_eo_config_file)
@@ -405,7 +406,8 @@ class GetAmplifierGains:
         # Read the curated gains from the json file.
         with open(gain_file, 'r') as fd:
             self.curated_gains = json.load(fd)
-        print("GetAmplifierGains: Using gains from", gain_file)
+        if self.verbose:
+            print("GetAmplifierGains: Using gains from", gain_file)
 
     def _get_gains_from_run(self, et_results_file):
         if not os.path.isfile(et_results_file):
@@ -415,7 +417,8 @@ class GetAmplifierGains:
         else:
             with open(et_results_file, 'rb') as fd:
                 self.et_results = pickle.load(fd)
-        print("GetAmplifierGains: Using gains from run", self.run)
+        if self.verbose:
+            print("GetAmplifierGains: Using gains from run", self.run)
 
     def __call__(self, file_pattern):
         if self.run is None:
@@ -428,7 +431,8 @@ class GetAmplifierGains:
         det_name = file_pattern[match.start(): match.end()]
 
         if self.curated_gains is not None:
-            print('GetAmplifierGains.__call__: retrieving curated gains.')
+            if self.verbose:
+                print('GetAmplifierGains.__call__: retrieving curated gains.')
             my_gains = self.curated_gains[det_name]
             if len(my_gains) == 8:
                 channels = siteUtils.ETResults.wf_amp_names
@@ -436,11 +440,13 @@ class GetAmplifierGains:
                 channels = siteUtils.ETResults.amp_names
             return {amp: my_gains[_] for amp, _ in enumerate(channels, 1)}
 
-        print("GetAmplifierGains.__call__: retrieving gains from eT.")
+        if self.verbose:
+            print("GetAmplifierGains.__call__: retrieving gains from eT.")
         gains = self.et_results.get_amp_gains(det_name)
         if not gains:
-            print("GetAmplifierGains.__call__: "
-                  "gains from eT not found, using unit gains.")
+            if self.verbose:
+                print("GetAmplifierGains.__call__: "
+                      "gains from eT not found, using unit gains.")
             return {amp: 1 for amp in range(1, 17)}
         return gains
 
