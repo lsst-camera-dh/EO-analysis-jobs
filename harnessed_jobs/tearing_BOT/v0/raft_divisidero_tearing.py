@@ -12,7 +12,10 @@ def raft_divisidero_tearing(raft_name):
 
     run = siteUtils.getRunNumber()
 
-    sflat_files = get_raft_files_by_slot(raft_name, 'median_sflat.fits')
+    try:
+        sflat_files = get_raft_files_by_slot(raft_name, 'median_sflat.fits')
+    except FileNotFoundError:
+        return
 
     max_divisidero_tearing \
         = raftTest.ana_divisidero_tearing(sflat_files, raft_name, run)
