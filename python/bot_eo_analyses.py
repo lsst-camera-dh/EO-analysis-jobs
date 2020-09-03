@@ -951,7 +951,7 @@ def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
             data['mean_signal'].append(stats.getValue(afwMath.MEAN))
             data['stdev'].append(stats.getValue(afwMath.STDEV))
     df = pd.DataFrame(data=data)
-    outfile = f'{file_prefix}_persistence_data.pkl'
+    outfile = f'{file_prefix}_persistence_data.pickle'
     df.to_pickle(outfile)
     fig = plt.figure()
     for amp in ccd:
