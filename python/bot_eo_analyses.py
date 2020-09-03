@@ -566,10 +566,14 @@ def get_scan_mode_files(raft_name):
 
 def get_raft_arrays(raft_files):
     """Get raftarrrays list for passing to scan mode plotting code."""
-    seglist = multiscope.slot_ids()
+    seglist = []
     raftarrays = []
-    for slot in ['S{}'.format(seg) for seg in seglist]:
-        raftarrays.append(scope.get_scandata_fromfile(raft_files[slot]))
+    slots = sorted(list(raft_files.keys()))
+    for slot in slots:
+        channels = list(range(8)) if slot.startswith('SW') else None
+        raftarrays.append(scope.get_scandata_fromfile(raft_files[slot],
+                                                      selectchannels=channels))
+        seglist.append(slot[1:])
     return raftarrays, seglist
 
 
@@ -592,7 +596,9 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
             slot = 'S' + seg
             det_name = '_'.join((raft_name, slot))
             disp_plot_title = f'{det_name}, Run {run}, {tm_mode} {counter:03d}'
-            scope.plot_scan_dispersion(scandata, title=disp_plot_title)
+            Nchan = 8 if slot.startswith('SW') else 16
+            scope.plot_scan_dispersion(scandata, title=disp_plot_title,
+                                       Nchan=Nchan)
             disp_outfile \
                 = f'{det_name}_{run}_{tm_mode}_{counter:03d}_dispersion.png'
             plt.savefig(disp_outfile)
