@@ -856,7 +856,7 @@ def validate_persistence(results, det_names):
     missing_det_names = set()
     for det_name in det_names:
         file_prefix = make_file_prefix(run, det_name)
-        data_file = f'{file_prefix}_persistence_data.pkl'
+        data_file = f'{file_prefix}_persistence_data.pickle'
         if not os.path.isfile(data_file):
             missing_det_names.add(det_name)
             continue
