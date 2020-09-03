@@ -585,8 +585,7 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
         tm_mode = 'TM_OFF'
         with fits.open(list(raft_files.values())[0]) as hdus:
             reb_cond = hdus['REB_COND'].header
-            if ('AP0_TM' in reb_cond and 'AP1_TM' in reb_cond and
-                reb_cond['AP0_TM'] == 1 and reb_cond['AP1_TM'] == 1):
+            if 'AP0_TM' in reb_cond and reb_cond['AP0_TM'] == 1:
                 tm_mode = 'TM_ON'
         tm_counter[tm_mode] += 1
         counter = tm_counter[tm_mode]
