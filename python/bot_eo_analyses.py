@@ -55,6 +55,7 @@ __all__ = ['make_file_prefix',
            'cte_task',
            'plot_cte_results',
            'find_flat2_bot',
+           'row_means_var_plot',
            'flat_pairs_task',
            'nonlinearity_task',
            'ptc_task',
@@ -768,6 +769,33 @@ def find_flat2_bot(file1):
     return flat2
 
 
+def row_means_var_plot(detresp_file, title, min_flux=3000, max_flux=1e5):
+    """Plot of var(row_means) vs 2*flux/ncols."""
+    channels = {key: 'C' + value for key, value in imutils.channelIds.items()}
+    with fits.open(detresp_file) as detresp:
+        ncols = detresp[0].header['NUMCOLS']
+        amps = range(1, detresp[0].header['NAMPS'] + 1)
+        for amp in amps:
+            amp_label = f'AMP{amp:02d}'
+            flux = detresp[1].data[f'{amp_label}_SIGNAL']
+            row_mean_var = detresp[1].data[f'{amp_label}_ROW_MEAN_VAR']
+            index = np.where((min_flux < flux) & (flux < max_flux)
+                             & (row_mean_var == row_mean_var))
+            plt.scatter(2*flux[index]/ncols, row_mean_var[index], s=2,
+                        label=channels[amp])
+    plt.xscale('log')
+    plt.yscale('log')
+    xmin, xmax, ymin, ymax = plt.axis()
+    xymin = min(xmin, ymin)
+    xymax = max(xmax, ymax)
+    plt.plot([xymin, xymax], [xymin, xymax], linestyle=':')
+    plt.legend(fontsize='x-small', ncol=2, loc=2)
+    plt.axis((xmin, xmax, ymin, ymax))
+    plt.xlabel('2*(flux/(e-/pixel))/num_cols')
+    plt.ylabel('var(row_means)')
+    plt.title(title)
+
+
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
@@ -797,6 +825,10 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                             detresp_file=detresp_file, max_dev=0.03,
                             Ne_bounds=linearity_spec_range,
                             use_exptime=use_exptime)
+
+    siteUtils.make_png_file(row_means_var_plot,
+                            f'{file_prefix}_row_means_var.png',
+                            detresp_file)
 
 
 def nonlinearity_task(run, det_name, detresp_file, outfile):
