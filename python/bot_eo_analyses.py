@@ -22,6 +22,7 @@ import lsst.eotest.sensor as sensorTest
 from lsst.eotest.sensor.EOTestPlots import OverscanTestPlots
 import eotestUtils
 import siteUtils
+from focal_plane_plotting import plot_focal_plane
 from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
@@ -62,6 +63,7 @@ __all__ = ['make_file_prefix',
            'bf_task',
            'qe_task',
            'tearing_task',
+           'tearing_fp_heat_map',
            'overscan_task',
            'persistence_task',
            'repackage_summary_files',
@@ -941,11 +943,40 @@ def tearing_task(run, det_name, flat_files, bias_frame=None):
     """Single sensor execution of the tearing task."""
     file_prefix = make_file_prefix(run, det_name)
 
-    tearing_found, _ = tearing_detection(flat_files, bias_frame=bias_frame)
+    tearing_found, _, amp_counts = tearing_detection(flat_files,
+                                                     bias_frame=bias_frame)
     tearing_stats = [('BOT_EO_acq', 'N/A', det_name, len(tearing_found))]
 
     with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
-        pickle.dump(tearing_stats, output)
+        pickle.dump((tearing_stats, amp_counts), output)
+
+
+def tearing_fp_heat_map(pattern='*_tearing_stats.pkl'):
+    """
+    Plot a heat map of the tearing detections per amp over
+    the full focal plane.  Glob the data from the tearing stats
+    pickle files produced by tearing_task for each CCD.
+    """
+    channels = {amp: 'C'+_ for amp, _ in imutils.channelIds.items()}
+    # With lsst_distrib v20.0.0, the channel names for the WF sensors
+    # are of the form 'C0x'.
+    wf_channels = {_ + 1: f'C0{_}' for _ in range(8)}
+    # The following dict has the correct mapping:
+    #wf_channels = {_ + 1: f'C1{_}' for _ in range(8)}
+    amp_data = defaultdict(dict)
+    for item in glob.glob(pattern):
+        det_name = os.path.basename(item)[:len('R22_S11')]
+        ch = wf_channels if 'SW' in det_name else channels
+        with open(item, 'rb') as fd:
+            _, amp_counts = pickle.load(fd)
+        for amp, detections in amp_counts.items():
+            amp_data[det_name][ch[amp]] = detections
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    run = siteUtils.getRunNumber()
+    plot_focal_plane(ax, amp_data, camera=camera_info.camera_object,
+                     title=f'Run {run}, tearing detections')
+    plt.savefig(f'LCA-10134_Cryostat-0001_{run}_tearing_detections.png')
 
 
 def overscan_task(run, det_name, flat_files, gains, bias_frame=None):

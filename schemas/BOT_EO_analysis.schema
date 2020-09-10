@@ -126,6 +126,14 @@
     'subset' : str,
     'slot' : str,
     'sensor_id' : str,
-    'detections': int
+    'detections' : int
+},
+{
+    'schema_name' : 'tearing_stats_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'tearing_detections' : int
 }
 ]

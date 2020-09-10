@@ -696,6 +696,7 @@ def validate_tearing(results, det_names):
     """Validate the tearing analysis results."""
     run = siteUtils.getRunNumber()
     schema = lcatr.schema.get('tearing_detection_BOT')
+    amps_schema = lcatr.schema.get('tearing_stats_BOT')
     missing_det_names = set()
     for det_name in det_names:
         raft, slot = det_name.split('_')
@@ -706,12 +707,16 @@ def validate_tearing(results, det_names):
             missing_det_names.add(det_name)
             continue
         with open(tearing_results_file, 'rb') as input_:
-            tearing_stats = pickle.load(input_)
+            tearing_stats, amp_counts = pickle.load(input_)
         for values in tearing_stats:
-            stats = dict(kv for kv in zip(('job_name', 'subset', 'sensor_id',
-                                           'detections', 'slot', 'raft'),
-                                          list(values) + [slot, raft]))
+            stats = dict(zip(('job_name', 'subset', 'sensor_id',
+                              'detections', 'slot', 'raft'),
+                             list(values) + [slot, raft]))
             results.append(lcatr.schema.valid(schema, **stats))
+        for amp, detections in amp_counts.items():
+            results.append(lcatr.schema.valid(amps_schema, amp=amp,
+                                              slot=slot, raft=raft,
+                                              tearing_detections=detections))
 
     png_files = sorted(glob.glob('*_tearing.png'))
     results.extend(persist_tearing_png_files(png_files))
