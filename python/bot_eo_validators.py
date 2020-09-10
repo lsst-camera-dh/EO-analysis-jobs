@@ -516,6 +516,10 @@ def validate_flat_pairs(results, det_names):
                                                     % file_prefix),
                                                    file_prefix,
                                                    metadata=metadata))
+        results.extend(siteUtils.persist_png_files(('%s_row_means_variance.png'
+                                                    % file_prefix),
+                                                   file_prefix,
+                                                   metadata=metadata))
 
     report_missing_data("validate_flat_pairs", missing_det_names)
 

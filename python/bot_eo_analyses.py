@@ -827,8 +827,8 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                             use_exptime=use_exptime)
 
     siteUtils.make_png_file(row_means_var_plot,
-                            f'{file_prefix}_row_means_var.png',
-                            detresp_file)
+                            f'{file_prefix}_row_means_variance.png',
+                            detresp_file, file_prefix)
 
 
 def nonlinearity_task(run, det_name, detresp_file, outfile):
