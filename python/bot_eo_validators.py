@@ -740,36 +740,31 @@ def validate_tearing(results, det_names):
             missing_raft_names.add(raft_name)
             continue
 
-        fields = ('max_deviation_10_11',
-                  'max_deviation_11_12',
-                  'max_deviation_12_13',
-                  'max_deviation_13_14',
-                  'max_deviation_14_15',
-                  'max_deviation_15_16',
-                  'max_deviation_16_17',
-                  'max_deviation_00_01',
-                  'max_deviation_01_02',
-                  'max_deviation_02_03',
-                  'max_deviation_03_04',
-                  'max_deviation_04_05',
-                  'max_deviation_05_06',
-                  'max_deviation_06_07')
-
-        divisidero_schema = lcatr.schema.get('divisidero_tearing')
+        bot_schema = lcatr.schema.get('divisadero_tearing_BOT')
         for slot, values in max_devs.items():
-            if len(values) == 7:
-                # Pad the values for a WF sensor so that the schema
-                # entries are all set, as required.
-                values = [-1]*7 + list(values)
-            data = dict()
-            for field, max_dev in zip(fields, values):
-                if np.isfinite(max_dev):
-                    data[field] = max_dev
+            # Weed out nans and infinities.
+            max_dev_values = []
+            for value in values:
+                if np.isfinite(value):
+                    max_dev_values.append(value)
                 else:
-                    data[field] = -1
-            det_name = f'{raft_name}_{slot}'
-            results.append(lcatr.schema.valid(divisidero_schema, slot=slot,
-                                              sensor_id=det_name, **data))
+                    max_dev_values.append(0)
+            # Top half of CCD.
+            my_devs = max_dev_values[:7]
+            for amp, devs in enumerate(zip([0] + my_devs, my_devs + [0]), 1):
+                results.append(lcatr.schema.valid(bot_schema, amp=amp,
+                                                  slot=slot, raft=raft_name,
+                                                  divisadero_max_dev=max(devs)))
+            if len(max_dev_values) == 7:
+                # This is a WF sensor.
+                continue
+            # Bottom half of CCD.
+            my_devs = max_dev_values[7:]
+            my_devs.reverse()
+            for amp, devs in enumerate(zip([0] + my_devs, my_devs + [0]), 9):
+                results.append(lcatr.schema.valid(bot_schema, amp=amp,
+                                                  slot=slot, raft=raft_name,
+                                                  divisadero_max_dev=max(devs)))
 
     report_missing_data("validate_tearing", missing_det_names)
     report_missing_data("validate_tearing", sorted(list(missing_raft_names)),
