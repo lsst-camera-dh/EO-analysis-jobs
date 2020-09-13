@@ -135,5 +135,13 @@
     'slot' : str,
     'raft' : str,
     'tearing_detections' : int
+},
+{
+    'schema_name' : 'divisadero_tearing_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'divisadero_max_dev' : float
 }
 ]

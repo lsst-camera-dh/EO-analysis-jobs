@@ -51,8 +51,11 @@ def make_focal_plane_plots():
                   'bright_fatter_BOT': (('bf_xcorr', 'bf_ycorr'), (None, None),
                                         (None, None), (False, False),
                                         ('1', '1')),
-                  'tearing_stats_BOT': (('tearing_detections',), (None,), (None,),
-                                        (False,), ('1',))}
+                  'tearing_stats_BOT': (('tearing_detections',), (None,),
+                                        (None,), (False,), ('1',)),
+                  'divisadero_tearing_BOT': (('divisadero_max_dev',),
+                                             ((0, 0.05),), (None,), (False,),
+                                             ('1',))}
 
     camera = camera_info.camera_object
 
