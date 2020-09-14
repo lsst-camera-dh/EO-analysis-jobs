@@ -237,12 +237,14 @@ def bias_filename(run, det_name):
     return filename
 
 
-def fe55_task(run, det_name, fe55_files):
+def fe55_task(run, det_name, fe55_files, bias_frame=None):
     "Single sensor execution of the Fe55 analysis task."
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
 
-    bias_frame = bias_filename(run, det_name)
+    if bias_frame is None:
+        bias_frame = bias_filename(run, det_name)
+
     png_files = []
 
     try:
@@ -498,6 +500,7 @@ def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     file_prefix = make_file_prefix(run, det_name)
     rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
     sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
+    return bias_frame
 
 def image_stats(image, nsigma=10):
     """Compute clipped mean and stdev of the image."""
@@ -1106,7 +1109,7 @@ def get_nlc_func(det_name, bot_eo_config_file=None):
     try:
         nlc_file = siteUtils.dependency_glob(f'{file_prefix}_nlc.fits',
                                              jobname='nonlinearity_BOT')[0]
-    except IndexError as eobj:
+    except (IndexError, TypeError) as eobj:
         print(f'{file_prefix}_nlc.fits not found:', eobj)
         return None
 
