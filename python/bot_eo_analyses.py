@@ -380,7 +380,12 @@ def gain_stability_task(run, det_name, fe55_files):
             mjd_obs[hdus[0].header['SEQNUM']] = hdus[0].header['MJD-OBS']
 
     psf_results_file = sorted(glob.glob(f'{file_prefix}_psf_results*.fits'))[0]
-    df = sensorTest.gain_sequence(det_name, psf_results_file)
+    try:
+        df = sensorTest.gain_sequence(det_name, psf_results_file)
+    except ValueError as eobj:
+        print("ValueError in gain_stability_task:", eobj)
+        return None
+
     df['mjd'] = [mjd_obs[seqnum] for seqnum in df['seqnum']]
     outfile = f'{file_prefix}_gain_sequence.pickle'
     df.to_pickle(outfile)
