@@ -207,8 +207,13 @@ def medianed_dark_frame(det_name):
     # Retrieve bias file from previous run.
     with open('hj_fp_server.pkl', 'rb') as fd:
         hj_fp_server = pickle.load(fd)
-    filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
-                                      run=dark_run)[0]
+    try:
+        filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
+                                          run=dark_run)[0]
+    except KeyError:
+        pattern = f'{det_name}_*_median_dark_current.fits'
+        filename = hj_fp_server.get_files('dark_current_BOT', pattern,
+                                          run=dark_run)[0]
     print("Dark frame:")
     print(filename)
     return filename
@@ -375,7 +380,12 @@ def gain_stability_task(run, det_name, fe55_files):
             mjd_obs[hdus[0].header['SEQNUM']] = hdus[0].header['MJD-OBS']
 
     psf_results_file = sorted(glob.glob(f'{file_prefix}_psf_results*.fits'))[0]
-    df = sensorTest.gain_sequence(det_name, psf_results_file)
+    try:
+        df = sensorTest.gain_sequence(det_name, psf_results_file)
+    except ValueError as eobj:
+        print("ValueError in gain_stability_task:", eobj)
+        return None
+
     df['mjd'] = [mjd_obs[seqnum] for seqnum in df['seqnum']]
     outfile = f'{file_prefix}_gain_sequence.pickle'
     df.to_pickle(outfile)
