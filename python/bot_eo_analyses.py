@@ -207,8 +207,13 @@ def medianed_dark_frame(det_name):
     # Retrieve bias file from previous run.
     with open('hj_fp_server.pkl', 'rb') as fd:
         hj_fp_server = pickle.load(fd)
-    filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
-                                      run=dark_run)[0]
+    try:
+        filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
+                                          run=dark_run)[0]
+    except KeyError:
+        pattern = f'{det_name}_*_median_dark_current.fits'
+        filename = hj_fp_server.get_files('dark_current_BOT', pattern,
+                                          run=dark_run)[0]
     print("Dark frame:")
     print(filename)
     return filename
