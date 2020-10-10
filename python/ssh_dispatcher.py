@@ -10,6 +10,7 @@ import logging
 import subprocess
 import multiprocessing
 from collections import defaultdict
+import numpy as np
 import siteUtils
 
 __all__ = ['ssh_device_analysis_pool']
@@ -217,7 +218,7 @@ class TaskRunner:
 
 def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
                              max_time=None, remote_hosts=None, verbose=False,
-                             max_retries=1, njobs=7):
+                             max_retries=1, njobs=8):
     """
     Submit JH tasks on remote nodes.
 
@@ -245,8 +246,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
         Flag for additional diagnostic output.
     max_retries: int [1]
         Maximum number of retries for failed tasks.
-    njobs: int [7]
-        Maximum number of jobs to run on a single dc node.
+    njobs: int [8]
+        Maximum number of jobs to run on each of the lsst-dc nodes.
 
     Raises
     ------
@@ -259,14 +260,15 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
 
     task_runner = TaskRunner(task_script, cwd, setup, max_retries=max_retries,
                              remote_hosts=remote_hosts, verbose=verbose)
-
     # In order to limit memory usage and to avoid overloading the file
     # server, divide into batches so that no more than njobs are
     # running on a single node.
     ndev = len(device_names)
-    num_hosts = 9 if remote_hosts is None else len(remote_hosts)
+    num_hosts = task_runner.remote_hosts.num_hosts
     num_batches = ndev//(njobs*num_hosts) + 1
+    print(ndev, num_hosts, num_batches)
     bounds = np.linspace(0, ndev, num_batches + 1, dtype=int)
+    print(bounds)
     for imin, imax in zip(bounds[:-1], bounds[1:]):
         task_runner.submit_jobs(device_names[imin:imax])
         task_runner.monitor_tasks(max_time=max_time)
