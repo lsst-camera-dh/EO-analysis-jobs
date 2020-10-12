@@ -10,6 +10,7 @@ import logging
 import subprocess
 import multiprocessing
 from collections import defaultdict
+import numpy as np
 import siteUtils
 
 __all__ = ['ssh_device_analysis_pool']
@@ -257,5 +258,19 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
 
     task_runner = TaskRunner(task_script, cwd, setup, max_retries=max_retries,
                              remote_hosts=remote_hosts, verbose=verbose)
-    task_runner.submit_jobs(device_names)
-    task_runner.monitor_tasks(max_time=max_time)
+    # In order to limit memory usage and to avoid overloading the file
+    # server, divide into 2 batches by default if processing for more
+    # than 100 devices is requested.
+    ndev = len(device_names)
+    num_batches = 2 if ndev > 100 else 1
+
+    # Use override value from LCATR_NUM_BATCHES if it is set.
+    num_batches = os.environ.get('LCATR_NUM_BATCHES', num_batches)
+    print("# devices, # batches, # hosts:",
+          ndev, num_batches, task_runner.remote_hosts.num_hosts)
+
+    bounds = np.linspace(0, ndev, num_batches + 1, dtype=int)
+    print(bounds)
+    for imin, imax in zip(bounds[:-1], bounds[1:]):
+        task_runner.submit_jobs(device_names[imin:imax])
+        task_runner.monitor_tasks(max_time=max_time)
