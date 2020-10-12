@@ -265,7 +265,8 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     # running on a single node.
     ndev = len(device_names)
     num_hosts = task_runner.remote_hosts.num_hosts
-    num_batches = ndev//(njobs*num_hosts) + 1
+    #num_batches = ndev//(njobs*num_hosts) + 1
+    num_batches = 2 if ndev > 100 else 1
     print(ndev, num_hosts, num_batches)
     bounds = np.linspace(0, ndev, num_batches + 1, dtype=int)
     print(bounds)
