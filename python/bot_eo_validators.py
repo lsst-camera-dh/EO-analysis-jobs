@@ -499,15 +499,19 @@ def validate_flat_pairs(results, det_names):
         max_observed_signal_data = data['MAX_OBSERVED_SIGNAL']
         max_frac_dev_data = data['MAX_FRAC_DEV']
         row_mean_var_slope_data = data['ROW_MEAN_VAR_SLOPE']
+        linearity_turnoff_data = data['LINEARITY_TURNOFF']
 
-        for amp, max_observed_signal, max_frac_dev, row_mean_var_slope \
-            in zip(amps, max_observed_signal_data, max_frac_dev_data,
-                   row_mean_var_slope_data):
+        for amp, max_observed_signal, max_frac_dev, row_mean_var_slope, \
+            linearity_turnoff in zip(amps, max_observed_signal_data,
+                                     max_frac_dev_data,
+                                     row_mean_var_slope_data,
+                                     linearity_turnoff_data):
             results.append(lcatr.schema.valid(
                 lcatr.schema.get('flat_pairs_BOT'),
                 amp=amp, max_observed_signal=max_observed_signal,
                 max_frac_dev=max_frac_dev,
-                row_mean_var_slope=row_mean_var_slope, slot=slot, raft=raft))
+                row_mean_var_slope=row_mean_var_slope,
+                linearity_turnoff=linearity_turnoff, slot=slot, raft=raft))
 
         # Persist the png files.
         metadata = dict(DETECTOR=det_name, RUN=run,
