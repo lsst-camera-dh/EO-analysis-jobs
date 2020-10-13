@@ -5,6 +5,7 @@ a common file system and keep track of remote tasks via log files.
 import os
 import copy
 import time
+import json
 import socket
 import logging
 import subprocess
@@ -87,13 +88,16 @@ class TaskRunner:
         self.task_ids = dict()
         self.log_files = dict()
         self.retries = defaultdict(zero_func)
+        self.host_map = None
 
-    def make_log_file(self, task_id, clean_up=True):
+    def make_log_file(self, task_id, clean_up=True, params=None):
         """
         Create a log filename from the task name and task_id and
         clean up any existing log files in the logging directory.
         """
-        script, _, _ = self.params
+        if params is None:
+            params = self.params
+        script, _, _ = params
         task_name = os.path.basename(script).split('.')[0]
         log_file = os.path.join(self.log_dir, f'{task_name}_{task_id}.log')
         self.task_ids[log_file] = task_id
@@ -102,14 +106,17 @@ class TaskRunner:
             os.remove(log_file)
         return log_file
 
-    def launch_script(self, remote_host, task_id, niceness=10, *args):
+    def launch_script(self, remote_host, task_id, *args, niceness=10,
+                      params=None):
         """
         Function to launch the script as a remote process via ssh.
         """
         logger = logging.getLogger('TaskRunner.launch_script')
         logger.setLevel(logging.INFO)
 
-        script, working_dir, setup = self.params
+        if params is None:
+            params = self.params
+        script, working_dir, setup = params
         log_file = self.log_files[task_id]
         command = f'ssh {remote_host} '
         command += f'"cd {working_dir}; source {setup}; '
@@ -177,7 +184,7 @@ class TaskRunner:
                 logger.info('Retrying tasks for: ')
                 for item in to_retry:
                     logger.info('  %s', item)
-                self.submit_jobs(to_retry)
+                self.submit_jobs(to_retry, retry=True)
             time.sleep(interval)
         messages = []
         if log_files:
@@ -189,7 +196,29 @@ class TaskRunner:
         if messages:
             raise RuntimeError('\n'.join(messages))
 
-    def submit_jobs(self, device_names):
+    def stage_data(self, device_map_file='device_map.json'):
+        """
+        Function to dispatch data staging script to the remote hosts.
+        """
+        # Make inverse index of host -> list of devices and
+        # save as json for the staging script to use.
+        device_map = defaultdict(list)
+        for device_name, host in self.host_map.items():
+            device_map[host].append(device_name)
+        with open(device_map_file, 'w') as fd:
+            json.dump(dict(device_map), fd)
+        # Loop over hosts and launch the copy script serially.
+        copy_script = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                                   'python', 'stage_bot_data.py')
+        # Set params to override self.params in .make_log_file
+        # and .launch_script
+        params = (copy_script, *self.params[1:])
+        for host in device_map:
+            if host not in self.log_files:
+                self.make_log_file(host, params=params)
+            self.launch_script(host, host, params=params)
+
+    def submit_jobs(self, device_names, retry=False):
         """
         Submit a task script process for each device.
 
@@ -199,13 +228,15 @@ class TaskRunner:
             List of devices for which the task script will be run.
         """
         num_tasks = len(device_names)
+        self.host_map = dict(zip(device_names, self.remote_hosts))
+        if not retry and bool(os.environ.get('LCATR_STAGE_DATA', False)):
+            self.stage_data()
 
         # Using multiprocessing allows one to launch the scripts much
         # faster since it can be done asynchronously.
         with multiprocessing.Pool(processes=num_tasks) as pool:
             outputs = []
-            for device_name, remote_host in zip(device_names,
-                                                self.remote_hosts):
+            for device_name, remote_host in self.host_map:
                 if device_name not in self.log_files:
                     self.make_log_file(device_name)
                 args = remote_host, device_name
