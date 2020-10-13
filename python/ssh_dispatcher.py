@@ -107,7 +107,7 @@ class TaskRunner:
         return log_file
 
     def launch_script(self, remote_host, task_id, *args, niceness=10,
-                      params=None):
+                      params=None, wait=False):
         """
         Function to launch the script as a remote process via ssh.
         """
@@ -126,7 +126,9 @@ class TaskRunner:
         command += ' '.join([str(_) for _ in args])
         command += r' && echo Task succeeded on \`hostname\`'
         command += r' || echo Task failed on \`hostname\`)'
-        command += f' &>> {log_file}&"'
+        command += f' &>> {log_file}"'
+        if not wait:
+            command += '&'
         if self.verbose:
             logger.info(command)
         logger.info('Launching %s on %s', script, remote_host)
@@ -217,7 +219,7 @@ class TaskRunner:
         for host in device_map:
             if host not in self.log_files:
                 self.make_log_file(host, params=params)
-            self.launch_script(host, host, params=params)
+            self.launch_script(host, host, params=params, wait=True)
 
     def submit_jobs(self, device_names, retry=False):
         """
