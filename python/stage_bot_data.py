@@ -4,11 +4,12 @@ harnessed job.
 """
 import os
 import sys
+import glob
 import json
+import shutil
 import pickle
-from collections import defaultdict
 import siteUtils
-from bot_eo_analyses import get_scan_mode_files, glob_pattern
+from bot_eo_analyses import glob_pattern
 
 
 JOB_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
@@ -28,6 +29,10 @@ JOB_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
 
 
 def write_hj_server_file(hj_fp_server_file='hj_fp_server.pkl'):
+    """
+    If harnessed job filepath server file is missing, query the
+    eT db and create it.
+    """
     if not os.path.isfile(hj_fp_server_file):
         hj_fp_server = siteUtils.HarnessedJobFilePaths()
         for analysis_type in ('badpixel', 'bias', 'dark', 'linearity',
@@ -39,6 +44,9 @@ def write_hj_server_file(hj_fp_server_file='hj_fp_server.pkl'):
 
 
 def get_det_files(det_name):
+    """
+    Get the files needed by the current job for the specified CCD.
+    """
     job_name = os.environ['LCATR_JOB']
     acq_jobname = siteUtils.getProcessName('BOT_acq')
     files = set()
@@ -62,26 +70,29 @@ if __name__ == '__main__':
     host = sys.argv[1]
     fits_files = set()
     for device in device_map[host]:
-        fits_files.union(get_det_files(device))
+        fits_files = fits_files.union(get_det_files(device))
 
     # Make the scratch directory for the BOT data.
     run_number = siteUtils.getRunNumber()
-    dest_dir = f'/scratch/bot_data/{run_number}'
+    scratch_dir = os.environ.get('LCATR_SCRATCH_DIR', '/scratch')
+    dest_dir = os.path.join(scratch_dir, 'bot_data', str(run_number))
     os.makedirs(dest_dir, exist_ok=True)
 
     # Glob existing files to avoid re-copying or for possible clean up.
     old_files = set(glob.glob(os.path.join(dest_dir, 'MC_C*.fits')))
 
     # dict mapping src to dest file paths.
-    new_files = [src: os.path.join(dest_dir, os.path.basename(src))
-                 for src in fits_files]
+    new_files = {src: os.path.join(dest_dir, os.path.basename(src))
+                 for src in fits_files}
 
     # Clean up unneeded files.
     unneeded_files = old_files.difference(new_files.values())
     for item in unneeded_files:
+        print('removing', item)
         os.remove(item)
 
     # Copy the remaining needed files.
     for src, dest in new_files.items():
         if dest not in old_files:
+            print('copying', src, 'to', dest)
             shutil.copy(src, dest)
