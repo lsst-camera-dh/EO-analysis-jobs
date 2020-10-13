@@ -1146,7 +1146,6 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     These functions should take a device name as its only argument, and
     the parallelization will take place over device_names.
 
-
     Parameters
     ----------
     jh_tasks: list-like container of functions
@@ -1167,7 +1166,6 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     Raises
     ------
     parsl.app.errors.AppTimeout
-
 
     Notes
     -----
