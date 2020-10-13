@@ -210,9 +210,10 @@ class TaskRunner:
         # Loop over hosts and launch the copy script serially.
         copy_script = os.path.join(os.environ['EOANALYSISJOBSDIR'],
                                    'python', 'stage_bot_data.py')
-        # Set params to override self.params in .make_log_file
-        # and .launch_script
+        # Set params to override self.params in self.make_log_file
+        # and self.launch_script
         params = (copy_script, *self.params[1:])
+        # Loop over hosts and launch staging script.
         for host in device_map:
             if host not in self.log_files:
                 self.make_log_file(host, params=params)
