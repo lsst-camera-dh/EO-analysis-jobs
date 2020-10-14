@@ -91,7 +91,7 @@ if __name__ == '__main__':
     os.makedirs(dest_dir, exist_ok=True)
 
     # Glob existing files to avoid re-copying or for possible clean up.
-    old_files = set(glob.glob(os.path.join(dest_dir, 'MC_C*.fits')))
+    old_files = set(glob.glob(os.path.join(dest_dir, '*', 'MC_C*.fits')))
 
     # Create a dict that maps src to dest file paths.  Preserve the
     # folder name of the exposure so that the PTC and flat pairs tasks
