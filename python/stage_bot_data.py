@@ -8,6 +8,7 @@ import glob
 import json
 import shutil
 import pickle
+import subprocess
 import siteUtils
 from bot_eo_analyses import glob_pattern
 
@@ -55,6 +56,17 @@ def get_det_files(det_name):
         files = files.union(
             siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname))
     return files
+
+
+def clean_up_scratch(run):
+    nodes = ('lsst-dc01 lsst-dc02 lsst-dc03 lsst-dc04 lsst-dc05 '
+             'lsst-dc06 lsst-dc07 lsst-dc08 lsst-dc09 lsst-dc10').split()
+    scratch_dir = os.environ.get('LCATR_SCRATCH_DIR', '/scratch')
+    dest_dir = os.path.join(scratch_dir, 'bot_data', str(run))
+    for node in nodes:
+        cmd = ['ssh', node, 'rm', '-rf', dest_dir]
+        print(' '.join(cmd))
+        subprocess.check_call(cmd)
 
 
 if __name__ == '__main__':

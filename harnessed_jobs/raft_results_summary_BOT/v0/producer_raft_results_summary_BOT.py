@@ -11,6 +11,7 @@ from focal_plane_plotting import plot_focal_plane, hist_amp_data
 from bot_eo_analyses import repackage_summary_files, \
     run_python_task_or_cl_script
 from raft_results_task import raft_results_task
+from stage_bot_data import clean_up_scratch
 
 def make_focal_plane_plots():
     #
@@ -150,3 +151,6 @@ if __name__ == '__main__':
                f'--css_file {css_file} --htmldir {htmldir} --overwrite')
     print(command)
     subprocess.check_call(command, shell=True)
+
+    # Clean up scratch areas
+    clean_up_scratch(run_number)
