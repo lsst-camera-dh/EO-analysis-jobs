@@ -126,9 +126,10 @@ class TaskRunner:
         command += ' '.join([str(_) for _ in args])
         command += r' && echo Task succeeded on \`hostname\`'
         command += r' || echo Task failed on \`hostname\`)'
-        command += f' &>> {log_file}"'
-        if not wait:
-            command += '&'
+        if wait:
+            command += f' &>> {log_file}"'
+        else:
+            command += f' &>> {log_file}&"'
         if self.verbose:
             logger.info(command)
         logger.info('Launching %s on %s', script, remote_host)
@@ -216,10 +217,18 @@ class TaskRunner:
         # and self.launch_script
         params = (copy_script, *self.params[1:])
         # Loop over hosts and launch staging script.
-        for host in device_map:
-            if host not in self.log_files:
-                self.make_log_file(host, params=params)
-            self.launch_script(host, host, params=params, wait=True)
+        with multiprocessing.Pool(processes=len(device_map)) as pool:
+            workers = []
+            for host in device_map:
+                if host not in self.log_files:
+                    self.make_log_file(host, params=params)
+                args = (host, host)
+                kwds = dict(params=params, wait=True)
+                time.sleep(0.1)
+                workers.append(pool.apply_async(self.launch_script, args, kwds))
+            pool.close()
+            pool.join()
+            _ = [_.get() for _ in workers]
 
     def submit_jobs(self, device_names, retry=False):
         """
@@ -239,7 +248,7 @@ class TaskRunner:
         # faster since it can be done asynchronously.
         with multiprocessing.Pool(processes=num_tasks) as pool:
             outputs = []
-            for device_name, remote_host in self.host_map:
+            for device_name, remote_host in self.host_map.items():
                 if device_name not in self.log_files:
                     self.make_log_file(device_name)
                 args = remote_host, device_name
