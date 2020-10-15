@@ -224,7 +224,7 @@ class TaskRunner:
                     self.make_log_file(host, params=params)
                 args = (host, host)
                 kwds = dict(params=params, wait=True)
-                time.sleep(0.1)
+                time.sleep(0.5)
                 workers.append(pool.apply_async(self.launch_script, args, kwds))
             pool.close()
             pool.join()
@@ -252,7 +252,7 @@ class TaskRunner:
                 if device_name not in self.log_files:
                     self.make_log_file(device_name)
                 args = remote_host, device_name
-                time.sleep(0.1)
+                time.sleep(0.5)
                 outputs.append(pool.apply_async(self.launch_script, args))
             pool.close()
             pool.join()
