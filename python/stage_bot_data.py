@@ -110,8 +110,11 @@ if __name__ == '__main__':
     # Include any Photodiode_Readings*.txt files.
     for frame_dir in frame_dirs:
         for src in glob.glob(os.path.join(frame_dir, 'Photodiode*.txt')):
-            new_files[src] = os.path.join(dest_dir, os.path.dirname(frame_dir),
+            new_files[src] = os.path.join(dest_dir, os.path.basename(frame_dir),
                                           os.path.basename(src))
+
+    print("files to stage:")
+    print(new_files)
 
     # Clean up unneeded files.
     unneeded_files = old_files.difference(new_files.values())
