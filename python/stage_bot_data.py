@@ -101,7 +101,7 @@ if __name__ == '__main__':
     new_files = dict()
     frame_dirs = set()
     for src in fits_files:
-        frame_dir = os.path.dirname(src))
+        frame_dir = os.path.dirname(src)
         frame_dirs.add(frame_dir)
         folder = os.path.basename(frame_dir)
         os.makedirs(os.path.join(dest_dir, folder), exist_ok=True)
