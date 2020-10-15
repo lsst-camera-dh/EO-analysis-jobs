@@ -92,15 +92,26 @@ if __name__ == '__main__':
 
     # Glob existing files to avoid re-copying or for possible clean up.
     old_files = set(glob.glob(os.path.join(dest_dir, '*', 'MC_C*.fits')))
+    old_files = old_files.union(
+        glob.glob(os.path.join(dest_dir, '*', 'Photodiode*.txt')))
 
     # Create a dict that maps src to dest file paths.  Preserve the
     # folder name of the exposure so that the PTC and flat pairs tasks
     # can identify the paired exposures.
     new_files = dict()
+    frame_dirs = set()
     for src in fits_files:
-        folder = os.path.basename(os.path.dirname(src))
+        frame_dir = os.path.dirname(src))
+        frame_dirs.add(frame_dir)
+        folder = os.path.basename(frame_dir)
         os.makedirs(os.path.join(dest_dir, folder), exist_ok=True)
         new_files[src] = os.path.join(dest_dir, folder, os.path.basename(src))
+
+    # Include any Photodiode_Readings*.txt files.
+    for frame_dir in frame_dirs:
+        for src in glob.glob(os.path.join(frame_dir, 'Photodiode*.txt')):
+            new_files[src] = os.path.join(dest_dir, os.path.dirname(frame_dir),
+                                          os.path.basename(src))
 
     # Clean up unneeded files.
     unneeded_files = old_files.difference(new_files.values())
