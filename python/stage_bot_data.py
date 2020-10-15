@@ -75,7 +75,7 @@ def clean_up_scratch(run):
 if __name__ == '__main__':
     job_name = os.environ['LCATR_JOB']
     if job_name not in JOB_DATA_KEYS:
-        print(f"No entry for {job_name} in dependecy glob patterns.")
+        print(f"No entry for {job_name} in dependency glob patterns.")
         sys.exit(0)
 
     # Query the eT db for the archived file locations.
