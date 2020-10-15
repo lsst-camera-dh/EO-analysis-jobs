@@ -49,6 +49,8 @@ def get_det_files(det_name):
     Get the files needed by the current job for the specified CCD.
     """
     job_name = os.environ['LCATR_JOB']
+    if job_name not in JOB_DATA_KEYS:
+        return []
     acq_jobname = siteUtils.getProcessName('BOT_acq')
     files = set()
     for data_key in JOB_DATA_KEYS[job_name]:
@@ -59,6 +61,7 @@ def get_det_files(det_name):
 
 
 def clean_up_scratch(run):
+    """Delete scratch area associated with the specified run."""
     nodes = ('lsst-dc01 lsst-dc02 lsst-dc03 lsst-dc04 lsst-dc05 '
              'lsst-dc06 lsst-dc07 lsst-dc08 lsst-dc09 lsst-dc10').split()
     scratch_dir = os.environ.get('LCATR_SCRATCH_DIR', '/scratch')
@@ -70,6 +73,11 @@ def clean_up_scratch(run):
 
 
 if __name__ == '__main__':
+    job_name = os.environ['LCATR_JOB']
+    if job_name not in JOB_DATA_KEYS:
+        print(f"No entry for {job_name} in dependecy glob patterns.")
+        sys.exit(0)
+
     # Query the eT db for the archived file locations.
     write_hj_server_file()
 
