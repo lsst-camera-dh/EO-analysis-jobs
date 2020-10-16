@@ -10,10 +10,14 @@ import shutil
 import pickle
 import subprocess
 import siteUtils
+from camera_components import camera_info
 from bot_eo_analyses import glob_pattern
 
+RAFTS = set(camera_info.get_raft_names())
 
-JOB_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
+CCDS = set(camera_info.get_det_names())
+
+CCD_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
                  'fe55_analysis_BOT': ('fe55',),
                  'ptc_BOT': ('ptc',),
                  'read_noise_BOT': ('read_noise',),
@@ -27,6 +31,9 @@ JOB_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
                  'cti_BOT': ('cte_high', 'cte_low'),
                  'overscan_BOT': ('overscan',),
                  'tearing_BOT': ('tearing',)}
+
+RAFT_DATA_KEYS = {'read_noise_BOT': ('raft_noise_correlations',),
+                  'tearing_BOT': ('divisadero_tearing',)}
 
 
 def write_hj_server_file(hj_fp_server_file='hj_fp_server.pkl'):
@@ -44,17 +51,15 @@ def write_hj_server_file(hj_fp_server_file='hj_fp_server.pkl'):
             pickle.dump(hj_fp_server, output)
 
 
-def get_det_files(det_name):
+def get_files(data_keys, device_name):
     """
-    Get the files needed by the current job for the specified CCD.
+    Get the files needed by the current job for the specified device,
+    e.g., 'R22_S11' or 'R22', for CCDs or rafts, respectively.
     """
-    job_name = os.environ['LCATR_JOB']
-    if job_name not in JOB_DATA_KEYS:
-        return []
     acq_jobname = siteUtils.getProcessName('BOT_acq')
     files = set()
-    for data_key in JOB_DATA_KEYS[job_name]:
-        pattern = glob_pattern(data_key, det_name)
+    for data_key in data_keys:
+        pattern = glob_pattern(data_key, f'{device_name}*')
         files = files.union(
             siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname))
     return files
@@ -72,25 +77,18 @@ def clean_up_scratch(run):
         subprocess.check_call(cmd)
 
 
-if __name__ == '__main__':
-    job_name = os.environ['LCATR_JOB']
-    if job_name not in JOB_DATA_KEYS:
-        print(f"No entry for {job_name} in dependency glob patterns.")
-        sys.exit(0)
-
-    # Query the eT db for the archived file locations.
-    write_hj_server_file()
-
-    # Read the mapping of execution host to device lists that was
-    # prepared by the TaskRunner class.
-    with open('device_map.json', 'r') as fd:
-        device_map = json.load(fd)
-
+def stage_files(device_list, data_keys):
+    """
+    Function to stage the needed raw image files from the specified
+    devices (CCDs or rafts) for the current job in the scratch area.
+    """
     # Gather the filenames of the needed data.
-    host = sys.argv[1]
     fits_files = set()
-    for device in device_map[host]:
-        fits_files = fits_files.union(get_det_files(device))
+    for device in device_list:
+        fits_files = fits_files.union(get_files(data_keys, device))
+
+    if not fits_files:
+        return
 
     # Make the scratch directory for the BOT data.
     run_number = siteUtils.getRunNumber()
@@ -135,3 +133,25 @@ if __name__ == '__main__':
         if dest not in old_files:
             print('copying', src, 'to', dest)
             shutil.copy(src, dest)
+
+
+if __name__ == '__main__':
+    # Query the eT db for the archived file locations.
+    write_hj_server_file()
+
+    # Read the mapping of execution host to device lists that was
+    # prepared by the TaskRunner class.
+    with open('device_list_map.json', 'r') as fd:
+        device_list_map = json.load(fd)
+    host = sys.argv[1]
+    device_list = device_list_map[host]
+
+    job_name = os.environ['LCATR_JOB']
+
+    ccds = CCDS.intersection(device_list)
+    if ccds and job_name in CCD_DATA_KEYS:
+        stage_files(ccds, CCD_DATA_KEYS[job_name])
+
+    rafts = RAFTS.intersection(device_list)
+    if rafts and job_name in RAFT_DATA_KEYS:
+        stage_files(rafts, RAFT_DATA_KEYS[job_name])
