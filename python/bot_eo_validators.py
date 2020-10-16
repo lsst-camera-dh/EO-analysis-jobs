@@ -706,10 +706,11 @@ def validate_tearing(results, det_names):
         raft, slot = det_name.split('_')
         file_prefix = make_file_prefix(run, det_name)
 
-        tearing_results_file = '%s_tearing_stats.pkl' % file_prefix
+        tearing_results_file = '%s_tearing_stats.pickle' % file_prefix
         if not os.path.isfile(tearing_results_file):
             missing_det_names.add(det_name)
             continue
+        results.append(siteUtils.make_fileref(tearing_results_file))
         with open(tearing_results_file, 'rb') as input_:
             tearing_stats, amp_counts = pickle.load(input_)
         for values in tearing_stats:
@@ -737,12 +738,15 @@ def validate_tearing(results, det_names):
         results.append(siteUtils.make_fileref(divisidero_plot, metadata=md))
 
         try:
-            with open(glob.glob(f'{raft_name}*max_divisidero.json')[0], 'r') \
-                 as fd:
-                max_devs = json.load(fd)
+            divisidero_json_file \
+                = glob.glob(f'{raft_name}*max_divisidero.json')[0]
         except IndexError:
             missing_raft_names.add(raft_name)
             continue
+
+        with open(divisidero_json_file, 'r') as fd:
+            max_devs = json.load(fd)
+        results.append(siteUtils.make_fileref(divisidero_json_file))
 
         bot_schema = lcatr.schema.get('divisadero_tearing_BOT')
         for slot, values in max_devs.items():
