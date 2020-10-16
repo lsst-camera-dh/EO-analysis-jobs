@@ -199,7 +199,7 @@ class TaskRunner:
         if messages:
             raise RuntimeError('\n'.join(messages))
 
-    def stage_data(self, device_map_file='device_map.json'):
+    def stage_data(self, device_map_file='device_list_map.json'):
         """
         Function to dispatch data staging script to the remote hosts.
         """
@@ -230,6 +230,9 @@ class TaskRunner:
             pool.join()
             _ = [_.get() for _ in workers]
 
+        # Clear self.log_files of staging script entries.
+        self.log_files = dict()
+
     def submit_jobs(self, device_names, retry=False):
         """
         Submit a task script process for each device.
@@ -240,9 +243,10 @@ class TaskRunner:
             List of devices for which the task script will be run.
         """
         num_tasks = len(device_names)
-        self.host_map = dict(zip(device_names, self.remote_hosts))
-        if not retry and bool(os.environ.get('LCATR_STAGE_DATA', False)):
-            self.stage_data()
+        if not retry:
+            self.host_map = dict(zip(device_names, self.remote_hosts))
+            if bool(os.environ.get('LCATR_STAGE_DATA', False)):
+                self.stage_data()
 
         # Using multiprocessing allows one to launch the scripts much
         # faster since it can be done asynchronously.
