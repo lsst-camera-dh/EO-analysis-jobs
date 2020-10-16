@@ -960,11 +960,11 @@ def tearing_task(run, det_name, flat_files, bias_frame=None):
                                                      bias_frame=bias_frame)
     tearing_stats = [('BOT_EO_acq', 'N/A', det_name, len(tearing_found))]
 
-    with open('%s_tearing_stats.pkl' % file_prefix, 'wb') as output:
+    with open('%s_tearing_stats.pickle' % file_prefix, 'wb') as output:
         pickle.dump((tearing_stats, amp_counts), output)
 
 
-def tearing_fp_heat_map(pattern='*_tearing_stats.pkl'):
+def tearing_fp_heat_map(pattern='*_tearing_stats.pickle'):
     """
     Plot a heat map of the tearing detections per amp over
     the full focal plane.  Glob the data from the tearing stats
