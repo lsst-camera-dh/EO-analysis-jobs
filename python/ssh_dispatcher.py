@@ -312,7 +312,7 @@ def ssh_device_analysis_pool(task_script, device_names, cwd='.', setup=None,
     num_batches = 2 if ndev > 100 else 1
 
     # Use override value from LCATR_NUM_BATCHES if it is set.
-    num_batches = os.environ.get('LCATR_NUM_BATCHES', num_batches)
+    num_batches = int(os.environ.get('LCATR_NUM_BATCHES', num_batches))
     print("# devices, # batches, # hosts:",
           ndev, num_batches, task_runner.remote_hosts.num_hosts)
 
