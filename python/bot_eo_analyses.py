@@ -156,6 +156,7 @@ def get_mask_files(det_name):
         mask_files = hj_fp_server.get_files('pixel_defects_BOT',
                                             f'{det_name}*mask*.fits',
                                             run=badpixel_run)
+        mask_files = siteUtils.get_scratch_files(mask_files)
         print(f"Mask files from run {badpixel_run} and {det_name}:")
         for item in mask_files:
             print(item)
@@ -168,6 +169,7 @@ def get_mask_files(det_name):
         rolloff_mask_files = hj_fp_server.get_files('bias_frame_BOT',
                                                     f'{det_name}_*mask*.fits',
                                                     run=bias_run)
+        rolloff_mask_files = siteUtils.get_scratch_files(rolloff_mask_files)
         print(f"Edge rolloff mask file from run {bias_run} and {det_name}:")
         for item in rolloff_mask_files:
             print(item)
@@ -214,6 +216,7 @@ def medianed_dark_frame(det_name):
         pattern = f'{det_name}_*_median_dark_current.fits'
         filename = hj_fp_server.get_files('dark_current_BOT', pattern,
                                           run=dark_run)[0]
+    filename = siteUtils.get_scratch_files([filename])[0]
     print("Dark frame:")
     print(filename)
     return filename
@@ -237,6 +240,7 @@ def bias_filename(run, det_name):
         filename = hj_fp_server.get_files('bias_frame_BOT',
                                           f'*{det_name}*median_bias.fits',
                                           run=bias_run)[0]
+        filename = siteUtils.get_scratch_files([filename])[0]
     print("Bias frame:")
     print(filename)
     return filename
@@ -1146,7 +1150,6 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     These functions should take a device name as its only argument, and
     the parallelization will take place over device_names.
 
-
     Parameters
     ----------
     jh_tasks: list-like container of functions
@@ -1167,7 +1170,6 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     Raises
     ------
     parsl.app.errors.AppTimeout
-
 
     Notes
     -----
