@@ -11,7 +11,8 @@ import pickle
 import subprocess
 import siteUtils
 from camera_components import camera_info
-from bot_eo_analyses import glob_pattern
+from bot_eo_analyses import glob_pattern, bias_filename, medianed_dark_frame,\
+    get_mask_files
 
 RAFTS = set(camera_info.get_raft_names())
 
@@ -61,7 +62,8 @@ def get_files(data_keys, device_name):
     for data_key in data_keys:
         pattern = glob_pattern(data_key, f'{device_name}*')
         files = files.union(
-            siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname))
+            siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname,
+                                      verbose=False))
     return files
 
 
@@ -75,6 +77,52 @@ def clean_up_scratch(run):
         cmd = ['ssh', node, 'rm', '-rf', dest_dir]
         print(' '.join(cmd))
         subprocess.check_call(cmd)
+
+
+def get_isr_files(det_name, run):
+    files = set()
+    try:
+        files.add(bias_filename(run, det_name))
+    except IndexError:
+        pass
+    try:
+        files.add(medianed_dark_frame(det_name))
+    except IndexError:
+        pass
+    files = files.union(get_mask_files(det_name))
+    return files
+
+
+def stage_isr_files(device_list, dest_dir):
+    """
+    Stage bias frame, dark frame, and mask files for the specified
+    devices.
+    """
+    run = siteUtils.getRunNumber()
+    fits_files = set()
+
+    ccds = CCDS.intersection(device_list)
+    for ccd in ccds:
+        fits_files = fits_files.union(get_isr_files(ccd, run))
+
+    rafts = RAFTS.intersection(device_list)
+    for raft in rafts:
+        if raft in 'R00 R04 R40 R44':
+            slots = 'SG0 SG1 SW0 SW1'.split()
+        else:
+            slots = 'S00 S01 S02 S10 S11 S12 S20 S21 S22'.split()
+        for slot in slots:
+            det_name = '_'.join((raft, slot))
+            fits_files = fits_files.union(get_isr_files(det_name, run))
+
+    new_files = dict()
+    for src in fits_files:
+        folder = os.path.basename(os.path.dirname(src))
+        os.makedirs(os.path.join(dest_dir, folder), exist_ok=True)
+        dest = os.path.join(dest_dir, folder, os.path.basename(src))
+        if not os.path.isfile(dest):
+            print('copying', src, 'to', dest)
+            shutil.copy(src, dest)
 
 
 def stage_files(device_list, data_keys):
@@ -119,9 +167,6 @@ def stage_files(device_list, data_keys):
             new_files[src] = os.path.join(dest_dir, os.path.basename(frame_dir),
                                           os.path.basename(src))
 
-    print("files to stage:")
-    print(new_files)
-
     # Clean up unneeded files.
     unneeded_files = old_files.difference(new_files.values())
     for item in unneeded_files:
@@ -133,6 +178,8 @@ def stage_files(device_list, data_keys):
         if dest not in old_files:
             print('copying', src, 'to', dest)
             shutil.copy(src, dest)
+
+    stage_isr_files(device_list, dest_dir)
 
 
 if __name__ == '__main__':
