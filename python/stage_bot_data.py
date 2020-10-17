@@ -80,6 +80,7 @@ def clean_up_scratch(run):
 
 
 def get_isr_files(det_name, run):
+    """Get bias, dark, and mask files."""
     files = set()
     try:
         files.add(bias_filename(run, det_name))
@@ -115,7 +116,6 @@ def stage_isr_files(device_list, dest_dir):
             det_name = '_'.join((raft, slot))
             fits_files = fits_files.union(get_isr_files(det_name, run))
 
-    new_files = dict()
     for src in fits_files:
         folder = os.path.basename(os.path.dirname(src))
         os.makedirs(os.path.join(dest_dir, folder), exist_ok=True)
