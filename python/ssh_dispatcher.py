@@ -210,7 +210,7 @@ class TaskRunner:
             device_map[host].append(device_name)
         with open(device_map_file, 'w') as fd:
             json.dump(dict(device_map), fd)
-        # Loop over hosts and launch the copy script serially.
+        # Loop over hosts and launch the copy script on each host.
         copy_script = os.path.join(os.environ['EOANALYSISJOBSDIR'],
                                    'python', 'stage_bot_data.py')
         # Set params to override self.params in self.make_log_file
