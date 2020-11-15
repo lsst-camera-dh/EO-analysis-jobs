@@ -123,11 +123,7 @@ def mondiode_value(flat_file, exptime, factor=5,
     pd_file = glob.glob(os.path.join(os.path.dirname(flat_file),
                                      pd_filename))[0]
     x, y = np.recfromtxt(pd_file).transpose()
-    # Threshold for finding baseline current values:
-    ythresh = (min(y) + max(y))/factor + min(y)
-    # Subtract the median of the baseline values to get a calibrated
-    # current.
-    y -= np.median(y[np.where(y < ythresh)])
+
     integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
     return integral/exptime
 
