@@ -246,6 +246,9 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
     "Single sensor execution of the Fe55 analysis task."
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
 
     if bias_frame is None:
         bias_frame = bias_filename(run, det_name)
@@ -631,6 +634,9 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
     """Run the read noise tasks on a single detector."""
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
 
     task = sensorTest.ReadNoiseTask()
     task.config.temp_set_point = -100.
@@ -649,6 +655,9 @@ def raft_noise_correlations(run, raft_name, bias_file_dict):
     """Raft-level noise-correlation analysis."""
     file_prefix = make_file_prefix(run, raft_name)
     title = "Overscan correlations, Run {}, {}".format(run, raft_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
     raft_level_oscan_correlations(bias_file_dict, title=title)
     plt.savefig('{}_overscan_correlations.png'.format(file_prefix))
 
@@ -658,6 +667,9 @@ def bright_defects_task(run, det_name, dark_files, gains, mask_files=(),
     "Single sensor execution of the bright pixels task."
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
@@ -678,6 +690,9 @@ def dark_defects_task(run, det_name, sflat_files, mask_files=(),
     """Single sensor execution of the dark defects task."""
     file_prefix = make_file_prefix(run, det_name)
     title = '{}, {}'.format(run, det_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
 
     task = sensorTest.DarkPixelsTask()
     task.run(file_prefix, sflat_files, mask_files, bias_frame=bias_frame,

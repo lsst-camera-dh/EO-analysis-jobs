@@ -76,6 +76,9 @@ def raft_results_task(raft_name):
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, raft_name)
     title = '{}, {}'.format(run, raft_name)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f', (acq {acq_run})'
 
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}

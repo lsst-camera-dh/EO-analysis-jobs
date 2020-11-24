@@ -65,6 +65,7 @@ def make_focal_plane_plots():
     camera = camera_info.camera_object
 
     run = siteUtils.getRunNumber()
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     unit_id = siteUtils.getUnitId()
     et_results = siteUtils.ETResults(run)
     for schema_name, configs in fp_configs.items():
@@ -77,13 +78,17 @@ def make_focal_plane_plots():
                 print("No focal plane results for {}: {} in eTraveler."
                       .format(schema_name, column))
             else:
+                if units is not None:
+                    title = 'Run {}, {} ({})'.format(run, column, units)
+                else:
+                    title = 'Run {}, {}'.format(run, column)
+                if acq_run is not None:
+                    title += f', (acq {acq_run})'
+
                 plot_focal_plane(ax, amp_data, camera=camera, z_range=z_range,
                                  use_log10=use_log10,
                                  scale_factor=scale_factor)
-                if units is not None:
-                    plt.title('Run {}, {} ({})'.format(run, column, units))
-                else:
-                    plt.title('Run {}, {}'.format(run, column))
+                plt.title(title)
                 outfile = '{}_{}_{}.png'.format(unit_id, run, column)
                 plt.savefig(outfile)
 
@@ -91,10 +96,7 @@ def make_focal_plane_plots():
                 plt.figure()
                 hist_amp_data(amp_data, column, hist_range=z_range,
                               use_log10=use_log10, scale_factor=scale_factor)
-                if units is not None:
-                    plt.title('Run {}, {} ({})'.format(run, column, units))
-                else:
-                    plt.title('Run {}, {}'.format(run, column))
+                plt.title(title)
                 outfile = '{}_{}_{}_hist.png'.format(unit_id, run, column)
                 plt.savefig(outfile)
 
