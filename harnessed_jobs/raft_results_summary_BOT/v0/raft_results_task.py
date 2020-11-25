@@ -13,7 +13,7 @@ def raft_results_task(raft_name):
     import siteUtils
     from camera_components import camera_info
     from bot_eo_analyses import get_raft_files_by_slot, make_file_prefix,\
-        get_amplifier_gains, get_analysis_types
+        get_amplifier_gains, get_analysis_types, make_title
 
     def plt_savefig(filename):
         plt.savefig(filename)
@@ -75,10 +75,7 @@ def raft_results_task(raft_name):
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, raft_name)
-    title = '{}, {}'.format(run, raft_name)
-    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
-    if acq_run is not None:
-        title += f', (acq {acq_run})'
+    title = make_title(run, raft_name)
 
     gains = {slot_name: get_amplifier_gains(results_files[slot_name])
              for slot_name in results_files}
@@ -108,7 +105,7 @@ def raft_results_task(raft_name):
     png_files = []
     # Median bias mosaic
     median_bias = raftTest.make_raft_mosaic(bias_frames, bias_subtract=False)
-    median_bias.plot(title='%s, median bias frames' % title,
+    median_bias.plot(title=f'{title}, median bias frames',
                      annotation='ADU/pixel', rotate=180)
     png_files.append('{}_median_bias.png'.format(file_prefix))
     plt_savefig(png_files[-1])
@@ -127,7 +124,7 @@ def raft_results_task(raft_name):
     if dark_files is not None:
         dark_mosaic = raftTest.make_raft_mosaic(dark_files, gains=gains,
                                                 bias_frames=bias_frames)
-        dark_mosaic.plot(title='{}, medianed dark frames'.format(title),
+        dark_mosaic.plot(title=f'{title}, medianed dark frames',
                          annotation='e-/pixel, gain-corrected, bias-subtracted',
                          rotate=180)
         png_files.append('{}_medianed_dark.png'.format(file_prefix))
@@ -144,7 +141,7 @@ def raft_results_task(raft_name):
         sflat_high = raftTest.make_raft_mosaic(sflat_high_files, gains=gains,
                                                bias_frames=bias_frames,
                                                dark_currents=dark_currents)
-        sflat_high.plot(title='%s, high flux superflat' % title,
+        sflat_high.plot(title=f'{title}, high flux superflat',
                         annotation='e-/pixel, gain-corrected, bias-subtracted',
                         rotate=180)
         png_files.append('{}_superflat_high.png'.format(file_prefix))
@@ -161,7 +158,7 @@ def raft_results_task(raft_name):
         sflat_low = raftTest.make_raft_mosaic(sflat_low_files, gains=gains,
                                               bias_frames=bias_frames,
                                               dark_currents=dark_currents)
-        sflat_low.plot(title='%s, low flux superflat' % title,
+        sflat_low.plot(title=f'{title}, low flux superflat',
                        annotation='e-/pixel, gain-corrected, bias-subtracted',
                        rotate=180)
         png_files.append('{}_superflat_low.png'.format(file_prefix))
@@ -187,7 +184,7 @@ def raft_results_task(raft_name):
         flat = raftTest.make_raft_mosaic(lambda_files, gains=gains,
                                          bias_frames=bias_frames,
                                          dark_currents=dark_currents)
-        flat.plot(title='%s, %s' % (title, wl),
+        flat.plot(title=f'{title}, {wl}',
                   annotation='e-/pixel, gain-corrected, bias-subtracted',
                   rotate=180)
         png_files.append('{}_{}_flat.png'.format(file_prefix, wl))
@@ -301,7 +298,7 @@ def raft_results_task(raft_name):
             plt.ylabel('mean signal (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
-        plt.suptitle(f'{file_prefix}, bias stability, mean signal')
+        plt.suptitle(f'{title}, bias stability, mean signal')
         png_file = f'{file_prefix}_bias_stability_mean.png'
         png_files.append(png_file)
         plt_savefig(png_file)
@@ -322,7 +319,7 @@ def raft_results_task(raft_name):
             plt.ylabel('stdev (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
-        plt.suptitle(f'{file_prefix}, bias stability, stdev')
+        plt.suptitle(f'{title}, bias stability, stdev')
         png_file = f'{file_prefix}_bias_stability_stdev.png'
         png_files.append(png_file)
         plt_savefig(png_file)

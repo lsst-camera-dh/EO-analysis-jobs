@@ -34,7 +34,7 @@ def raft_divisidero_tearing(raft_name):
         median_sflats[slot] = superflat(files, outfile=outfile,
                                         bias_frame=bias_frame)
 
-    title = 'Run %s %s' % (str(run), raft_unit_id)
+    title = f'Run {run} {raft_name}'
     acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     if acq_run is not None:
         title += f', (acq {acq_run})'
