@@ -1025,12 +1025,12 @@ def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
         for amp in ccd:
             amp_image = ccd.unbiased_and_trimmed_image(amp)
             stats = afwMath.makeStatistics(amp_image,
-                                           afwMath.MEAN | afwMath.STDEV,
+                                           afwMath.MEANCLIP | afwMath.STDEVCLIP,
                                            ccd.stat_ctrl)
             data['tseqnum'].append(tseqnum)
             data['amp'].append(amp)
-            data['mean_signal'].append(stats.getValue(afwMath.MEAN))
-            data['stdev'].append(stats.getValue(afwMath.STDEV))
+            data['mean_signal'].append(stats.getValue(afwMath.MEANCLIP))
+            data['stdev'].append(stats.getValue(afwMath.STDEVCLIP))
     df = pd.DataFrame(data=data)
     outfile = f'{file_prefix}_persistence_data.pickle'
     df.to_pickle(outfile)
