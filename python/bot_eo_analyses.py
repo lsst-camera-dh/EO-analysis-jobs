@@ -189,11 +189,16 @@ def make_file_prefix(run, component_name):
     return "{}_{}".format(component_name, run)
 
 
-def append_acq_run(title):
+def acq_run_addendum():
     acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     if acq_run is not None:
-        return title + f', (acq {acq_run})'
-    return title
+        return f'(acq {acq_run})'
+    return None
+
+
+def append_acq_run(title):
+    addendum = acq_run_addendum()
+    return ' '.join((title, addendum)) if addendum is not None else title
 
 
 def make_title(run, device_name):
@@ -295,7 +300,8 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     png_files.append('%s_gains.png' % file_prefix)
     siteUtils.make_png_file(plots.gains, png_files[-1])
@@ -736,7 +742,8 @@ def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
     the read noise measurements.
     """
     file_prefix = make_file_prefix(run, det_name)
-    plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file)
+    plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
                             dark95s=dark95s)
 
@@ -765,14 +772,15 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
     file_prefix = make_file_prefix(run, det_name)
     flux_level = 'low' if 'low' in os.path.basename(superflat_file) else 'high'
     plots \
-        = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file)
+        = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file,
+                                 title_addendum=acq_run_addendum())
 
     png_files = []
     png_files.append(superflat_file.replace('.fits', '.png'))
+    title = append_acq_run(f'{run}, {det_name}, CTE superflat, '
+                           f'{flux_level} flux')
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
-                            superflat_file,
-                            title=('%s, %s, CTE superflat, %s flux '
-                                   % (run, det_name, flux_level)),
+                            superflat_file, title=title,
                             annotation='ADU/pixel', flatten=True, binsize=4)
 
     png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
@@ -846,7 +854,8 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
              dark_frame=dark_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     detresp_file = '%s_det_response.fits' % file_prefix
     siteUtils.make_png_file(plots.linearity,
@@ -862,7 +871,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
 
     siteUtils.make_png_file(row_means_var_plot,
                             f'{file_prefix}_row_means_variance.png',
-                            detresp_file, file_prefix)
+                            detresp_file, append_acq_run(file_prefix))
 
 
 def nonlinearity_task(run, det_name, detresp_file, outfile):
@@ -886,7 +895,8 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              linearity_correction=get_nlc_func(det_name))
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.ptcs,
                             '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % file_prefix)
@@ -903,7 +913,8 @@ def bf_task(run, det_name, flat_files, gains, mask_files=(),
              linearity_correction=get_nlc_func(det_name), gains=gains)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.bf_curves,
                             '%s_brighter-fatter.png' % file_prefix,
                             bf_file='%s_bf.fits' % file_prefix)
@@ -957,7 +968,8 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
              mondiode_func=mondiode_func)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     siteUtils.make_png_file(plots.qe,
                             '%s_qe.png' % file_prefix,
@@ -1018,7 +1030,13 @@ def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
     task.run(file_prefix, flat_files, gains, bias_frame=bias_frame)
 
     overscan_file = f'{file_prefix}_overscan_results.fits'
-    plots = OverscanTestPlots(file_prefix, overscan_file=overscan_file)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title_addendum = f'(acq {acq_run})'
+    else:
+        title_addendum = None
+    plots = OverscanTestPlots(file_prefix, overscan_file=overscan_file,
+                              title_addendum=title_addendum)
 
     plot_types = '''serial_eper_low serial_eper_high serial_cti
                     serial_overscan_signal serial_overscan_sum
