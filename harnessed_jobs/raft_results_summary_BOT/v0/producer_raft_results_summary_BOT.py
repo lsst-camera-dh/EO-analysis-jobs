@@ -83,7 +83,7 @@ def make_focal_plane_plots():
                 else:
                     title = 'Run {}, {}'.format(run, column)
                 if acq_run is not None:
-                    title += f', (acq {acq_run})'
+                    title += f' (acq {acq_run})'
 
                 plot_focal_plane(ax, amp_data, camera=camera, z_range=z_range,
                                  use_log10=use_log10,

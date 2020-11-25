@@ -37,7 +37,7 @@ def raft_divisidero_tearing(raft_name):
     title = f'Run {run} {raft_name}'
     acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     if acq_run is not None:
-        title += f', (acq {acq_run})'
+        title += f' (acq {acq_run})'
 
     max_divisidero_tearing \
         = raftTest.ana_divisidero_tearing(median_sflats, raft_name, title=title)
