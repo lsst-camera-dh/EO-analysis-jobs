@@ -4,6 +4,7 @@ Command-line script for divisidero tearing analysis of BOT data.
 """
 def raft_divisidero_tearing(raft_name):
     """JH version of divisidero tearing analysis of BOT data."""
+    import os
     from collections import defaultdict
     import json
     import matplotlib.pyplot as plt
@@ -33,8 +34,13 @@ def raft_divisidero_tearing(raft_name):
         median_sflats[slot] = superflat(files, outfile=outfile,
                                         bias_frame=bias_frame)
 
+    title = f'Run {run} {raft_name}'
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title += f' (acq {acq_run})'
+
     max_divisidero_tearing \
-        = raftTest.ana_divisidero_tearing(median_sflats, raft_name, run)
+        = raftTest.ana_divisidero_tearing(median_sflats, raft_name, title=title)
     plt.savefig(f'{raft_name}_{run}_divisidero.png')
 
     with open(f'{raft_name}_{run}_max_divisidero.json', 'w') as fd:

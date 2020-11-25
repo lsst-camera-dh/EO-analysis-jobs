@@ -34,6 +34,8 @@ except ImportError:
     print("scope and/or multiscope not imported")
 
 __all__ = ['make_file_prefix',
+           'append_acq_run',
+           'make_title',
            'glob_pattern',
            'get_mask_files',
            'get_amplifier_gains',
@@ -187,6 +189,22 @@ def make_file_prefix(run, component_name):
     return "{}_{}".format(component_name, run)
 
 
+def acq_run_addendum():
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        return f'(acq {acq_run})'
+    return None
+
+
+def append_acq_run(title):
+    addendum = acq_run_addendum()
+    return ' '.join((title, addendum)) if addendum is not None else title
+
+
+def make_title(run, device_name):
+    return append_acq_run(f'{run}, {device_name}')
+
+
 def make_bias_filename(run, det_name):
     """Make the bias filename from the run and det_name."""
     file_prefix = make_file_prefix(run, det_name)
@@ -245,7 +263,7 @@ def bias_filename(run, det_name):
 def fe55_task(run, det_name, fe55_files, bias_frame=None):
     "Single sensor execution of the Fe55 analysis task."
     file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
+    title = make_title(run, det_name)
 
     if bias_frame is None:
         bias_frame = bias_filename(run, det_name)
@@ -282,7 +300,8 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
 
     # Fe55 gain and psf analysis results plots for the test report.
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     png_files.append('%s_gains.png' % file_prefix)
     siteUtils.make_png_file(plots.gains, png_files[-1])
@@ -555,7 +574,9 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
             data['amp'].append(amp)
             data['mean'].append(mean)
             data['stdev'].append(stdev)
-    plt.suptitle(f'{det_name}, Run {run}\nmedian signal (ADU) vs column')
+    title = append_acq_run(f'{det_name}, Run {run}\n'
+                           'median signal (ADU) vs column')
+    plt.suptitle(title)
     plt.tight_layout(rect=(0, 0, 1, 0.95))
     for amp in ccd:
         ax[amp].annotate(f'amp {amp}', (0.5, 0.95),
@@ -610,7 +631,8 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
         for seg, scandata in zip(seg_list, raft_arrays):
             slot = 'S' + seg
             det_name = '_'.join((raft_name, slot))
-            disp_plot_title = f'{det_name}, Run {run}, {tm_mode} {counter:03d}'
+            disp_plot_title = append_acq_run(f'{det_name}, Run {run}, '
+                                             f'{tm_mode} {counter:03d}')
             Nchan = 8 if slot.startswith('SW') else 16
             scope.plot_scan_dispersion(scandata, title=disp_plot_title,
                                        Nchan=Nchan)
@@ -619,7 +641,8 @@ def scan_mode_analysis_task(run, raft_name, scan_mode_files):
             plt.savefig(disp_outfile)
             plt.close()
         # Make the multiscope plots for each raft.
-        title = f'{raft_name}, Run {run}, {tm_mode} {counter:03d}'
+        title = append_acq_run(f'{raft_name}, Run {run}, '
+                               f'{tm_mode} {counter:03d}')
         multiscope.plot_raft_allchans(raft_arrays, seg_list, suptitle=title)
         outfile = f'{file_prefix}_{tm_mode}_{counter:03d}_multiscope.png'
         plt.savefig(outfile)
@@ -630,7 +653,7 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
                     system_noise=None):
     """Run the read noise tasks on a single detector."""
     file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
+    title = make_title(run, det_name)
 
     task = sensorTest.ReadNoiseTask()
     task.config.temp_set_point = -100.
@@ -648,7 +671,7 @@ def read_noise_task(run, det_name, bias_files, gains, mask_files=(),
 def raft_noise_correlations(run, raft_name, bias_file_dict):
     """Raft-level noise-correlation analysis."""
     file_prefix = make_file_prefix(run, raft_name)
-    title = "Overscan correlations, Run {}, {}".format(run, raft_name)
+    title = append_acq_run(f"Overscan correlations, Run {run}, {raft_name}")
     raft_level_oscan_correlations(bias_file_dict, title=title)
     plt.savefig('{}_overscan_correlations.png'.format(file_prefix))
 
@@ -657,14 +680,15 @@ def bright_defects_task(run, det_name, dark_files, gains, mask_files=(),
                         bias_frame=None):
     "Single sensor execution of the bright pixels task."
     file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
+    title = make_title(run, det_name)
 
     task = sensorTest.BrightPixelsTask()
     task.config.temp_set_point = -100.
     task.run(file_prefix, dark_files, mask_files, gains, bias_frame=bias_frame,
              linearity_correction=get_nlc_func(det_name))
 
-    title = '%s, medianed dark for bright defects analysis' % file_prefix
+    title = append_acq_run(f'{file_prefix}, medianed dark '
+                           'for bright defects analysis')
     annotation = 'e-/pixel, gain-corrected, bias-subtracted'
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_medianed_dark.png' % file_prefix,
@@ -677,13 +701,14 @@ def dark_defects_task(run, det_name, sflat_files, mask_files=(),
                       bias_frame=None):
     """Single sensor execution of the dark defects task."""
     file_prefix = make_file_prefix(run, det_name)
-    title = '{}, {}'.format(run, det_name)
+    title = make_title(run, det_name)
 
     task = sensorTest.DarkPixelsTask()
     task.run(file_prefix, sflat_files, mask_files, bias_frame=bias_frame,
              linearity_correction=get_nlc_func(det_name))
 
-    title = '%s, superflat for dark defects analysis' % file_prefix
+    title = append_acq_run(f'{file_prefix}, superflat for '
+                           'dark defects analysis')
     siteUtils.make_png_file(sensorTest.plot_flat,
                             '%s_superflat_dark_defects.png' % file_prefix,
                             '%s_median_sflat.fits' % file_prefix,
@@ -717,7 +742,8 @@ def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
     the read noise measurements.
     """
     file_prefix = make_file_prefix(run, det_name)
-    plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file)
+    plots = sensorTest.EOTestPlots(det_name, results_file=eotest_results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.total_noise, '%s_noise.png' % file_prefix,
                             dark95s=dark95s)
 
@@ -746,14 +772,15 @@ def plot_cte_results(run, det_name, superflat_file, eotest_results_file,
     file_prefix = make_file_prefix(run, det_name)
     flux_level = 'low' if 'low' in os.path.basename(superflat_file) else 'high'
     plots \
-        = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file)
+        = sensorTest.EOTestPlots(file_prefix, results_file=eotest_results_file,
+                                 title_addendum=acq_run_addendum())
 
     png_files = []
     png_files.append(superflat_file.replace('.fits', '.png'))
+    title = append_acq_run(f'{run}, {det_name}, CTE superflat, '
+                           f'{flux_level} flux')
     siteUtils.make_png_file(sensorTest.plot_flat, png_files[-1],
-                            superflat_file,
-                            title=('%s, %s, CTE superflat, %s flux '
-                                   % (run, det_name, flux_level)),
+                            superflat_file, title=title,
                             annotation='ADU/pixel', flatten=True, binsize=4)
 
     png_files.append('%s_serial_oscan_%s.png' % (file_prefix, flux_level))
@@ -827,7 +854,8 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
              dark_frame=dark_frame)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     detresp_file = '%s_det_response.fits' % file_prefix
     siteUtils.make_png_file(plots.linearity,
@@ -843,7 +871,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
 
     siteUtils.make_png_file(row_means_var_plot,
                             f'{file_prefix}_row_means_variance.png',
-                            detresp_file, file_prefix)
+                            detresp_file, append_acq_run(file_prefix))
 
 
 def nonlinearity_task(run, det_name, detresp_file, outfile):
@@ -867,7 +895,8 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              linearity_correction=get_nlc_func(det_name))
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.ptcs,
                             '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % file_prefix)
@@ -884,7 +913,8 @@ def bf_task(run, det_name, flat_files, gains, mask_files=(),
              linearity_correction=get_nlc_func(det_name), gains=gains)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
     siteUtils.make_png_file(plots.bf_curves,
                             '%s_brighter-fatter.png' % file_prefix,
                             bf_file='%s_bf.fits' % file_prefix)
@@ -938,7 +968,8 @@ def qe_task(run, det_name, lambda_files, pd_ratio_file, gains,
              mondiode_func=mondiode_func)
 
     results_file = '%s_eotest_results.fits' % file_prefix
-    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file)
+    plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
+                                   title_addendum=acq_run_addendum())
 
     siteUtils.make_png_file(plots.qe,
                             '%s_qe.png' % file_prefix,
@@ -999,7 +1030,13 @@ def overscan_task(run, det_name, flat_files, gains, bias_frame=None):
     task.run(file_prefix, flat_files, gains, bias_frame=bias_frame)
 
     overscan_file = f'{file_prefix}_overscan_results.fits'
-    plots = OverscanTestPlots(file_prefix, overscan_file=overscan_file)
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
+    if acq_run is not None:
+        title_addendum = f'(acq {acq_run})'
+    else:
+        title_addendum = None
+    plots = OverscanTestPlots(file_prefix, overscan_file=overscan_file,
+                              title_addendum=title_addendum)
 
     plot_types = '''serial_eper_low serial_eper_high serial_cti
                     serial_overscan_signal serial_overscan_sum
@@ -1045,7 +1082,7 @@ def persistence_task(run, det_name, bias_files, superbias_frame, mask_files):
     plt.legend(fontsize='x-small')
     plt.xlabel('test sequence number')
     plt.ylabel('mean residual signal (ADU)')
-    plt.title(f'{file_prefix} persistence test')
+    plt.title(append_acq_run(f'{file_prefix} persistence test'))
     plt.savefig(f'{file_prefix}_persistence.png')
     plt.close()
 
