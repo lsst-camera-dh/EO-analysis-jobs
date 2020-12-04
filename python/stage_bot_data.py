@@ -52,18 +52,6 @@ def write_hj_server_file(hj_fp_server_file='hj_fp_server.pkl'):
             pickle.dump(hj_fp_server, output)
 
 
-def get_bad_exposure_set(bad_exposure_file=None):
-    """
-    Get the set of bad exposures from the bad_exposure_file.
-    """
-    bad_exposure_file = os.environ.get('LCATR_BAD_EXPOSURE_LIST', bad_exposure_file)
-    if bad_exposure_file is None:
-        return set()
-    with open(bad_exposure_file) as fd:
-        my_set = set([_.strip() for _ in fd])
-    return my_set
-
-
 def get_files(data_keys, device_name):
     """
     Get the files needed by the current job for the specified device,
@@ -77,12 +65,12 @@ def get_files(data_keys, device_name):
             siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname,
                                       verbose=False))
     # Remove any known bad exposures.
-    bad_exposures = get_bad_exposure_set()
-    if not bad_exposures:
+    bad_exposure_checker = siteUtils.BadExposureChecker()
+    if not bad_exposure_checker.bad_exposures:
         return files
     good_files = set()
     for item in files:
-        if os.path.basename(item).split('R_')[0] in bad_exposures:
+        if bad_exposure_checker.is_bad(item):
             continue
         good_files.add(item)
     return good_files
