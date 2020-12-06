@@ -64,7 +64,16 @@ def get_files(data_keys, device_name):
         files = files.union(
             siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname,
                                       verbose=False))
-    return files
+    # Remove any known bad exposures.
+    bad_exposure_checker = siteUtils.BadExposureChecker()
+    if not bad_exposure_checker.bad_exposures:
+        return files
+    good_files = set()
+    for item in files:
+        if bad_exposure_checker.is_bad(item):
+            continue
+        good_files.add(item)
+    return good_files
 
 
 def clean_up_scratch(run):
