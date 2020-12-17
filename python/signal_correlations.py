@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.visualization as viz
 from astropy.visualization.mpl_normalize import ImageNormalize
+import lsst.afw.math as afwMath
 import lsst.eotest.sensor as sensorTest
-from .correlated_noise import set_ticks
+from correlated_noise import set_ticks
 
 def diff_image_arrays(flat1_file, flat2_file, bias_frame, buffer=10):
     """
@@ -28,8 +29,8 @@ def diff_image_arrays(flat1_file, flat2_file, bias_frame, buffer=10):
         fmean = (mean1 + mean2)/2.
         image1 *= mean2/fmean
         image2 *= mean1/fmean
-        image_arrays[amp] = copy.deepcopy((image1 - image2).getImage()
-                                          .getArray())
+        image1 -= image2
+        image_arrays[amp] = copy.deepcopy(image1.getImage().getArray())
     return image_arrays
 
 
@@ -38,8 +39,9 @@ def raft_level_signal_correlations(flat1_files, flat2_files, bias_frames,
                                    stretch=viz.LinearStretch, figsize=(8, 8)):
 
     """
-    Compute the correlation coefficients between the imaging section pixels
-    for the difference images from a flat pair for the 144 amplifiers in raft.
+    Compute the correlation coefficients between the imaging section
+    pixels for the difference images from a flat pair for the 144
+    amplifiers in raft.
 
     Parameters
     ----------
