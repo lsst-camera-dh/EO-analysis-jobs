@@ -17,50 +17,40 @@ def raft_jh_signal_correlations(raft_name):
     logger = logging.getLogger('raft_jh_noise_correlations')
     logger.setLevel(logging.INFO)
 
-    # Find all of the flat files, and select the pair with signal
-    # levels closest to 50k e-/pixel.
-    pattern = glob_pattern('flat_pairs', f'{raft_name}_*')
+    # Use the high signal superflat files.
+    pattern = glob_pattern('raft_signal_correlations', f'{raft_name}_S??')
     acq_jobname = siteUtils.getProcessName('BOT_acq')
-    flat_files = siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname)
+    sflat_files = siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname)
+    folders = sorted(list(set([os.path.basename(os.path.dirname(_))
+                               for _ in sflat_files])))
+    logger.info(f'folders: {folders}')
 
-    target_signal = 5e4
-    selected = None
-    min_diff = None
-    for item in flat_files:
-        frame = os.path.basename(os.path.dirname(item))
-        signal = frame.split('_')[3]
-        diff = np.abs(target_signal - float(signal))
-        if selected is None or diff < min_diff :
-            selected = signal
-            min_diff = diff
-    flat1_files  = dict()
-    flat2_files  = dict()
-    for item in flat_files:
+    flat1_files = dict()
+    flat2_files = dict()
+    for item in sflat_files:
         folder = os.path.basename(os.path.dirname(item))
+        if folder not in folders[:2]:
+            continue
+        logger.info(f'item: {item}')
+        logger.info(f'folder: {folder}')
         basename = os.path.basename(item)
-        if '_' + signal + '_' in folder:
-            if raft_name in basename:
-                slot = basename.split('_')[-1][:-len('.fits')]
-                if 'flat0' in folder:
-                    flat1_files[slot] = item
-                elif 'flat1' in folder:
-                    flat2_files[slot] = item
-                else:
-                    raise RuntimeError('unmatched flat pair file')
+        logger.info(f'basename: {basename}')
+        slot = basename.split('_')[-1][:-len('.fits')]
+        if folder == folders[0]:
+            flat1_files[slot] = item
+        elif folder == folders[1]:
+            flat2_files[slot] = item
     logger.info('flat pair files:')
     for slot in flat1_files:
         logger.info('  ' + flat1_files[slot])
         logger.info('  ' + flat2_files[slot])
-    logger.info('')
 
     # Find the median bias files for the target raft.
     run = siteUtils.getRunNumber()
     bias_files = dict()
-    logger.info('median bias files:')
     for slot in flat1_files.keys():
         det_name = '_'.join((raft_name, slot))
         bias_files[slot] = bias_filename(run, det_name)
-        logger.info('  ' + bias_files[slot])
 
     file_prefix = make_file_prefix(run, raft_name)
     title = append_acq_run("Imaging region correlations, "
