@@ -34,6 +34,7 @@ CCD_DATA_KEYS = {'bias_frame_BOT': ('bias_frame', 'bias_stability'),
                  'tearing_BOT': ('tearing',)}
 
 RAFT_DATA_KEYS = {'read_noise_BOT': ('raft_noise_correlations',),
+                  'flat_pairs_BOT': ('raft_signal_correlations',),
                   'tearing_BOT': ('divisadero_tearing',)}
 
 
