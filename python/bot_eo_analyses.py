@@ -240,21 +240,45 @@ def bias_filename(run, det_name):
     """
     The bias frame file derived from stacked bias files.
     """
+    use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', False) == 'True'
     bias_run = siteUtils.get_analysis_run('bias')
     if bias_run is None:
-        filename = make_bias_filename(run, det_name)
-        if not os.path.isfile(filename):
-            # Look for bias file from prerequisite job.
-            return siteUtils.dependency_glob(filename,
-                                             description='Bias frames:')[0]
+        if use_pca_bias:
+            file_prefix = make_file_prefix(run, det_name)
+            pca_bias_model = f'{file_prefix}_pca_bias.pickle'
+            pca_bias_file = f'{file_prefix}_pca_bias.fits'
+            filename = (pca_bias_model, pca_bias_file)
+            if (not os.path.isfile(pca_bias_model)
+                or not os.path.isfile(pca_bias_file)):
+                return (siteUtils.dependency_glob(pca_bias_model,
+                                                  description='pca bias model')[0],
+                        siteUtils.dependency_glob(pca_bias_file,
+                                                  description='pca bias file')[0])
+        else:
+            filename = make_bias_filename(run, det_name)
+            if not os.path.isfile(filename):
+                # Look for bias file from prerequisite job.
+                return siteUtils.dependency_glob(filename,
+                                                 description='Bias frames:')[0]
     else:
         # Retrieve bias file from previous run.
         with open('hj_fp_server.pkl', 'rb') as fd:
             hj_fp_server = pickle.load(fd)
-        filename = hj_fp_server.get_files('bias_frame_BOT',
-                                          f'*{det_name}*median_bias.fits',
-                                          run=bias_run)[0]
-        filename = siteUtils.get_scratch_files([filename])[0]
+        if use_pca_bias:
+            pca_bias_model \
+                = hj_fp_server.get_files('bias_frame_BOT',
+                                         f'*{det_name}*_pca_bias.pickle')[0]
+            pca_bias_file \
+                = hj_fp_server.get_files('bias_frame_BOT',
+                                         f'*{det_name}*_pca_bias.fits')[0]
+            pca_bias_model = siteUtils.get_scratch_files([pca_bias_model])[0]
+            pca_bias_file = siteUtils.get_scratch_files([pca_bias_file])[0]
+            filename = pca_bias_model, pca_bias_file
+        else:
+            filename = hj_fp_server.get_files('bias_frame_BOT',
+                                              f'*{det_name}*median_bias.fits',
+                                              run=bias_run)[0]
+            filename = siteUtils.get_scratch_files([filename])[0]
     print("Bias frame:")
     print(filename)
     return filename

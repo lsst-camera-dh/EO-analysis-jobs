@@ -93,7 +93,11 @@ def get_isr_files(det_name, run):
     """Get bias, dark, and mask files."""
     files = set()
     try:
-        files.add(bias_filename(run, det_name))
+        bias_fn = bias_filename(run, det_name)
+        if isinstance(bias_fn, str):
+            files.add(bias_fn)
+        else:
+            files.union(bias_fn)
     except IndexError:
         pass
     try:
