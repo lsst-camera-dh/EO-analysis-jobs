@@ -529,7 +529,12 @@ def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     file_prefix = make_file_prefix(run, det_name)
     rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
     sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
-    return bias_frame
+
+    # Compute PCA model of bias correction.
+    ccd_pcas = sensorTest.CCD_bias_PCA()
+    pca_files = ccd_pcas.compute_pcas(bias_files, file_prefix)
+
+    return bias_frame, pca_files
 
 def image_stats(image, nsigma=10):
     """Compute clipped mean and stdev of the image."""
@@ -538,7 +543,8 @@ def image_stats(image, nsigma=10):
     stats = afwMath.makeStatistics(image, flags=flags, sctrl=stat_ctrl)
     return stats.getValue(afwMath.MEANCLIP), stats.getValue(afwMath.STDEVCLIP)
 
-def bias_stability_task(run, det_name, bias_files, nsigma=10):
+def bias_stability_task(run, det_name, bias_files, nsigma=10,
+                        pca_files=None):
     """Compute amp-wise bias stability time histories and serial profiles."""
     raft, slot = det_name.split('_')
     file_prefix = make_file_prefix(run, det_name)
@@ -556,7 +562,7 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10):
                 key = f'TEMP{i}'
                 if key in hdus['REB_COND'].header:
                     temps[key] = hdus['REB_COND'].header[key]
-        ccd = sensorTest.MaskedCCD(bias_file)
+        ccd = sensorTest.MaskedCCD(bias_file, bias_frame=pca_files)
         for amp in ccd:
             # Retrieve the per row overscan subtracted imaging section.
             amp_image = ccd.unbiased_and_trimmed_image(amp)

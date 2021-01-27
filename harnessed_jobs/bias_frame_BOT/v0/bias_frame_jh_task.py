@@ -30,10 +30,15 @@ def bias_frame_jh_task(det_name):
               det_name)
         return None
 
+    bias_frame, pca_files = bias_frame_task(run, det_name, bias_files[1:])
     bias_stability_files = sorted(bias_stability_files)
-    bias_stability_task(run, det_name, bias_stability_files)
 
-    return bias_frame_task(run, det_name, bias_files[1:])
+    if not os.environ.get('LCATR_USE_PCA_BIAS_FIT', False) == 'true':
+        pca_files = None
+    bias_stability_task(run, det_name, bias_stability_files,
+                        pca_files=pca_files)
+
+    return bias_frame
 
 
 if __name__ == '__main__':
