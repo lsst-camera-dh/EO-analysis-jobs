@@ -250,10 +250,12 @@ def bias_filename(run, det_name):
             filename = (pca_bias_model, pca_bias_file)
             if (not os.path.isfile(pca_bias_model)
                 or not os.path.isfile(pca_bias_file)):
-                return (siteUtils.dependency_glob(pca_bias_model,
-                                                  description='pca bias model')[0],
-                        siteUtils.dependency_glob(pca_bias_file,
-                                                  description='pca bias file')[0])
+                model_file = siteUtils.dependency_glob(
+                    pca_bias_model, description='pca bias model')
+                bias_file = siteUtils.dependency_glob(
+                    pca_bias_file, description='pca bias file')
+                print("bias_filename:", model_file, bias_file)
+                return (model_file[0], bias_file[0])
         else:
             filename = make_bias_filename(run, det_name)
             if not os.path.isfile(filename):

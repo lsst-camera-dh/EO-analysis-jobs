@@ -97,7 +97,7 @@ def get_isr_files(det_name, run):
         if isinstance(bias_fn, str):
             files.add(bias_fn)
         else:
-            files.union(bias_fn)
+            files = files.union(bias_fn)
     except IndexError:
         pass
     try:
