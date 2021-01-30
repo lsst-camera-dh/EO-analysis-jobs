@@ -1255,6 +1255,8 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
         installed_rafts = override_rafts.split('_')
 
     device_names = [_ for _ in device_names if _[:3] in installed_rafts]
+    print('run_jh_tasks: installed_rafts =', installed_rafts)
+    print('run_jh_tasks: device_names =', device_names)
 
     cwd = os.path.abspath('.')
 
