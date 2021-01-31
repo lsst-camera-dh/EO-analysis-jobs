@@ -240,7 +240,7 @@ def bias_filename(run, det_name):
     """
     The bias frame file derived from stacked bias files.
     """
-    use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', False) == 'True'
+    use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True'
     bias_run = siteUtils.get_analysis_run('bias')
     if bias_run is None:
         if use_pca_bias:
