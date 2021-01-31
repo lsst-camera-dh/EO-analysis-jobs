@@ -20,7 +20,15 @@ if 'linearity' in get_analysis_types():
                         'raft_jh_signal_correlations.py')
 
     # Run raft-level signal correlations just on science rafts for now.
-    installed_rafts = camera_info.installed_science_rafts
-    run_python_task_or_cl_script(raft_jh_signal_correlations,
-                                 raft_jh_signal_correlations_script,
-                                 device_names=installed_rafts)
+    # Run raft-level noise correlations just on science rafts for now.
+    device_names = camera_info.installed_science_rafts
+
+    # Check if rafts are over-ridden in the lcatr.cfg file.
+    override_rafts = os.environ.get('LCATR_RAFTS', None)
+    if override_rafts is not None:
+        device_names = [_ for _ in device_names if _[:3] in override_rafts]
+
+    if device_names:
+        run_python_task_or_cl_script(raft_jh_signal_correlations,
+                                     raft_jh_signal_correlations_script,
+                                     device_names=device_names)

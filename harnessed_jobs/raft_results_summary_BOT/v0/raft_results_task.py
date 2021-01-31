@@ -27,7 +27,7 @@ def raft_results_task(raft_name):
         print("results_files:", results_files)
     except FileNotFoundError:
         print("No raft-level results for", raft_name)
-        results_files = {}
+        return
 
     # Determine the total number of pixels and number of edge rolloff
     # pixels for the types of CCDs in this raft and update the results

@@ -35,8 +35,8 @@ def cte_jh_task(det_name):
     # Write gains to local eotest_results_file, which cte_task will update.
     namps = 16 if 'SW' not in det_name else 8
     results = sensorTest.EOTestResults(eotest_results_file, namps=namps)
-    for amp, gain in gains.items():
-        results.add_seg_result(amp, 'GAIN', gain)
+    for amp in range(1, namps+1):
+        results.add_seg_result(amp, 'GAIN', gains[amp])
     results.write()
 
     bias_frame = bias_filename(run, det_name)
