@@ -253,6 +253,10 @@ class TaskRunner:
         with multiprocessing.Pool(processes=num_tasks) as pool:
             outputs = []
             for device_name, remote_host in self.host_map.items():
+                if device_name not in device_names:
+                    # This must be a retry and this device is not
+                    # in the list of devices to retry, so skip it.
+                    continue
                 if device_name not in self.log_files:
                     self.make_log_file(device_name)
                 args = remote_host, device_name
