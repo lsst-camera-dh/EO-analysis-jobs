@@ -269,10 +269,12 @@ def bias_filename(run, det_name):
         if use_pca_bias:
             pca_bias_model \
                 = hj_fp_server.get_files('bias_frame_BOT',
-                                         f'*{det_name}*_pca_bias.pickle')[0]
+                                         f'*{det_name}*_pca_bias.pickle',
+                                         run=bias_run)[0]
             pca_bias_file \
                 = hj_fp_server.get_files('bias_frame_BOT',
-                                         f'*{det_name}*_pca_bias.fits')[0]
+                                         f'*{det_name}*_pca_bias.fits',
+                                         run=bias_run)[0]
             pca_bias_model = siteUtils.get_scratch_files([pca_bias_model])[0]
             pca_bias_file = siteUtils.get_scratch_files([pca_bias_file])[0]
             filename = pca_bias_model, pca_bias_file

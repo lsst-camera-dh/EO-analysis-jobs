@@ -4,9 +4,11 @@ Command-line script for detector-level bias frame job harness task.
 """
 def persistence_jh_task(det_name):
     """JH version of the persistence_task."""
+    import os
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern, \
-        bias_frame_task, get_mask_files, get_bot_eo_config, persistence_task
+        bias_frame_task, get_mask_files, get_bot_eo_config, persistence_task, \
+        bias_filename
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -29,10 +31,14 @@ def persistence_jh_task(det_name):
     bias_files = sorted(bias_files)
     dark_files = sorted(dark_files)
 
-    # Make a superbias frame using the pre-exposure persistence bias
-    # files, skipping the first exposure.
-    superbias_frame = f'{file_prefix}_persistence_superbias.fits'
-    bias_frame_task(run, det_name, bias_files, bias_frame=superbias_frame)
+    use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True'
+    if use_pca_bias:
+        superbias_frame = bias_filename(run, det_name)
+    else:
+        # Make a superbias frame using the pre-exposure persistence bias
+        # files, skipping the first exposure.
+        superbias_frame = f'{file_prefix}_persistence_superbias.fits'
+        bias_frame_task(run, det_name, bias_files, bias_frame=superbias_frame)
 
     return persistence_task(run, det_name, dark_files, superbias_frame,
                             get_mask_files(det_name))
