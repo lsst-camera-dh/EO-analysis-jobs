@@ -534,14 +534,21 @@ def validate_flat_pairs(results, det_names):
                                                    metadata=metadata))
 
     # Persist the raft-level imaging region correlation plots.
+    missing_raft_names = set()
     for raft in camera_info.get_installed_raft_names():
         metadata = dict(TESTTYPE='FLAT', TEST_CATEGORY='EO', RAFT=raft, RUN=run)
         file_prefix = make_file_prefix(run, raft)
         filename = f'{file_prefix}_imaging_region_correlations.png'
+        if not os.path.isfile(filename):
+            missing_raft_names.add(raft)
+            continue
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
 
     report_missing_data("validate_flat_pairs", missing_det_names)
+    report_missing_data("validate_flat_pairs",
+                        sorted(list(missing_raft_names)),
+                        components='rafts', total=21)
 
     return results
 

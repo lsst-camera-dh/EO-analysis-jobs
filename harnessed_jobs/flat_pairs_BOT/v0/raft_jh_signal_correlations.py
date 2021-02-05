@@ -24,6 +24,10 @@ def raft_jh_signal_correlations(raft_name):
     folders = sorted(list(set([os.path.basename(os.path.dirname(_))
                                for _ in sflat_files])))
     logger.info(f'folders: {folders}')
+    if not folders:
+        logger.info('No data found for this raft, so skip the '
+                    'signal correlation analysis.')
+        return
 
     flat1_files = dict()
     flat2_files = dict()
