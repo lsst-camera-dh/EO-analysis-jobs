@@ -15,8 +15,8 @@ def bias_frame_jh_task(det_name):
     bias_files \
         = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name),
                                     acq_jobname=acq_jobname,
-                                    description='Bias frames:')[10:]
-    # Skip the first 10 bias files to avoid transient features in the
+                                    description='Bias frames:')
+    # Skip the first 5 bias files to avoid transient features in the
     # imaging array from after just starting the run.
     bias_files = sorted(bias_files, key=os.path.basename)[5:]
     if not bias_files:
