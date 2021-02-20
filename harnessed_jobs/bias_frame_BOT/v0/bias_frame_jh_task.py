@@ -8,14 +8,17 @@ def bias_frame_jh_task(det_name):
     import siteUtils
     import json
     from bot_eo_analyses import glob_pattern, bias_frame_task, \
-        bias_stability_task
+        bias_stability_task, pca_corrected_superbias
 
     run = siteUtils.getRunNumber()
     acq_jobname = siteUtils.getProcessName('BOT_acq')
     bias_files \
         = siteUtils.dependency_glob(glob_pattern('bias_frame', det_name),
                                     acq_jobname=acq_jobname,
-                                    description='Bias frames:')
+                                    description='Bias frames:')[10:]
+    # Skip the first 10 bias files to avoid transient features in the
+    # imaging array from after just starting the run.
+    bias_files = sorted(bias_files, key=os.path.basename)[5:]
     if not bias_files:
         print("bias_frame_task: Needed data files are missing for detector",
               det_name)
@@ -30,7 +33,7 @@ def bias_frame_jh_task(det_name):
               det_name)
         return None
 
-    bias_frame, pca_files = bias_frame_task(run, det_name, bias_files[1:])
+    bias_frame, pca_files = bias_frame_task(run, det_name, bias_files)
     bias_stability_files = sorted(bias_stability_files)
 
     if not os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True':
@@ -38,6 +41,9 @@ def bias_frame_jh_task(det_name):
     print("pca_files:", pca_files)
     bias_stability_task(run, det_name, bias_stability_files,
                         pca_files=pca_files)
+
+    if pca_files is not None:
+        pca_corrected_superbias(run, det_name, bias_files, pca_files)
 
     return bias_frame
 

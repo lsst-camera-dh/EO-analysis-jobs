@@ -45,6 +45,7 @@ __all__ = ['make_file_prefix',
            'get_analysis_types',
            'fe55_task',
            'bias_frame_task',
+           'pca_corrected_superbias',
            'bias_stability_task',
            'scan_mode_analysis_task',
            'get_scan_mode_files',
@@ -564,12 +565,20 @@ def bias_frame_task(run, det_name, bias_files, bias_frame=None):
 
     return bias_frame, pca_files
 
+
+def pca_corrected_superbias(run, det_name, bias_files, pca_bias_files):
+    file_prefix = make_file_prefix(run, det_name)
+    outfile = f'{file_prefix}_pca_superbias.fits'
+    sensorTest.pca_superbias(bias_files, pca_bias_files, outfile)
+
+
 def image_stats(image, nsigma=10):
     """Compute clipped mean and stdev of the image."""
     stat_ctrl = afwMath.StatisticsControl(numSigmaClip=nsigma)
     flags = afwMath.MEANCLIP | afwMath.STDEVCLIP
     stats = afwMath.makeStatistics(image, flags=flags, sctrl=stat_ctrl)
     return stats.getValue(afwMath.MEANCLIP), stats.getValue(afwMath.STDEVCLIP)
+
 
 def bias_stability_task(run, det_name, bias_files, nsigma=10,
                         pca_files=None):

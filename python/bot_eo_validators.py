@@ -72,9 +72,11 @@ def validate_bias_frame(results, det_names):
         bias_frame = f'{file_prefix}_median_bias.fits'
         rolloff_mask = f'{file_prefix}_edge_rolloff_mask.fits'
         pca_bias_file = f'{file_prefix}_pca_bias.fits'
+        pca_superbias = f'{file_prefix}_pca_superbias.fits'
 
         # Add/update the metadata to the primary HDU of these files.
-        for fitsfile in (bias_frame, rolloff_mask, pca_bias_file):
+        for fitsfile in (bias_frame, rolloff_mask, pca_bias_file,
+                         pca_superbias):
             if os.path.isfile(fitsfile):
                 eotestUtils.addHeaderData(fitsfile, TESTTYPE='BIAS',
                                           DATE=eotestUtils.utc_now_isoformat())
