@@ -67,7 +67,7 @@ def plot_all_rafts(run, results_dir='.', cut=None, y_range=(0.998, 1.002),
         ax = figure.add_subplot(5, 5, i+1)
         plot_raft(raft_files[raft], cut=cut, divide_by_flux=divide_by_flux,
                   y_range=y_range)
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
     plt.suptitle(f'Run {run}')
     unit_id = siteUtils.getUnitId()
     plt.savefig(f'{unit_id}_{run}_flat_gain_stability.png')

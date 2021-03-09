@@ -97,7 +97,7 @@ def plot_all_raft_fe55_gains(raft_files, figsize=(18, 18), y_range=None):
     for i, raft in enumerate(rafts, 1):
         ax = figure.add_subplot(5, 5, i)
         plot_raft_fe55_gains_by_ccd(raft_files[raft], y_range=y_range)
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
     run = os.path.basename(raft_files[raft][0]).split('_')[2]
     plt.suptitle(f'Run {run}')
     unit_id = siteUtils.getUnitId()
