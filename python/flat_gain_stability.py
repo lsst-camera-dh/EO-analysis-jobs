@@ -55,6 +55,8 @@ def plot_all_rafts(run, results_dir='.', cut=None, y_range=(0.998, 1.002),
     raft_files = defaultdict(list)
     files = sorted(glob.glob(os.path.join(results_dir,
                                           '*flat_signal_sequence.pickle')))
+    if not files:
+        return
     for item in files:
         raft_name = os.path.basename(item)[:len('R22')]
         raft_files[raft_name].append(item)

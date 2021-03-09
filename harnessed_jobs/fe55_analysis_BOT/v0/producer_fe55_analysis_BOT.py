@@ -8,7 +8,8 @@ from collections import defaultdict
 from fe55_jh_task import fe55_jh_task
 from gain_stability_jh_task import gain_stability_jh_task
 from bot_eo_analyses import get_analysis_types, run_python_task_or_cl_script
-from plot_fe55_raft_gains import plot_fe55_raft_gains
+from fe55_gain_stability import plot_raft_fe55_gains_by_amp, \
+    plot_all_raft_fe55_gains
 
 job_dir = os.path.join(os.environ['EOANALYSISJOBSDIR'],
                        'harnessed_jobs', 'fe55_analysis_BOT', 'v0')
@@ -31,4 +32,7 @@ if 'gainstability' in analysis_types:
         raft_files[raft].append(item)
 
     for raft in raft_files:
-        plot_fe55_raft_gains(raft_files[raft])
+        plot_raft_fe55_gains_by_amp(raft_files[raft])
+
+    # Make focal plane summary plot of gain stability plotting by CCD.
+    plot_all_raft_fe55_gains(raft_files)
