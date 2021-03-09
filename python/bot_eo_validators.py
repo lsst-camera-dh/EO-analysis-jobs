@@ -719,9 +719,10 @@ def validate_flat_gain_stability(results, det_names):
 
     unit_id = siteUtils.getUnitId()
     gain_stability_plot = f'{unit_id}_{run}_flat_gain_stability.png'
-    md = dict(DATA_PRODUCT='flat_gain_stability_plot', LsstId=unit_id)
-    results.append(siteUtils.make_fileref(gain_stability_plot,
-                                          metadata=md))
+    if os.path.isfile(gain_stability_plot):
+        md = dict(DATA_PRODUCT='flat_gain_stability_plot', LsstId=unit_id)
+        results.append(siteUtils.make_fileref(gain_stability_plot,
+                                              metadata=md))
 
     return results
 
