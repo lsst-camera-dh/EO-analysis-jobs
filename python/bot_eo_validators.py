@@ -207,6 +207,11 @@ def validate_fe55(results, det_names):
                 md = dict(DATA_PRODUCT='gain_stability_results')
                 results.append(siteUtils.make_fileref(gain_stability_file,
                                                       metadata=md))
+    # Persist raft-level gain stability plots
+    png_files = glob.glob('*fe55_gain_stability.png')
+    for png_file in png_files:
+        md = dict(DATA_PRODUCT='gain_stability_results')
+        results.append(siteUtils.make_fileref(png_file, metadata=md))
 
     report_missing_data('validate_fe55', missing_det_names)
     if 'gain_stability' in analysis_types:
