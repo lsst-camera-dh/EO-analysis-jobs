@@ -1,3 +1,6 @@
+"""
+Module to make Fe55 gain stability plots.
+"""
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,7 +14,7 @@ __all__ = ['plot_raft_fe55_gains_by_amp', 'plot_raft_fe55_gains_by_ccd',
 channel = {i: f'C{_}' for i, _ in imutils.channelIds.items()}
 
 def plot_raft_fe55_gains_by_amp(raft_files, figsize=(12, 12), y_range=None,
-                                outfile=None):
+                                outfile=None, acq_run=None):
     """
     Plot Fe55 gains for all amps for each CCD in a raft.
 
@@ -53,16 +56,22 @@ def plot_raft_fe55_gains_by_amp(raft_files, figsize=(12, 12), y_range=None,
         plt.xlabel(f'24*(MJD - {mjd0:d})')
         plt.ylabel('gain/mean(gain)')
     plt.tight_layout(rect=(0, 0, 1, 0.95))
-    tokens = os.path.basename(item).split('_')
+    tokens = os.path.basename(raft_files[0]).split('_')
     run = tokens[2]
     raft = tokens[0]
-    plt.suptitle(f'Fe55 gain stability, {raft}, Run {run}')
+    suptitle = f'Fe55 gain stability, {raft}, Run {run}'
+    if acq_run is not None:
+        suptitle += f' (acq. {acq_run})'
+    plt.suptitle(suptitle)
     if outfile is None:
         outfile = f'{raft}_{run}_fe55_gain_stability.png'
     plt.savefig(outfile)
 
 
 def plot_raft_fe55_gains_by_ccd(raft_files, colors=None, y_range=None):
+    """
+    Plot Fe55 gains for each ccd in a raft, aggregating over amps.
+    """
     if colors is None:
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     raft = os.path.basename(raft_files[0])[:len('R22')]
@@ -88,17 +97,21 @@ def plot_raft_fe55_gains_by_ccd(raft_files, colors=None, y_range=None):
         plt.ylim(*y_range)
 
 
-def plot_all_raft_fe55_gains(raft_files, figsize=(18, 18), y_range=None):
+def plot_all_raft_fe55_gains(raft_files, figsize=(18, 18), y_range=None,
+                             acq_run=None):
     """
     Plot the flat gain stability curve for all 25 rafts in a 5x5 grid.
     """
     figure = plt.figure(figsize=figsize)
     rafts = sorted(list(raft_files.keys()))
     for i, raft in enumerate(rafts, 1):
-        ax = figure.add_subplot(5, 5, i)
+        figure.add_subplot(5, 5, i)
         plot_raft_fe55_gains_by_ccd(raft_files[raft], y_range=y_range)
     plt.tight_layout(rect=(0, 0, 1, 0.95))
-    run = os.path.basename(raft_files[raft][0]).split('_')[2]
-    plt.suptitle(f'Run {run}')
+    run = os.path.basename(raft_files[rafts[0]][0]).split('_')[2]
+    suptitle = f'Fe55 gain stability, Run {run}'
+    if acq_run is not None:
+        suptitle += f' (acq. {acq_run})'
+    plt.suptitle(suptitle)
     unit_id = siteUtils.getUnitId()
     plt.savefig(f'{unit_id}_{run}_fe55_gain_stability.png')
