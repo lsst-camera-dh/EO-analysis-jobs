@@ -31,8 +31,9 @@ if 'gainstability' in analysis_types:
         raft = os.path.basename(item)[:len('R22')]
         raft_files[raft].append(item)
 
+    acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     for raft in raft_files:
-        plot_raft_fe55_gains_by_amp(raft_files[raft])
+        plot_raft_fe55_gains_by_amp(raft_files[raft], acq_run=acq_run)
 
-    # Make focal plane summary plot of gain stability plotting by CCD.
-    plot_all_raft_fe55_gains(raft_files)
+    # Make focal plane summary plot of gain stability, aggregating by CCD.
+    plot_all_raft_fe55_gains(raft_files, acq_run=acq_run)
