@@ -53,7 +53,7 @@ def plot_raft_fe55_gains_by_amp(raft_files, figsize=(12, 12), y_range=None,
         if y_range is not None:
             plt.ylim(*y_range)
         plt.title(det_name, fontsize='x-small')
-        plt.xlabel(f'24*(MJD - {mjd0:d})')
+        plt.xlabel(f'(MJD - {mjd0:d})*24 (hours)')
         plt.ylabel('gain/mean(gain)')
     plt.tight_layout(rect=(0, 0, 1, 0.95))
     tokens = os.path.basename(raft_files[0]).split('_')

@@ -718,11 +718,12 @@ def validate_flat_gain_stability(results, det_names):
     report_missing_data('validate_flat_gain_stability', missing_det_names)
 
     unit_id = siteUtils.getUnitId()
-    gain_stability_plot = f'{unit_id}_{run}_flat_gain_stability.png'
-    if os.path.isfile(gain_stability_plot):
-        md = dict(DATA_PRODUCT='flat_gain_stability_plot', LsstId=unit_id)
-        results.append(siteUtils.make_fileref(gain_stability_plot,
-                                              metadata=md))
+    png_files = glob.glob('*flat_gain_stability.png')
+    for png_file in png_files:
+        md = dict(DATA_PRODUCT='flat_gain_stability_plot')
+        if unit_id in png_file:
+            md['LsstId'] = unit_id
+        results.append(siteUtils.make_fileref(png_file, metadata=md))
 
     return results
 
