@@ -94,7 +94,7 @@ def plot_raft_fe55_gains_by_ccd(raft_files, colors=None, y_range=None):
         plt.scatter(x, y, s=1, color=color, label=sensor)
     plt.xlabel(f'(MJD - {mjd0})*24 (hours)')
     plt.ylabel('gain/mean(gain)')
-    plt.legend(fontsize='x-small')
+    plt.legend(fontsize='x-small', ncol=2)
     plt.title(raft, fontsize='small')
     if y_range is not None:
         plt.ylim(*y_range)

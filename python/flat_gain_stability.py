@@ -51,7 +51,7 @@ def plot_raft_by_amp(raft_files, cut=None, divide_by_flux=True,
     tokens = os.path.basename(raft_files[0]).split('_')
     run = tokens[2]
     raft = tokens[0]
-    suptitle = append_acq_run(f'flat gain stability, {raft}, Run {run}')
+    suptitle = append_acq_run(f'Flat gain stability, {raft}, Run {run}')
     plt.suptitle(suptitle)
     if outfile is None:
         outfile = f'{raft}_{run}_flat_gain_stability.png'
