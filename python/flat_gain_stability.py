@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import lsst.eotest.image_utils as imutils
 import siteUtils
-
+from bot_eo_analyses import raft_ccd_order, append_acq_run
 
 __all__ = ['plot_raft_by_amp', 'plot_raft', 'plot_all_rafts']
 
@@ -18,13 +18,13 @@ channel = {i: f'C{_}' for i, _ in imutils.channelIds.items()}
 
 
 def plot_raft_by_amp(raft_files, cut=None, divide_by_flux=True,
-                     figsize=(12, 12), y_range=None, outfile=None,
-                     acq_run=None):
+                     figsize=(12, 12), y_range=None, outfile=None):
     """
     Plot flat gain stability for each amp individually.
     """
+    sorted_raft_files = raft_ccd_order.sorted(raft_files)
     plt.figure(figsize=figsize)
-    for i, item in enumerate(raft_files, 1):
+    for i, item in enumerate(sorted_raft_files, 1):
         plt.subplot(3, 3, i)
         df = pd.read_pickle(item)
         if cut:
@@ -51,9 +51,7 @@ def plot_raft_by_amp(raft_files, cut=None, divide_by_flux=True,
     tokens = os.path.basename(raft_files[0]).split('_')
     run = tokens[2]
     raft = tokens[0]
-    suptitle = f'flat gain stability, {raft}, Run {run}'
-    if acq_run is not None:
-        suptitle += f' (acq. {acq_run})'
+    suptitle = append_acq_run(f'flat gain stability, {raft}, Run {run}')
     plt.suptitle(suptitle)
     if outfile is None:
         outfile = f'{raft}_{run}_flat_gain_stability.png'
@@ -69,7 +67,8 @@ def plot_raft(raft_files, cut=None, divide_by_flux=True, y_range=None,
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     raft = os.path.basename(raft_files[0])[:len('R22')]
     mjd_min = None
-    for item, color in zip(raft_files, colors):
+    sorted_raft_files = raft_ccd_order.sorted(raft_files)
+    for item, color in zip(sorted_raft_files, colors):
         sensor = os.path.basename(item)[len('R22_'):len('R22_S11')]
         raw_df = pd.read_pickle(item)
         df = raw_df.query(cut) if cut is not None else raw_df
@@ -98,7 +97,7 @@ def plot_raft(raft_files, cut=None, divide_by_flux=True, y_range=None,
 
 
 def plot_all_rafts(run, results_dir='.', cut=None, y_range=(0.998, 1.002),
-                   divide_by_flux=True, figsize=(18, 18), acq_run=None):
+                   divide_by_flux=True, figsize=(18, 18)):
     """
     Plot the flat gain stability curve for all 25 rafts in a 5x5 grid.
     """
@@ -118,9 +117,7 @@ def plot_all_rafts(run, results_dir='.', cut=None, y_range=(0.998, 1.002),
         plot_raft(raft_files[raft], cut=cut, divide_by_flux=divide_by_flux,
                   y_range=y_range)
     plt.tight_layout(rect=(0, 0, 1, 0.95))
-    suptitle = f'Flat gain stability, Run {run}'
-    if acq_run is not None:
-        suptitle += f' (acq. {acq_run})'
+    suptitle = append_acq_run(f'Flat gain stability, Run {run}')
     plt.suptitle(suptitle)
     unit_id = siteUtils.getUnitId()
     plt.savefig(f'{unit_id}_{run}_flat_gain_stability.png')
