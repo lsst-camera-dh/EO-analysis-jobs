@@ -37,6 +37,7 @@ __all__ = ['make_file_prefix',
            'append_acq_run',
            'make_title',
            'glob_pattern',
+           'raft_ccd_order',
            'get_mask_files',
            'get_amplifier_gains',
            'medianed_dark_frame',
@@ -180,6 +181,34 @@ def get_mask_files(det_name):
     mask_files.extend(rolloff_mask_files)
 
     return mask_files
+
+
+class RaftCcdOrder:
+    """
+    Class to sort eotest output filenames by order of appearance of CCDs
+    in a raft for the standard DM-based focal plane orientation, for
+    science rafts and corner rafts (specifically R44), respectively:
+    S20  S21  S22       SG0
+    S10  S11  S12       SW1
+    S00  S01  S02       SW0  SG1
+    """
+    ccd_order = 'S20 S21 S22 S10 S11 S12 S00 S01 S02 SG0 SW1 SW0 SG1'.split()
+    def _ccd_key(self, filename):
+        """
+        Key function to use in sorted(...).  Filename should be of the
+        form '{raft}_{sensor}_{run}_...'.
+        """
+        ccd_slot = os.path.basename(filename).split('_')[1]
+        return self.ccd_order.index(ccd_slot)
+
+    def sorted(self, file_list):
+        """
+        Return a sorted file list based on CCD slot name.
+        """
+        return sorted(file_list, key=self._ccd_key)
+
+
+raft_ccd_order = RaftCcdOrder()
 
 
 def make_file_prefix(run, component_name):
