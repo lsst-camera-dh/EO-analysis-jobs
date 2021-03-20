@@ -71,7 +71,7 @@ def apply_filter_corrections(detresp_file, data_dir, amp=1, max_signal=3e4):
     # Add the filter info
     df0['filt'] = [filters.get((dayobs, seqnum), 'None')
                    for dayobs, seqnum in zip(df0['DAYOBS'], df0['SEQNUM'])]
-    df = df0.query('filt != "None" and {xcol} < {max_signal}')
+    df = pd.DataFrame(df0.query(f'filt != "None" and {ycol} < {max_signal}'))
 
     # Sort filters by flux, in ascending order.
     filters = sorted(list(set(df['filt'])),
