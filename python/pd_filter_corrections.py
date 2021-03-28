@@ -4,11 +4,12 @@ mismatches between signal at boundaries between filter combinations in
 a flat pair sequence.
 """
 import os
-import glob
 from collections import defaultdict
+import pickle
+import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 from astropy.io import fits
-import pandas as pd
 
 
 def pd_filter_corrections(flux, Ne, filters, Ne_max=3e4):
@@ -79,57 +80,70 @@ def flat_metadata(flat_dir):
     return signal, filt, seqnum, dayobs
 
 
-def flat_sequence_metadata(data_dir):
+def apply_corrections(fluxes, filters, pd_corrections):
+    """Apply pd correctionst to the fluxes by fitler."""
+    return np.array([flux*pd_corrections.get(filt, 1)
+                     for flux, filt in zip(fluxes, filters)])
+
+
+def plot_pd_corrections(det_resp_files, x_range=(0.975, 1.015),
+                        png_file=None, pd_corr_file=None,
+                        pd_corrections=None):
     """
-    Return a data frame with the metadata from the flat folders in
-    the specified data directory.
+    Plot distributions of photodiode filter corrections derived from
+    a list of detector response files, which are all assumed to
+    be from the same analysis run.
     """
-    data = defaultdict(list)
-    flats = glob.glob(os.path.join(data_dir, 'flat*flat?_*'))
-    for flat in flats:
-        signal, filt, seqnum, dayobs = flat_metadata(flat)
-        data['signal'].append(signal)
-        data['filt'].append(filt)
-        data['seqnum'].append(seqnum)
-        data['dayobs'].append(dayobs)
-    return pd.DataFrame(data=data)
+    my_pd_corrections = defaultdict(list)
+    for item in det_resp_files:
+        #print(item)
+        with fits.open(item) as det_resp:
+            filters = det_resp[1].data['filter']
+            index = np.where(filters != '')
+            filters = filters[index]
+            flux = det_resp[1].data['flux'][index]
+            if pd_corrections is not None:
+                flux = apply_corrections(flux, filters, pd_corrections)
+            if '_SW' in os.path.basename(item):
+                amps = range(1, 9)
+            else:
+                amps = range(1, 17)
+            for amp in amps:
+                Ne = det_resp[1].data[f'AMP{amp:02d}_SIGNAL'][index]
+                try:
+                    _, pd_corrs = pd_filter_corrections(flux, Ne, filters)
+                except ZeroDivisionError:
+                    print(os.path.basename(item), amp)
+                    continue
+                for filt, value in pd_corrs.items():
+                    my_pd_corrections[filt].append(value)
+    run = os.path.basename(det_resp_files[0]).split('_')[2]
+    if pd_corrections is None:
+        if pd_corr_file is None:
+            pd_corr_file = f'pd_corrections_{run}.pickle'
+        with open(pd_corr_file, 'wb') as fd:
+            pickle.dump(my_pd_corrections, fd)
 
-
-def apply_filter_corrections(detresp_file, data_dir, amp=1, max_signal=3e4):
-    """
-    Compute and apply per filter corrections to photodiode integrals (flux)
-    in the detresp_file.
-    """
-    # Use the specified amp for the signal level to use for calibration.
-    xcol, ycol = 'flux', f'AMP{amp:02d}_SIGNAL'
-
-    # Extract the metadata from the flat pair sequence in order
-    # to associate the filter combination for each frame.
-    md = flat_sequence_metadata(data_dir)
-
-    # Index each filter combo by DAYOBS and SEQNUM.
-    filters = {(d, s): f for d, s, f in
-               zip(md['dayobs'], md['seqnum'], md['filt'])}
-
-    # Read the detector response file into a data frame.
-    with fits.open(detresp_file) as hdus:
-        data = {col.name: [_ for _ in hdus[1].data[col.name]]
-                for col in hdus[1].data.columns}
-        df0 = pd.DataFrame(data=data)
-
-    # Add the filter info.
-    df0['filt'] = [filters.get((dayobs, seqnum), 'None')
-                   for dayobs, seqnum in zip(df0['DAYOBS'], df0['SEQNUM'])]
-    df = pd.DataFrame(df0.query(f'filt != "None" and {ycol} < {max_signal}'))
-
-    # Compute the correction factors.
-    corr_factors, pd_corrections \
-        = pd_filter_corrections(df[xcol].to_numpy(), df[ycol].to_numpy(),
-                                df['filt'].to_numpy())
-
-    # Apply the corrections.
-    df[xcol] *= corr_factors
-
-    # Return a tuple of the corrected detector response data and the
-    # corrections for each filter combination.
-    return df, pd_corrections
+    plt.figure()
+    bins = 40
+    for filt, orig_values in my_pd_corrections.items():
+        values = [_ for _ in orig_values if _ <= 1]
+        plt.hist(values, alpha=0.5, bins=bins, label=filt, range=x_range)
+        try:
+            est_bw = (x_range[1] - x_range[0])/bins*50
+            kernel = scipy.stats.gaussian_kde(values, bw_method=est_bw)
+            xvals = np.linspace(x_range[0], x_range[1], 1000)
+            yvals = kernel(xvals)
+            x_mode = xvals[np.where(yvals == max(yvals))][0]
+            plt.plot(xvals, yvals, linestyle='--', color='black', alpha=0.5)
+        except (ArithmeticError, LookupError):
+            x_mode = np.median(values)
+        print(filt, np.mean(values), np.median(values), x_mode)
+        plt.axvline(x_mode, linestyle=':', color='black', alpha=0.5)
+    plt.xlabel('pd correction factor')
+    plt.ylabel('entries / bin')
+    plt.title(f'Run {run}')
+    plt.legend(fontsize='x-small')
+    if png_file is None:
+        png_file = f'pd_corrections_{run}.png'
+    plt.savefig(png_file)
