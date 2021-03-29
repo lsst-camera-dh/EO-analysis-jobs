@@ -61,25 +61,6 @@ def pd_filter_corrections(flux, Ne, filters, Ne_max=3e4):
             pd_corrections)
 
 
-def flat_metadata(flat_dir):
-    """
-    Extract frame metadata from the symlink name and physical path of
-    the folder containing the flat files.
-    """
-    # Get the target signal and filter combination from the symlink name.
-    tokens = os.path.basename(flat_dir)[len('flat_'):-len('_flat0_000')]\
-                    .split('_')
-    signal = float(tokens[-1])
-    filt = '_'.join(tokens[:-1])
-
-    # Get the dayobs and seqnum from the physical path.
-    tokens = os.path.realpath(flat_dir).split('_')
-    seqnum = int(tokens[-1])
-    dayobs = int(tokens[-2])
-
-    return signal, filt, seqnum, dayobs
-
-
 def apply_corrections(fluxes, filters, pd_corrections):
     """Apply pd correctionst to the fluxes by fitler."""
     return np.array([flux*pd_corrections.get(filt, 1)
@@ -136,7 +117,7 @@ def plot_pd_corrections(det_resp_files, x_range=(0.975, 1.015),
             yvals = kernel(xvals)
             x_mode = xvals[np.where(yvals == max(yvals))][0]
             plt.plot(xvals, yvals, linestyle='--', color='black', alpha=0.5)
-        except (ArithmeticError, LookupError):
+        except np.linalg.LinAlgError:
             x_mode = np.median(values)
         print(filt, np.mean(values), np.median(values), x_mode)
         plt.axvline(x_mode, linestyle=':', color='black', alpha=0.5)
