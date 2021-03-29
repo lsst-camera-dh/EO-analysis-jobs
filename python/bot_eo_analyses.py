@@ -913,7 +913,8 @@ def row_means_var_plot(detresp_file, title, min_flux=3000, max_flux=1e5):
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
-                    bias_frame=None, mondiode_func=None, dark_frame=None):
+                    bias_frame=None, mondiode_func=None, dark_frame=None,
+                    filter_corrections=None):
     """Single sensor execution of the flat pairs task."""
     file_prefix = make_file_prefix(run, det_name)
 
@@ -923,7 +924,7 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
              use_exptime=use_exptime, flat2_finder=flat2_finder,
              bias_frame=bias_frame, mondiode_func=mondiode_func,
              linearity_correction=get_nlc_func(det_name),
-             dark_frame=dark_frame)
+             dark_frame=dark_frame, filter_corrections=filter_corrections)
 
     results_file = '%s_eotest_results.fits' % file_prefix
     plots = sensorTest.EOTestPlots(file_prefix, results_file=results_file,
