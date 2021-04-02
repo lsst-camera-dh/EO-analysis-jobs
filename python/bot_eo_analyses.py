@@ -128,7 +128,9 @@ def mondiode_value(flat_file, exptime, factor=5,
                                      pd_filename))[0]
     x, y = np.recfromtxt(pd_file).transpose()
 
-    integral = sum((y[1:] + y[:-1])/2*(x[1:] - x[:-1]))
+    # Each picoammeter measurement point is the average of the pd
+    # current over the preceding interval.
+    integral = sum(y[1:]*(x[1:] - x[:-1]))
     return integral/exptime
 
 
