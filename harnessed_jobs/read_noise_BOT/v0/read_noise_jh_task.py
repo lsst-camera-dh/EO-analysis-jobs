@@ -5,7 +5,6 @@ Producer script for BOT read noise analysis.
 def read_noise_jh_task(det_name):
     """JH version of the single sensor read noise task."""
     import os
-    import glob
     import logging
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
@@ -17,11 +16,13 @@ def read_noise_jh_task(det_name):
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
     acq_jobname = siteUtils.getProcessName('BOT_acq')
+    nskip = 5
     nbias = os.environ.get('LCATR_NUM_BIAS_FRAMES', 10)
 
     bias_files \
         = siteUtils.dependency_glob(glob_pattern('read_noise', det_name),
-                                    acq_jobname=acq_jobname)[:nbias]
+                                    acq_jobname=acq_jobname)
+    bias_files = sorted(bias_files)[nskip:nskip + nbias]
     if not bias_files:
         logger.info("read_noise_task: Needed data files are missing "
                     "for detector %s", det_name)
