@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from astropy.io import fits
+import lsst.log
+lsst.log.setLevel('', lsst.log.ERROR)
 import lsst.afw.math as afwMath
 import lsst.eotest.image_utils as imutils
 import lsst.eotest.sensor as sensorTest
@@ -388,7 +390,7 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
 
 def flat_gain_stability_task(run, det_name, flat_files, mask_files=(),
                              bias_frame=None, dark_frame=None,
-                             mondiode_func=mondiode_value):
+                             mondiode_func=mondiode_value, verbose=True):
     """
     Task to compute the median signal level in each amp of each flat
     frame as a function of mjd and seqnum.
@@ -410,6 +412,8 @@ def flat_gain_stability_task(run, det_name, flat_files, mask_files=(),
         Medianed dark frame to use for dark subtraction.
     mondiode_func: function [bot_eo_analyses.mondiode_value]
         Function to use for computing monitoring diode current.
+    verbose: bool [True]
+        Verbosity flag passed to sensorTest.flat_signal_sequence.
 
     Returns
     -------
@@ -422,7 +426,8 @@ def flat_gain_stability_task(run, det_name, flat_files, mask_files=(),
     df = sensorTest.flat_signal_sequence(flat_files, bias_frame=bias_frame,
                                          dark_frame=dark_frame,
                                          mask_files=mask_files,
-                                         mondiode_func=mondiode_func)
+                                         mondiode_func=mondiode_func,
+                                         verbose=verbose)
     df.to_pickle(outfile)
     return df, outfile
 
