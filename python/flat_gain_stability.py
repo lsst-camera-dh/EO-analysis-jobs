@@ -7,6 +7,7 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import lsst.afw.math as afwMath
 import lsst.eotest.image_utils as imutils
 import siteUtils
 from bot_eo_analyses import raft_ccd_order, append_acq_run
@@ -15,6 +16,13 @@ __all__ = ['plot_raft_by_amp', 'plot_raft', 'plot_all_rafts']
 
 
 channel = {i: f'C{_}' for i, _ in imutils.channelIds.items()}
+
+
+def discard_outliers(signal, nsig=5):
+    stats = afwMath.makeStatistics(signal, afwMath.MEANCLIP | afwMath.STDEVCLIP)
+    mean, stdev = (stats.getValue(afwMath.MEANCLIP),
+                   stats.getValue(afwMath.STDEVCLIP))
+    return np.where(np.abs(signal - mean) < nsig*stdev)
 
 
 def plot_raft_by_amp(raft_files, cut=None, divide_by_flux=True,
@@ -29,18 +37,20 @@ def plot_raft_by_amp(raft_files, cut=None, divide_by_flux=True,
         df = pd.read_pickle(item)
         if cut:
             df = df.query(cut)
-        flux = df['flux']/np.mean(df['flux'])
+        flux = (df['flux']/np.mean(df['flux'])).to_numpy()
         mjd0 = int(min(df['mjd']))
         det_name = os.path.basename(item)[:len('R22_S11')]
         for amp in range(1, 17):
             try:
-                signal = df[f'amp{amp:02d}']
+                signal = df[f'amp{amp:02d}'].to_numpy()
             except KeyError:
                 continue
             if divide_by_flux:
                 signal /= flux
-            signal /= np.mean(signal)
-            plt.scatter(24*(df['mjd'] - mjd0), signal, s=2, label=channel[amp])
+            index = discard_outliers(signal)
+            signal /= np.mean(signal[index])
+            times = 24*(df['mjd'].to_numpy() - mjd0)[index]
+            plt.scatter(times, signal[index], s=2, label=channel[amp])
         plt.legend(fontsize='x-small', ncol=2)
         if y_range is not None:
             plt.ylim(*y_range)
