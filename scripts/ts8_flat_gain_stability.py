@@ -115,6 +115,8 @@ def run_flat_gain_stability_task(run, frame_dirs, outdir='.', processes=9,
             if os.path.isdir(bias_dir):
                 bias_frame = (add_bias_dir(f'{prefix}_pca_bias.pickle'),
                               add_bias_dir(f'{prefix}_pca_bias.fits'))
+                if not os.path.isfile(bias_frame[0]):
+                    bias_frame = None
             else:
                 bias_frame = None
             rolloff_mask_file = add_mask_dir(f'{prefix}_edge_rolloff_mask.fits')
@@ -162,6 +164,6 @@ if __name__ == '__main__':
     run_flat_gain_stability_task(run, flat_frame_dirs, outdir=outdir)
 
     pattern = os.path.join(outdir, 'flat_gain_results',
-                           '*flat_signal_sequence.pickle')
+                           f'*_{run}_flat_signal_sequence.pickle')
     raft_files = sorted(glob.glob(pattern))
     plot_raft_by_amp(raft_files)
