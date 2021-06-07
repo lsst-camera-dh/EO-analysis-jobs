@@ -917,12 +917,25 @@ def row_means_var_plot(detresp_file, title, min_flux=3000, max_flux=1e5):
     plt.title(title)
 
 
+def check_matched_flat_pairs(flat_files, flat2_finder):
+    matched_files = []
+    for item in flat_files:
+        try:
+            flat2_finder(item)
+        except IndexError:
+            pass
+        else:
+            matched_files.append(item)
+    return matched_files
+
+
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
                     bias_frame=None, mondiode_func=None, dark_frame=None,
                     filter_corrections=None):
     """Single sensor execution of the flat pairs task."""
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.FlatPairTask()
@@ -968,6 +981,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              flat2_finder=find_flat2_bot, bias_frame=None):
     """Single sensor execution of the PTC task."""
     file_prefix = make_file_prefix(run, det_name)
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
 
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
