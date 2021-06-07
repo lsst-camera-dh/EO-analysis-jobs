@@ -980,8 +980,8 @@ def nonlinearity_task(run, det_name, detresp_file, outfile):
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              flat2_finder=find_flat2_bot, bias_frame=None):
     """Single sensor execution of the PTC task."""
-    file_prefix = make_file_prefix(run, det_name)
     flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
+    file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.PtcTask()
     task.run(file_prefix, flat_files, mask_files, gains,
@@ -999,6 +999,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
 def bf_task(run, det_name, flat_files, gains, mask_files=(),
             flat2_finder=None, bias_frame=None):
     """Single sensor execution of the brighter-fatter task."""
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.BFTask()
