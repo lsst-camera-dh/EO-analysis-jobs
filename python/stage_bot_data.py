@@ -64,7 +64,7 @@ def get_files(data_keys, device_name):
         pattern = glob_pattern(data_key, f'{device_name}*')
         files = files.union(
             siteUtils.dependency_glob(pattern, acq_jobname=acq_jobname,
-                                      verbose=False))
+                                      verbose=True))
     # Remove any known bad exposures.
     bad_exposure_checker = siteUtils.BadExposureChecker()
     if not bad_exposure_checker.bad_exposures:
@@ -189,7 +189,7 @@ def stage_files(device_list, data_keys):
 
     # Copy the remaining files.
     for src, dest in new_files.items():
-        if dest not in old_files:
+        if dest not in old_files and src != dest:
             print('copying', src, 'to', dest)
             shutil.copy(src, dest)
 

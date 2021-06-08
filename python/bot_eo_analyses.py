@@ -557,25 +557,30 @@ def _get_amplifier_gains(file_pattern=None):
         print("_get_amplifier_gains: using unit gains")
         return {amp: 1 for amp in range(1, 17)}
 
+    def extract_gains(results_file, gain_column='GAIN'):
+        data = sensorTest.EOTestResults(results_file)
+        return dict(zip(data['AMP'], data[gain_column]))
+
     # Attempt to retrieve gains from fe55_analysis_BOT then ptc_BOT.
     # If neither are available, then use unit gains.
     print("_get_amplifier_gains: trying fe55_analysis_BOT")
     results_files = siteUtils.dependency_glob(file_pattern,
                                               jobname='fe55_analysis_BOT')
+
     if not results_files:
         print("_get_amplifier_gains: trying ptc_BOT")
         results_files = siteUtils.dependency_glob(file_pattern,
                                                   jobname='ptc_BOT')
+        if results_files:
+            return extract_gains(results_files[0], gain_column='PTC_GAIN')
+
     if not results_files:
         print("_get_amplifier_gains: both fe55 and ptc retrievals failed. "
               "using unit gains.")
         return {amp: 1 for amp in range(1, 17)}
 
-    eotest_results_file = results_files[0]
-    data = sensorTest.EOTestResults(eotest_results_file)
-    amps = data['AMP']
-    gains = data['GAIN']
-    return dict(zip(amps, gains))
+    return extract_gains(results_files[0])
+
 
 try:
     get_amplifier_gains = GetAmplifierGains()
@@ -917,12 +922,25 @@ def row_means_var_plot(detresp_file, title, min_flux=3000, max_flux=1e5):
     plt.title(title)
 
 
+def check_matched_flat_pairs(flat_files, flat2_finder):
+    matched_files = []
+    for item in flat_files:
+        try:
+            flat2_finder(item)
+        except IndexError:
+            pass
+        else:
+            matched_files.append(item)
+    return matched_files
+
+
 def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                     flat2_finder=find_flat2_bot,
                     linearity_spec_range=(1e4, 9e4), use_exptime=False,
                     bias_frame=None, mondiode_func=None, dark_frame=None,
                     filter_corrections=None):
     """Single sensor execution of the flat pairs task."""
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.FlatPairTask()
@@ -967,6 +985,7 @@ def nonlinearity_task(run, det_name, detresp_file, outfile):
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              flat2_finder=find_flat2_bot, bias_frame=None):
     """Single sensor execution of the PTC task."""
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.PtcTask()
@@ -985,6 +1004,7 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
 def bf_task(run, det_name, flat_files, gains, mask_files=(),
             flat2_finder=None, bias_frame=None):
     """Single sensor execution of the brighter-fatter task."""
+    flat_files = check_matched_flat_pairs(flat_files, flat2_finder)
     file_prefix = make_file_prefix(run, det_name)
 
     task = sensorTest.BFTask()
