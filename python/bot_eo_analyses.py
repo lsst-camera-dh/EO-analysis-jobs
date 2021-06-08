@@ -571,7 +571,8 @@ def _get_amplifier_gains(file_pattern=None):
         print("_get_amplifier_gains: trying ptc_BOT")
         results_files = siteUtils.dependency_glob(file_pattern,
                                                   jobname='ptc_BOT')
-        return extract_gains(results_files[0], gain_column='PTC_GAIN')
+        if results_files:
+            return extract_gains(results_files[0], gain_column='PTC_GAIN')
 
     if not results_files:
         print("_get_amplifier_gains: both fe55 and ptc retrievals failed. "
