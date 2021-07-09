@@ -245,7 +245,7 @@ class TaskRunner:
         num_tasks = len(device_names)
         if not retry:
             self.host_map = dict(zip(device_names, self.remote_hosts))
-            if bool(os.environ.get('LCATR_STAGE_DATA', False)):
+            if os.environ.get('LCATR_STAGE_DATA', 'True') == 'True':
                 self.stage_data()
 
         # Using multiprocessing allows one to launch the scripts much
