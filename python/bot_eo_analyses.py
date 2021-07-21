@@ -29,6 +29,8 @@ from correlated_noise import correlated_noise, raft_level_oscan_correlations
 from camera_components import camera_info
 from tearing_detection import tearing_detection
 from multiprocessor_execution import run_device_analysis_pool
+from scipy.signal import medfilt as filterfunc
+
 try:
     import scope
     import multiscope
@@ -129,6 +131,7 @@ def mondiode_value(flat_file, exptime, factor=5,
     pd_file = glob.glob(os.path.join(os.path.dirname(flat_file),
                                      pd_filename))[0]
     x, y = np.recfromtxt(pd_file).transpose()
+    y = filterfunc(y)
 
     # Each picoammeter measurement point is the average of the pd
     # current over the preceding interval.
