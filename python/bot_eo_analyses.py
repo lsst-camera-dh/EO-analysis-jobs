@@ -808,14 +808,16 @@ def traps_task(run, det_name, trap_file, gains, mask_files=(), bias_frame=None):
 
 
 def dark_current_task(run, det_name, dark_files, gains, mask_files=(),
-                      temp_set_point=-100., bias_frame=None):
+                      temp_set_point=-100., bias_frame=None,
+                      dark_files_linear_fit=None):
     """Single sensor execution of the dark current task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.DarkCurrentTask()
     task.config.temp_set_point = temp_set_point
     return task.run(file_prefix, dark_files, mask_files, gains,
                     bias_frame=bias_frame,
-                    linearity_correction=get_nlc_func(det_name))
+                    linearity_correction=get_nlc_func(det_name),
+                    dark_files_linear_fit=dark_files_linear_fit)
 
 
 def plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
