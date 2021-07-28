@@ -413,6 +413,15 @@ def validate_dark_current(results, det_names):
                 dark_current_95CL=dc95, dark_current_median=dcmed,
                 slot=slot, raft=raft))
 
+        if 'dark_current_fit' in get_analysis_types():
+            slopes = data['DARK_CURRENT_SLOPE']
+            intercepts = data['DARK_CURRENT_INTERCEPT']
+            for amp, slope, intercept in zip(amps, slopes, intercepts):
+                results.append(lcatr.schema.valid(
+                    lcatr.schema.get('dark_current_fit_BOT'), amp=amp,
+                    dark_current_slope=slope, dark_current_intercept=intercept,
+                    slot=slot, raft=raft))
+
         # Persist the png files.
         metadata = dict(TESTTYPE='DARK', TEST_CATEGORY='EO',
                         DETECTOR=det_name, RUN=run)

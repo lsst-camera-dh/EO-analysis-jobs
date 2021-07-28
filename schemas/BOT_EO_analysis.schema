@@ -48,6 +48,15 @@
     'raft' : str
 },
 {
+    'schema_name' : 'dark_current_fit_BOT',
+    'schema_version' : 0,
+    'amp' : int,
+    'dark_current_slope': float,
+    'dark_current_intercept': float,
+    'slot' : str,
+    'raft' : str
+},
+{
     'schema_name' : 'traps_BOT',
     'schema_version' : 0,
     'amp' : int,
