@@ -10,6 +10,7 @@ def dark_current_jh_task(det_name):
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, dark_current_task,\
         plot_ccd_total_noise, get_mask_files, get_analysis_types
+    from bot_data_handling import most_common_dark_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -26,25 +27,9 @@ def dark_current_jh_task(det_name):
     if 'dark_current_fit' not in get_analysis_types():
         dark_files_linear_fit = None
     else:
-        # Find dark frames corresponding to the most common exptime
-        # value and assume these are used for the standard dark
-        # current calculation.  For the dark current inferred from the
-        # fitted slope of the per frame dark current as a function of
-        # integration time, use all of the dark files.
         dark_files_linear_fit = list(dark_files)
-        def exptime(fits_file):
-            with fits.open(fits_file) as hdus:
-                # Use EXPTIME as the key since those seem to be
-                # setpoints and not measured values.
-                return hdus[0].header['EXPTIME']
-        files_per_exptime = defaultdict(list)
-        for item in dark_files:
-            files_per_exptime[exptime(item)].append(item)
-        nmax = 0
-        for exptime, files in files_per_exptime.items():
-            if len(files) > nmax:
-                nmax = len(files)
-                dark_files = files
+
+    dark_files = most_common_dark_files(dark_files)
 
     mask_files = get_mask_files(det_name)
     eotest_results_file \
