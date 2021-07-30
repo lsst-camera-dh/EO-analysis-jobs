@@ -9,7 +9,7 @@ def dark_current_jh_task(det_name):
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, dark_current_task,\
-        plot_ccd_total_noise, get_mask_files, get_analysis_types
+        plot_ccd_total_noise, get_mask_files
     from bot_data_handling import most_common_dark_files
 
     run = siteUtils.getRunNumber()
@@ -24,12 +24,12 @@ def dark_current_jh_task(det_name):
         print("dark_current_task: No dark files found for detector", det_name)
         return None
 
-    if 'dark_current_fit' not in get_analysis_types():
-        dark_files_linear_fit = None
-    else:
-        dark_files_linear_fit = list(dark_files)
-
+    dark_files_linear_fit = list(dark_files)
     dark_files = most_common_dark_files(dark_files)
+    if len(dark_files_linear_fit) == len(dark_files):
+        # These data only have one integration time, so skip linear
+        # fit of dark current signal vs integration time.
+        dark_files_linear_fit = None
 
     mask_files = get_mask_files(det_name)
     eotest_results_file \
