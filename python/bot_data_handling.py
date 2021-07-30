@@ -29,10 +29,3 @@ def most_common_dark_files(dark_files):
 
     print(exptime_value(files_per_exptime[candidate][0]))
     return files_per_exptime[candidate]
-
-if __name__ == '__main__':
-    import glob
-    dark_files = glob.glob('/gpfs/slac/lsst/fs3/g/data/jobHarness/jh_stage-test/LCA-10134_Cryostat/LCA-10134_Cryostat-0001/7018D/BOT_acq/v0/50493/dark_dark_*/*R22_S11.fits')
-    print(len(dark_files))
-    darks = most_common_dark_files(dark_files)
-    print(len(darks), darks)
