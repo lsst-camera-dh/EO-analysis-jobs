@@ -4,11 +4,13 @@ Script for BOT dark current analysis.
 """
 def dark_current_jh_task(det_name):
     """JH version of single sensor execution of the dark current task."""
-    import glob
+    from collections import defaultdict
+    from astropy.io import fits
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
         get_amplifier_gains, bias_filename, dark_current_task,\
         plot_ccd_total_noise, get_mask_files
+    from bot_data_handling import most_common_dark_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -22,6 +24,13 @@ def dark_current_jh_task(det_name):
         print("dark_current_task: No dark files found for detector", det_name)
         return None
 
+    dark_files_linear_fit = list(dark_files)
+    dark_files = most_common_dark_files(dark_files)
+    if len(dark_files_linear_fit) == len(dark_files):
+        # These data only have one integration time, so skip linear
+        # fit of dark current signal vs integration time.
+        dark_files_linear_fit = None
+
     mask_files = get_mask_files(det_name)
     eotest_results_file \
         = siteUtils.dependency_glob('{}_eotest_results.fits'.format(file_prefix),
@@ -31,7 +40,8 @@ def dark_current_jh_task(det_name):
 
     dark_curr_pixels, dark95s \
         = dark_current_task(run, det_name, dark_files, gains,
-                            mask_files=mask_files, bias_frame=bias_frame)
+                            mask_files=mask_files, bias_frame=bias_frame,
+                            dark_files_linear_fit=dark_files_linear_fit)
     plot_ccd_total_noise(run, det_name, dark_curr_pixels, dark95s,
                          eotest_results_file)
     return dark_curr_pixels, dark95s

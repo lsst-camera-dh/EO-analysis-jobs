@@ -7,7 +7,8 @@ def bright_defects_jh_task(det_name):
     import glob
     import siteUtils
     from bot_eo_analyses import make_file_prefix, glob_pattern,\
-        get_amplifier_gains, bias_filename, bright_defects_task, get_mask_files
+        get_amplifier_gains, bias_filename, bright_defects_task
+    from bot_data_handling import most_common_dark_files
 
     run = siteUtils.getRunNumber()
     file_prefix = make_file_prefix(run, det_name)
@@ -16,6 +17,7 @@ def bright_defects_jh_task(det_name):
     dark_files \
         = siteUtils.dependency_glob(glob_pattern('bright_defects', det_name),
                                     acq_jobname=acq_jobname)
+    dark_files = most_common_dark_files(dark_files)
     if not dark_files:
         print("bright_defects_task: Needed data files missing for detector",
               det_name)
