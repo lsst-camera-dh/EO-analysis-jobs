@@ -32,6 +32,8 @@ def make_focal_plane_plots():
                                        (True, True), ('1', '1')),
                   'dark_current_BOT': (('dark_current_95CL',), ((0, 0.3),),
                                        ('e-/pix/s',), (False,), ('1',)),
+                  'dark_current_fit_BOT': (('dark_current_slope',), ((0, 0.1),),
+                                           ('e-/pix/s',), (False,), ('1',)),
                   'traps_BOT': (('num_traps',), (None,), (None,), (False,),
                                 ('1',)),
                   'cte_BOT': (('cti_high_serial', 'cti_high_parallel',
