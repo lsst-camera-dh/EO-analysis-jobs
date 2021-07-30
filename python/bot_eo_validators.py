@@ -413,9 +413,14 @@ def validate_dark_current(results, det_names):
                 dark_current_95CL=dc95, dark_current_median=dcmed,
                 slot=slot, raft=raft))
 
-        if 'dark_current_fit' in get_analysis_types():
+        try:
             slopes = data['DARK_CURRENT_SLOPE']
             intercepts = data['DARK_CURRENT_INTERCEPT']
+        except KeyError:
+            # Dark current fit as a function of integration time was
+            # not performed, so skip the dark_current_fit_BOT schema.
+            pass
+        else:
             for amp, slope, intercept in zip(amps, slopes, intercepts):
                 results.append(lcatr.schema.valid(
                     lcatr.schema.get('dark_current_fit_BOT'), amp=amp,
