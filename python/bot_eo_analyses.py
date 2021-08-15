@@ -249,15 +249,25 @@ def medianed_dark_frame(det_name):
     """
     The medianed dark frame from the pixel defects task.
     """
-    pattern = f'{det_name}*_median_dark_bp.fits'
     dark_run = siteUtils.get_analysis_run('dark')
     if dark_run is None:
-        return siteUtils.dependency_glob(pattern, description='Dark frame:')[0]
+        try:
+            # Find the file from the pixel_defects_BOT job.
+            pattern = f'{det_name}*_median_dark_bp.fits'
+            dark_frame = siteUtils.dependency_glob(pattern,
+                                                   description='Dark frame:')[0]
+        except IndexError:
+            # Find the file from the dark_curren_BOT job.
+            pattern = f'{det_name}_*_median_dark_current.fits'
+            dark_frame = siteUtils.dependency_glob(pattern,
+                                                   description='Dark frame:')[0]
+        return dark_frame
 
     # Retrieve bias file from previous run.
     with open('hj_fp_server.pkl', 'rb') as fd:
         hj_fp_server = pickle.load(fd)
     try:
+        pattern = f'{det_name}*_median_dark_bp.fits'
         filename = hj_fp_server.get_files('pixel_defects_BOT', pattern,
                                           run=dark_run)[0]
     except KeyError:
