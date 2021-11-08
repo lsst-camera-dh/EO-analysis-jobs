@@ -671,10 +671,16 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
 
             # Get stats of the region around the readout corner in the
             # lower left corner of the amp as depicted in readout order.
-            llc = amp_image.getBBox().getCorners()[0]
+            #
+            # Subtract from a "bias" image made using the overscan
+            # regions from the raw data.
+            resids = ccd[amp].Factory(ccd[amp], deep=True)
+            resids -= ccd.bias_image_using_overscan(amp, bias_method='rowcol')
+
+            llc = ccd.amp_geom.imaging.getCorners()[0]
             extent = lsst.geom.Extent2I(llc_size, llc_size)
             llc_bbox = lsst.geom.Box2I(llc, extent)
-            llc_image = amp_image.Factory(amp_image, llc_bbox)
+            llc_image = resids.Factory(resids, llc_bbox)
             llc_mean, llc_stdev = image_stats(llc_image, nsigma=nsigma)
             data['llc_mean'].append(llc_mean)
             data['llc_stdev'].append(llc_stdev)
