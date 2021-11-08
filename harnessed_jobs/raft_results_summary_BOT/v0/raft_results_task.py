@@ -19,7 +19,6 @@ def raft_results_task(raft_name):
         plt.savefig(filename)
         plt.close()
 
-
     # Get results files for each CCD in the raft.
     try:
         results_files \
@@ -344,7 +343,8 @@ def raft_results_task(raft_name):
             plt.ylabel('mean (ADU)')
             plt.title(slot)
         plt.tight_layout(rect=(0, 0, 1, 0.95))
-        plt.suptitle(f'{title}, bias stability,\n'
+        plt.suptitle(f'{title}, bias stability, '
+                     'parallel+serial overscan correction\n'
                      '200x200 pixel region covering the readout corner')
         png_file = f'{file_prefix}_bias_stability_llc_200x200.png'
         png_files.append(png_file)
