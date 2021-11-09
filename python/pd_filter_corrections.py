@@ -107,8 +107,7 @@ def plot_pd_corrections(det_resp_files, x_range=(0.975, 1.015),
 
     plt.figure()
     bins = 40
-    for filt, orig_values in my_pd_corrections.items():
-        values = [_ for _ in orig_values if _ <= 1]
+    for filt, values in my_pd_corrections.items():
         plt.hist(values, alpha=0.5, bins=bins, label=filt, range=x_range)
         try:
             est_bw = (x_range[1] - x_range[0])/bins*50
