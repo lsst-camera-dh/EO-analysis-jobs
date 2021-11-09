@@ -18,8 +18,7 @@ if 'tearing' in get_analysis_types():
     divisidero_jh_task_script \
         = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'harnessed_jobs',
                        'tearing_BOT', 'v0', 'raft_divisidero_tearing.py')
-    # Run raft-level noise correlations just on science rafts for now.
-    device_names = camera_info.installed_science_rafts
+    device_names = camera_info.get_installed_raft_names()
 
     # Check if rafts are over-ridden in the lcatr.cfg file.
     override_rafts = os.environ.get('LCATR_RAFTS', None)

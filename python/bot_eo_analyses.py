@@ -632,7 +632,7 @@ def image_stats(image, nsigma=10):
 
 
 def bias_stability_task(run, det_name, bias_files, nsigma=10,
-                        pca_files=None):
+                        pca_files=None, llc_size=200):
     """Compute amp-wise bias stability time histories and serial profiles."""
     raft, slot = det_name.split('_')
     file_prefix = make_file_prefix(run, det_name)
@@ -668,6 +668,22 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
             data['amp'].append(amp)
             data['mean'].append(mean)
             data['stdev'].append(stdev)
+
+            # Get stats of the region around the readout corner in the
+            # lower left corner of the amp as depicted in readout order.
+            #
+            # Subtract from a "bias" image made using the overscan
+            # regions from the raw data.
+            resids = ccd[amp].Factory(ccd[amp], deep=True)
+            resids -= ccd.bias_image_using_overscan(amp, bias_method='rowcol')
+
+            llc = ccd.amp_geom.imaging.getCorners()[0]
+            extent = lsst.geom.Extent2I(llc_size, llc_size)
+            llc_bbox = lsst.geom.Box2I(llc, extent)
+            llc_image = resids.Factory(resids, llc_bbox)
+            llc_mean, llc_stdev = image_stats(llc_image, nsigma=nsigma)
+            data['llc_mean'].append(llc_mean)
+            data['llc_stdev'].append(llc_stdev)
     title = append_acq_run(f'{det_name}, Run {run}\n'
                            'median signal (ADU) vs column')
     plt.suptitle(title)
