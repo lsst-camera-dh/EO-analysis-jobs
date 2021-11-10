@@ -35,4 +35,5 @@ if 'gainstability' in analysis_types:
         plot_raft_fe55_gains_by_amp(raft_files[raft])
 
     # Make focal plane summary plot of gain stability, aggregating by CCD.
-    plot_all_raft_fe55_gains(raft_files)
+    if raft_files:
+        plot_all_raft_fe55_gains(raft_files)
