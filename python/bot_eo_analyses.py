@@ -366,6 +366,7 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
 
     task = sensorTest.Fe55Task()
     task.config.temp_set_point = -100.
+    task.config.chiprob_min = 1e-3
     task.run(file_prefix, fe55_files, (rolloff_mask_file,),
              bias_frame=bias_frame, accuracy_req=0.01, hist_nsig=hist_nsig,
              linearity_correction=get_nlc_func(det_name))
@@ -387,11 +388,13 @@ def fe55_task(run, det_name, fe55_files, bias_frame=None):
     png_files.append('%s_fe55_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.fe55_dists, png_files[-1],
                             fe55_file=fe55_file, xrange_scale=5,
-                            hist_nsig=hist_nsig)
+                            hist_nsig=hist_nsig,
+                            chiprob_min=task.config.chiprob_min)
 
     png_files.append('%s_psf_dists.png' % file_prefix)
     siteUtils.make_png_file(plots.psf_dists, png_files[-1],
-                            fe55_file=fe55_file)
+                            fe55_file=fe55_file,
+                            chiprob_min=task.config.chiprob_min)
 
     png_file_list = '{}_fe55_task_png_files.txt'.format(det_name)
     with open(png_file_list, 'w') as output:
