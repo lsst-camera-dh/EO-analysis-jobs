@@ -13,7 +13,14 @@ CAMERA = LsstCam().getCamera()
 DETECTOR = {det.getName(): detnum for detnum, det in enumerate(CAMERA)}
 
 def get_flat_pairs(butler, run, det_name, collections=('LSSTCam/raw/all',),
-                   image_type='flat', test_type='flat', staging_dir=None):
+                   image_type='flat', test_type='flat', staging_dir=None,
+                   DETECTOR=DETECTOR):
+    """
+    Use the butler to find the flat pairs from a run and optionally stage
+    them in the specified directory with symlinked names that conform to
+    the BOT EO naming conventions so that the ptcTask.py code can be
+    run on them.
+    """
     raft, sensor = det_name.split('_')
     detector = DETECTOR[det_name]
     where = (f"exposure.observation_type='{image_type}' and "
@@ -79,8 +86,6 @@ if __name__ == '__main__':
                               'will be used.'))
     args = parser.parse_args()
 
-    my_dets= ('R20_S11', 'R22_S11')
-
     butler = Butler(args.repo)
 
     staging_dir = f'{args.run}_flat_pairs' if args.staging_dir is None \
@@ -92,8 +97,6 @@ if __name__ == '__main__':
         workers = []
         for det in CAMERA:
             det_name = det.getName()
-            if det_name not in my_dets:
-                continue
             flat1_files = get_flat_pairs(butler, args.run, det_name,
                                          staging_dir=staging_dir)
             pars = args.run, det_name, flat1_files, gains
