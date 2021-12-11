@@ -6,7 +6,11 @@ from lsst.daf.butler import Butler
 from lsst.obs.lsst import LsstCam
 from bot_eo_analyses import ptc_task
 
-os.environ['LCATR_CONFIG_DIR'] = '.' # This needs to be set, but it's not used
+# This needs to be set, but it's not used.
+os.environ['LCATR_CONFIG_DIR'] = '.'
+# Similarly, this file needs to exist, but can just be empty.
+with open('acq.cfg', 'a') as fp:
+    pass
 
 CAMERA = LsstCam().getCamera()
 
