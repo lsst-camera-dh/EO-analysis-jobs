@@ -4,7 +4,7 @@ from collections import defaultdict
 from astropy.io import fits
 from lsst.daf.butler import Butler
 from lsst.obs.lsst import LsstCam
-from bot_eo_analyses import ptc_task
+from bot_eo_analyses import ptc_task, make_rolloff_mask
 
 # This needs to be set, but it's not used.
 os.environ['LCATR_CONFIG_DIR'] = '.'
@@ -103,8 +103,10 @@ if __name__ == '__main__':
             det_name = det.getName()
             flat1_files = get_flat_pairs(butler, args.run, det_name,
                                          staging_dir=staging_dir)
+            mask_files = (make_rolloff_mask(args.run, det_name, flat1_files[0],
+                                            outdir=staging_dir),)
             pars = args.run, det_name, flat1_files, gains
-            kwds = dict(flat2_finder=find_flat2)
+            kwds = dict(flat2_finder=find_flat2, mask_files=mask_files)
             workers.append(pool.apply_async(ptc_task, pars, kwds))
         pool.close()
         pool.join()
