@@ -1,3 +1,4 @@
+#!/usr/bin/env ipython
 import os
 import subprocess
 from collections import defaultdict
@@ -88,6 +89,10 @@ if __name__ == '__main__':
                         help=('Name of staging directory for flat pairs. '
                               'If None (default), f"{run}_flat_pairs" '
                               'will be used.'))
+    parser.add_argument('--sensors', type=str, nargs='+', default=None,
+                        help=('List of sensors to process, e.g., '
+                              '"R22_S11 R22_S10". If None, then process all '
+                              'sensors in focal plane.'))
     args = parser.parse_args()
 
     butler = Butler(args.repo)
@@ -101,6 +106,8 @@ if __name__ == '__main__':
         workers = []
         for det in CAMERA:
             det_name = det.getName()
+            if args.sensors is not None and det_name not in args.sensors:
+                continue
             flat1_files = get_flat_pairs(butler, args.run, det_name,
                                          staging_dir=staging_dir)
             mask_files = (make_rolloff_mask(args.run, det_name, flat1_files[0],
