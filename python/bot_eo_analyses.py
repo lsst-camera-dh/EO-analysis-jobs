@@ -553,13 +553,19 @@ class GetAmplifierGains:
             return {amp: my_gains[_] for amp, _ in enumerate(channels, 1)}
 
         if self.verbose:
-            print("GetAmplifierGains.__call__: retrieving gains from eT.")
-        gains = self.et_results.get_amp_gains(det_name)
-        if not gains:
-            if self.verbose:
-                print("GetAmplifierGains.__call__: "
-                      "gains from eT not found, using unit gains.")
-            return {amp: 1 for amp in range(1, 17)}
+            print(f"GetAmplifierGains.__call__: retrieving gains from "
+                  f"run {self.run}")
+        try:
+            # Look for Fe55 gains initially.
+            schema_name = 'fe55_BOT_analysis'
+            gains = self.et_results.get_amp_gains(det_name,
+                                                  schema_name=schema_name)
+        except KeyError:
+            # Fe55 gains are not available, so try ptc gains.
+            schema_name = 'ptc_BOT'
+            gains = self.et_results.get_amp_gains(det_name,
+                                                  schema_name=schema_name)
+
         return gains
 
 
