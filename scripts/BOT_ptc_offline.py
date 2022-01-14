@@ -1,5 +1,6 @@
 #!/usr/bin/env ipython
 import os
+import glob
 import subprocess
 from collections import defaultdict
 from astropy.io import fits
@@ -76,6 +77,18 @@ def find_flat2(flat1):
     return flat1.replace('flat1', 'flat0')
 
 
+class BiasFrame:
+    def __init__(self, bias_frame_dir):
+        self.bias_frame_dir = bias_frame_dir
+    def __call__(self, det_name):
+        if self.bias_frame_dir is None:
+            return None
+        def glob_file(ext):
+            return glob.glob(os.path.join(self.bias_frame_dir,
+                                          f'{det_name}_*_pca_bias.{ext}'))[0]
+        return (glob_file('pickle'), glob_file('fits'))
+
+
 if __name__ == '__main__':
     import argparse
     import multiprocessing
@@ -93,7 +106,11 @@ if __name__ == '__main__':
                         help=('List of sensors to process, e.g., '
                               '"R22_S11 R22_S10". If None, then process all '
                               'sensors in focal plane.'))
+    parser.add_argument('--bias_frame_dir', type=str, default=None,
+                        help='Folder with PCA-based bias frames.')
     args = parser.parse_args()
+
+    bias_frame = BiasFrame(args.bias_frame_dir)
 
     butler = Butler(args.repo)
 
@@ -113,7 +130,8 @@ if __name__ == '__main__':
             mask_files = (make_rolloff_mask(args.run, det_name, flat1_files[0],
                                             outdir=staging_dir),)
             pars = args.run, det_name, flat1_files, gains
-            kwds = dict(flat2_finder=find_flat2, mask_files=mask_files)
+            kwds = dict(flat2_finder=find_flat2, mask_files=mask_files,
+                        bias_frame=bias_frame(det_name))
             workers.append(pool.apply_async(ptc_task, pars, kwds))
         pool.close()
         pool.join()
