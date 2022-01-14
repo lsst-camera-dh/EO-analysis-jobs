@@ -18,7 +18,7 @@ def make_focal_plane_plots():
     # Focal plane heat maps
     #
     fp_configs = {'fe55_BOT_analysis': (('gain', 'psf_sigma'),
-                                        ((0.5, 1.6), (3, 5.5)),
+                                        ('clipped_autoscale', (3, 5.5)),
                                         ('e-/ADU', 'micron'),
                                         (False, False),
                                         ('1', '1')),
@@ -54,7 +54,7 @@ def make_focal_plane_plots():
                                      (False, False, False, False),
                                      ('1', '1', '1', '1')),
                   'ptc_BOT': (('ptc_gain', 'ptc_a00', 'ptc_turnoff'),
-                              ((0.5, 1.6), (0, 5e-6), (5e4, 2e5)),
+                              ('clipped_autoscale', (0, 5e-6), (5e4, 2e5)),
                               ('e-/ADU', None, 'ADU'),
                               (False, False, False), ('1', '1', '1')),
                   'brighter_fatter_BOT': (('bf_xcorr', 'bf_ycorr'),
@@ -99,7 +99,9 @@ def make_focal_plane_plots():
 
                 # Histogram the amp-level data.
                 plt.figure()
-                hist_amp_data(amp_data, column, hist_range=z_range,
+                hist_range = None if z_range == 'clipped_autoscale' \
+                             else z_range
+                hist_amp_data(amp_data, column, hist_range=hist_range,
                               use_log10=use_log10, scale_factor=scale_factor)
                 plt.title(title)
                 outfile = '{}_{}_{}_hist.png'.format(unit_id, run, column)
