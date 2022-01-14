@@ -36,6 +36,7 @@ except ImportError:
     print("scope and/or multiscope not imported")
 
 __all__ = ['make_file_prefix',
+           'make_rolloff_mask',
            'append_acq_run',
            'make_title',
            'glob_pattern',
@@ -134,6 +135,20 @@ def mondiode_value(flat_file, exptime, factor=5,
     # current over the preceding interval.
     integral = sum(y[1:]*(x[1:] - x[:-1]))
     return integral/exptime
+
+
+def make_rolloff_mask(run, det_name, template_file, outdir='.'):
+    """
+    Make the rolloff mask file for the given template file.
+    """
+    file_prefix = make_file_prefix(run, det_name)
+    rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
+    sensorTest.rolloff_mask(template_file, rolloff_mask_file)
+    dest_dir = os.path.join(outdir, 'masks')
+    os.makedirs(dest_dir, exist_ok=True)
+    dest = os.path.join(dest_dir, rolloff_mask_file)
+    shutil.move(rolloff_mask_file, dest)
+    return dest
 
 
 def get_mask_files(det_name):

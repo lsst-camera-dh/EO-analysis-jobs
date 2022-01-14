@@ -10,7 +10,7 @@ import lsst.eotest.sensor as sensorTest
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from bot_eo_analyses import bias_frame_task, flat_gain_stability_task, \
-        make_file_prefix
+        make_file_prefix, make_rolloff_mask
 from flat_gain_stability import plot_raft_by_amp
 
 
@@ -32,20 +32,6 @@ def find_frames(data_dir, imgtype='BIAS', testtype='FLAT',
             if header['IMGTYPE'] == imgtype and header['TESTTYPE'] == testtype:
                 frame_dirs.append(os.path.dirname(item))
     return frame_dirs
-
-
-def make_rolloff_mask(run, det_name, template_file, outdir='.'):
-    """
-    Make the rolloff mask file for the given template file.
-    """
-    file_prefix = make_file_prefix(run, det_name)
-    rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
-    sensorTest.rolloff_mask(template_file, rolloff_mask_file)
-    dest_dir = os.path.join(outdir, 'masks')
-    os.makedirs(dest_dir, exist_ok=True)
-    dest = os.path.join(dest_dir, rolloff_mask_file)
-    shutil.move(rolloff_mask_file, dest)
-    return dest
 
 
 def run_bias_frame_task(run, frame_dirs, outdir='.', processes=9,
