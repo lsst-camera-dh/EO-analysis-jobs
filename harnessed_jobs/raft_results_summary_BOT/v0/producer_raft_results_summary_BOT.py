@@ -99,7 +99,9 @@ def make_focal_plane_plots():
 
                 # Histogram the amp-level data.
                 plt.figure()
-                hist_amp_data(amp_data, column, hist_range=z_range,
+                hist_range = None if z_range == 'clipped_autoscale' \
+                             else z_range
+                hist_amp_data(amp_data, column, hist_range=hist_range,
                               use_log10=use_log10, scale_factor=scale_factor)
                 plt.title(title)
                 outfile = '{}_{}_{}_hist.png'.format(unit_id, run, column)
