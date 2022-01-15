@@ -618,13 +618,30 @@ except KeyError as eobj:
 
 def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     """Create a median bias file for use by downstream tasks."""
-    if bias_frame is None:
-        bias_frame = make_bias_filename(run, det_name)
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    # Create edge rolloff masks.
     file_prefix = make_file_prefix(run, det_name)
     rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
     sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
+
+    if bias_frame is None:
+        # Construct the superbias filename from run and det_name.
+        bias_frame = make_bias_filename(run, det_name)
+
+    # Compute superbias using parallel+serial overscan correction.
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    serial_overscan = amp_geom.serial_overscan
+    parallel_overscan = amp_geom.parallel_overscan
+    imutils.superbias_file(bias_files, serial_overscan, bias_frame,
+                           bias_method='rowcol',
+                           serial_overscan=serial_overscan,
+                           parallel_overscan=parallel_overscan)
+
+    # Check for use of 'rowcol' bias correction method in downstream
+    # analysis jobs.
+    bias_correction_method = siteUtils.get_analysis_run('bias')
+    if bias_correction_method == 'rowcol':
+        # If 'rowcol' is selected, skip PCA-based modeling.
+        return bias_frame, None
 
     # Compute PCA model of bias correction.
     ccd_pcas = sensorTest.CCD_bias_PCA()
