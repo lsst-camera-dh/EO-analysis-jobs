@@ -110,6 +110,12 @@ def raft_results_task(raft_name):
     plt_savefig(png_files[-1])
     del median_bias
 
+    # Check if parallel+serial overscan bias correction should be applied.
+    bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is not None and bias_run.lower() == 'rowcol':
+        for key in bias_frames:
+            bias_frames[key] = 'rowcol'
+
     # Dark mosaic
     dark_files = None
     try:
