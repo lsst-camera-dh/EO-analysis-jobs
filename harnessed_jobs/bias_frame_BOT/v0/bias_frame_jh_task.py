@@ -38,11 +38,13 @@ def bias_frame_jh_task(det_name):
 
     if not os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True':
         pca_files = None
+    if siteUtils.get_analysis_run('bias') == 'rowcol':
+        pca_files = 'rowcol'
     print("pca_files:", pca_files)
     bias_stability_task(run, det_name, bias_stability_files,
                         pca_files=pca_files)
 
-    if pca_files is not None:
+    if pca_files is not None and pca_files != 'rowcol':
         pca_corrected_superbias(run, det_name, bias_files, pca_files)
 
     return bias_frame
