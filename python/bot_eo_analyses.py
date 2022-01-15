@@ -1381,7 +1381,7 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     for analysis_type in ('badpixel', 'bias', 'dark', 'linearity',
                           'nonlinearity'):
         analysis_run = siteUtils.get_analysis_run(analysis_type)
-        if analysis_run.lower() != 'rowcol':
+        if analysis_run is not None and analysis_run.lower() != 'rowcol':
             hj_fp_server.query_file_paths(analysis_run)
 
     hj_fp_server_file = 'hj_fp_server.pkl'
