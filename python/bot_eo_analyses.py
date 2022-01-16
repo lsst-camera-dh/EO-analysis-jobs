@@ -638,14 +638,18 @@ def bias_frame_task(run, det_name, bias_files, bias_frame=None):
 
     # Check for use of 'rowcol' bias correction method in downstream
     # analysis jobs.
-    bias_correction_method = siteUtils.get_analysis_run('bias')
-    if bias_correction_method == 'rowcol':
+    bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is not None  and bias_run.lower() == 'rowcol':
         # If 'rowcol' is selected, skip PCA-based modeling.
         return bias_frame, None
 
-    # Compute PCA model of bias correction.
-    ccd_pcas = sensorTest.CCD_bias_PCA()
-    pca_files = ccd_pcas.compute_pcas(bias_files, file_prefix)
+    if bias_run is None:
+        # Compute PCA model of bias correction.
+        ccd_pcas = sensorTest.CCD_bias_PCA()
+        pca_files = ccd_pcas.compute_pcas(bias_files, file_prefix)
+    else:
+        # Get bias model from previous run
+        pca_files = bias_filename(run, det_name)
 
     return bias_frame, pca_files
 
