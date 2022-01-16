@@ -151,7 +151,7 @@ def get_mask_files(det_name):
     """
     badpixel_run = siteUtils.get_analysis_run('badpixel')
     bias_run = siteUtils.get_analysis_run('bias')
-    if bias_run.lower() == 'rowcol':
+    if bias_run is not None and bias_run.lower() == 'rowcol':
         bias_run = None
 
     if badpixel_run is not None or bias_run is not None:
@@ -288,7 +288,7 @@ def bias_filename(run, det_name):
     """
     use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True'
     bias_run = siteUtils.get_analysis_run('bias')
-    if bias_run.lower() == 'rowcol':
+    if bias_run is not None and bias_run.lower() == 'rowcol':
         # This will set the bias_frame option for all tasks to
         # 'rowcol' and so the eotest.sensor.MaskedCCD code will use
         # the parallel+serial overscan model for bias subtraction.
