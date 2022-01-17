@@ -231,6 +231,13 @@ class TaskRunner:
             pool.join()
             _ = [_.get() for _ in workers]
 
+        # Check for staging failures.
+        for log_file in self.log_files.values():
+            with open(log_file) as fobj:
+                lines = fobj.readlines()
+                if lines[-1].startswith('Task failed'):
+                    raise RuntimeError(f'Data staging failed: {log_file}')
+
         # Clear self.log_files of staging script entries.
         self.log_files = dict()
 

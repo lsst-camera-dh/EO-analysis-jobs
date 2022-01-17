@@ -166,6 +166,8 @@ def get_mask_files(det_name):
     """
     badpixel_run = siteUtils.get_analysis_run('badpixel')
     bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is not None and bias_run.lower() == 'rowcol':
+        bias_run = None
 
     if badpixel_run is not None or bias_run is not None:
         with open('hj_fp_server.pkl', 'rb') as fd:
@@ -301,7 +303,12 @@ def bias_filename(run, det_name):
     """
     use_pca_bias = os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True'
     bias_run = siteUtils.get_analysis_run('bias')
-    if bias_run is None:
+    if bias_run is not None and bias_run.lower() == 'rowcol':
+        # This will set the bias_frame option for all tasks to
+        # 'rowcol' and so the eotest.sensor.MaskedCCD code will use
+        # the parallel+serial overscan model for bias subtraction.
+        return 'rowcol'
+    elif bias_run is None:
         if use_pca_bias:
             file_prefix = make_file_prefix(run, det_name)
             pca_bias_model = f'{file_prefix}_pca_bias.pickle'
@@ -626,17 +633,38 @@ except KeyError as eobj:
 
 def bias_frame_task(run, det_name, bias_files, bias_frame=None):
     """Create a median bias file for use by downstream tasks."""
-    if bias_frame is None:
-        bias_frame = make_bias_filename(run, det_name)
-    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
-    imutils.superbias_file(bias_files, amp_geom.serial_overscan, bias_frame)
+    # Create edge rolloff masks.
     file_prefix = make_file_prefix(run, det_name)
     rolloff_mask_file = f'{file_prefix}_edge_rolloff_mask.fits'
     sensorTest.rolloff_mask(bias_files[0], rolloff_mask_file)
 
-    # Compute PCA model of bias correction.
-    ccd_pcas = sensorTest.CCD_bias_PCA()
-    pca_files = ccd_pcas.compute_pcas(bias_files, file_prefix)
+    if bias_frame is None:
+        # Construct the superbias filename from run and det_name.
+        bias_frame = make_bias_filename(run, det_name)
+
+    # Compute superbias using parallel+serial overscan correction.
+    amp_geom = sensorTest.makeAmplifierGeometry(bias_files[0])
+    serial_overscan = amp_geom.serial_overscan
+    parallel_overscan = amp_geom.parallel_overscan
+    imutils.superbias_file(bias_files, serial_overscan, bias_frame,
+                           bias_method='rowcol',
+                           serial_overscan=serial_overscan,
+                           parallel_overscan=parallel_overscan)
+
+    # Check for use of 'rowcol' bias correction method in downstream
+    # analysis jobs.
+    bias_run = siteUtils.get_analysis_run('bias')
+    if bias_run is not None  and bias_run.lower() == 'rowcol':
+        # If 'rowcol' is selected, skip PCA-based modeling.
+        return bias_frame, None
+
+    if bias_run is None:
+        # Compute PCA model of bias correction.
+        ccd_pcas = sensorTest.CCD_bias_PCA()
+        pca_files = ccd_pcas.compute_pcas(bias_files, file_prefix)
+    else:
+        # Get bias model from previous run
+        pca_files = bias_filename(run, det_name)
 
     return bias_frame, pca_files
 
@@ -1388,8 +1416,9 @@ def run_jh_tasks(*jh_tasks, device_names=None, processes=None, walltime=3600):
     # the bot_eo_config_file.
     for analysis_type in ('badpixel', 'bias', 'dark', 'linearity',
                           'nonlinearity'):
-        hj_fp_server.query_file_paths(
-            siteUtils.get_analysis_run(analysis_type))
+        analysis_run = siteUtils.get_analysis_run(analysis_type)
+        if analysis_run is not None and analysis_run.lower() != 'rowcol':
+            hj_fp_server.query_file_paths(analysis_run)
 
     hj_fp_server_file = 'hj_fp_server.pkl'
     with open(hj_fp_server_file, 'wb') as output:
