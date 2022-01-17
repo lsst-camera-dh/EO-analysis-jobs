@@ -275,7 +275,8 @@ def raft_results_task(raft_name):
     pattern = f'{raft_name}_{run}_bias_frame_stats.pickle'
     try:
         stats_file = siteUtils.dependency_glob(pattern,
-                                               jobname='bias_frame_BOT')[0]
+                                               jobname='bias_frame_BOT',
+                                               use_hj_fp_server=False)[0]
     except IndexError:
         pass
     else:
