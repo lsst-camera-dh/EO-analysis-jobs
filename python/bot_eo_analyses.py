@@ -1079,6 +1079,10 @@ def ptc_task(run, det_name, flat_files, gains, mask_files=(),
     siteUtils.make_png_file(plots.ptcs,
                             '%s_ptcs.png' % file_prefix,
                             ptc_file='%s_ptc.fits' % file_prefix)
+    siteUtils.make_png_file(plots.ptcs,
+                            '%s_linear_scale_ptcs.png' % file_prefix,
+                            ptc_file='%s_ptc.fits' % file_prefix,
+                            axis_scaling='linear')
 
 
 def bf_task(run, det_name, flat_files, gains, mask_files=(),
