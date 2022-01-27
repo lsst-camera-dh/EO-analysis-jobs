@@ -11,7 +11,7 @@ def raft_divisidero_tearing(raft_name):
     import siteUtils
     from lsst.eotest.sensor.cteTask import superflat
     import lsst.eotest.raft as raftTest
-    from bot_eo_analyses import glob_pattern, bias_filename
+    from bot_eo_analyses import glob_pattern, bias_filename, get_mask_files
 
     run = siteUtils.getRunNumber()
 
@@ -34,13 +34,19 @@ def raft_divisidero_tearing(raft_name):
         median_sflats[slot] = superflat(files, outfile=outfile,
                                         bias_frame=bias_frame)
 
+    mask_files = dict()
+    for slot in sflat_files:
+        det_name = '_'.join((raft_name, slot))
+        mask_files[slot] = get_mask_files(det_name)
+
     title = f'Run {run} {raft_name}'
     acq_run = os.environ.get('LCATR_ACQ_RUN', None)
     if acq_run is not None:
         title += f' (acq {acq_run})'
 
     max_divisidero_tearing \
-        = raftTest.ana_divisidero_tearing(median_sflats, raft_name, title=title)
+        = raftTest.ana_divisidero_tearing(median_sflats, mask_files,
+                                          title=title)
     plt.savefig(f'{raft_name}_{run}_divisidero.png')
 
     with open(f'{raft_name}_{run}_max_divisidero.json', 'w') as fd:
