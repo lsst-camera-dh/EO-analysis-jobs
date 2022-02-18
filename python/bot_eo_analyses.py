@@ -1058,9 +1058,9 @@ def nonlinearity_task(run, det_name, detresp_file, gains, outfile):
     task = sensorTest.NonlinearityTask()
     try:
         task.run(file_prefix, detresp_file, gains, outputfile=outfile)
-    except Exception:
+    except Exception as eobj:
         print(f'NonlinearityTask.run failed for {file_prefix}')
-
+        print(eobj)
 
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              flat2_finder=find_flat2_bot, bias_frame=None):
