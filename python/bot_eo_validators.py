@@ -566,6 +566,12 @@ def validate_flat_pairs(results, det_names):
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
 
+    # Persist any pd correction file specified in the lcatr.cfg file.
+    pd_corrections_file_env = 'LCATR_PD_CORRECTIONS_FILE'
+    if pd_corrections_file_env in os.environ:
+        pd_corrections_file = os.environ[pd_corrections_file_env]
+        results.append(siteUtils.make_fileref(pd_corrections_file))
+
     report_missing_data("validate_flat_pairs", missing_det_names)
     report_missing_data("validate_flat_pairs",
                         sorted(list(missing_raft_names)),
