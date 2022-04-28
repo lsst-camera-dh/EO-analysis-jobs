@@ -2,6 +2,7 @@
 Functions to run lcatr.schema validation on BOT EO analysis data products.
 """
 import os
+import shutil
 import glob
 from collections import OrderedDict
 import json
@@ -565,6 +566,14 @@ def validate_flat_pairs(results, det_names):
             continue
         results.extend(siteUtils.persist_png_files(filename, file_prefix,
                                                    metadata=metadata))
+
+    # Persist any pd correction file specified in the lcatr.cfg file.
+    pd_corrections_file_env = 'LCATR_PD_CORRECTIONS_FILE'
+    if pd_corrections_file_env in os.environ:
+        pd_corrections_file = os.environ[pd_corrections_file_env]
+        shutil.copy(pd_corrections_file, '.')
+        fileref = siteUtils.make_fileref(os.path.basename(pd_corrections_file))
+        results.append(fileref)
 
     report_missing_data("validate_flat_pairs", missing_det_names)
     report_missing_data("validate_flat_pairs",

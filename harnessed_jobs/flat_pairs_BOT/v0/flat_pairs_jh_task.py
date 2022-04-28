@@ -30,8 +30,14 @@ def flat_pairs_jh_task(det_name):
     bias_frame = bias_filename(run, det_name)
     dark_frame = medianed_dark_frame(det_name)
 
-    filter_corr_file = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'data',
-                                    'pd_filter_corrections.json')
+    if 'LCATR_PD_CORRECTIONS_FILE' in os.environ:
+        filter_corr_file = os.environ['LCATR_PD_CORRECTIONS_FILE']
+    else:
+        filter_corr_file = os.path.join(os.environ['EOANALYSISJOBSDIR'], 'data',
+                                        'pd_filter_corrections.json')
+
+    print('Using pd_filter_corrections file:', filter_corr_file, flush=True)
+
     with open(filter_corr_file) as fd:
         filter_corrections = json.load(fd)
 
