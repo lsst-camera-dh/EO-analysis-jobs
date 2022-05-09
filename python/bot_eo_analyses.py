@@ -535,8 +535,13 @@ class GetAmplifierGains:
                 self._get_gains_from_run(et_results_file)
 
     def _get_curated_gains(self):
-        gain_file = os.path.join(os.environ['EOANALYSISJOBSDIR'],
-                                 'data', self.run)
+        if os.path.isfile(self.run):
+            # Path to curated gains file is a full path, so don't
+            # look for it in the EO-analysis-jobs/data folder.
+            gain_file = self.run
+        else:
+            gain_file = os.path.join(os.environ['EOANALYSISJOBSDIR'],
+                                     'data', self.run)
         # Read the curated gains from the json file.
         with open(gain_file, 'r') as fd:
             self.curated_gains = json.load(fd)
