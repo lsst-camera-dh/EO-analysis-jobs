@@ -48,6 +48,14 @@ def run_validator(*det_task_names):
     if os.path.isfile(bot_eo_acq_cfg):
         results.append(lcatr.schema.fileref.make(bot_eo_acq_cfg))
 
+    # Check if an actual path to a curated gains file has been
+    # specified.  If so, then persist it.
+    gains_file = siteUtils.\
+                 get_analysis_run('gain', bot_eo_config_file=bot_eo_acq_cfg)
+    if gains_file is not None and os.path.isfile(gains_file):
+        shutil.copy(gains_file, '.')
+        results.append(lcatr.schema.fileref.make(os.path.basename(gains_file)))
+
     lcatr.schema.write_file(results)
     lcatr.schema.validate_file()
 
