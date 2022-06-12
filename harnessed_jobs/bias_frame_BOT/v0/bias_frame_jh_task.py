@@ -8,7 +8,7 @@ def bias_frame_jh_task(det_name):
     import siteUtils
     import json
     from bot_eo_analyses import glob_pattern, bias_frame_task, \
-        make_bias_filename, bias_stability_task, pca_corrected_superbias
+        bias_stability_task, pca_corrected_superbias
 
     run = siteUtils.getRunNumber()
     acq_jobname = siteUtils.getProcessName('BOT_acq')
@@ -33,22 +33,24 @@ def bias_frame_jh_task(det_name):
               det_name)
         return None
 
-    bias_frame, pca_files = bias_frame_task(run, det_name, bias_files)
+    superbias_file, bias_model_components \
+        = bias_frame_task(run, det_name, bias_files)
     bias_stability_files = sorted(bias_stability_files)
 
     if not os.environ.get('LCATR_USE_PCA_BIAS_FIT', "True") == 'True':
-        pca_files = None
+        bias_model_components = None
     if siteUtils.get_analysis_run('bias') == 'rowcol':
-        bias_frame = make_bias_filename(run, det_name)
-        pca_files = 'rowcol', bias_frame
-    print("pca_files:", pca_files)
+        bias_model_components = 'rowcol', superbias_file
+    print("bias_model_components:", bias_model_components)
     bias_stability_task(run, det_name, bias_stability_files,
-                        pca_files=pca_files)
+                        bias_model_components=bias_model_components)
 
-    if pca_files is not None and pca_files[0] != 'rowcol':
-        pca_corrected_superbias(run, det_name, bias_files, pca_files)
+    if (bias_model_components is not None and
+        bias_model_components[0] != 'rowcol'):
+        pca_corrected_superbias(run, det_name, bias_files,
+                                bias_model_components)
 
-    return bias_frame
+    return superbias_file
 
 
 if __name__ == '__main__':

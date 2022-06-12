@@ -37,7 +37,6 @@ except ImportError:
 
 __all__ = ['make_file_prefix',
            'make_rolloff_mask',
-           'make_bias_filename',
            'append_acq_run',
            'make_title',
            'glob_pattern',
@@ -696,7 +695,7 @@ def image_stats(image, nsigma=10):
 
 
 def bias_stability_task(run, det_name, bias_files, nsigma=10,
-                        pca_files=None, llc_size=200):
+                        bias_model_components=None, llc_size=200):
     """Compute amp-wise bias stability time histories and serial profiles."""
     raft, slot = det_name.split('_')
     file_prefix = make_file_prefix(run, det_name)
@@ -714,7 +713,7 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
                 key = f'TEMP{i}'
                 if key in hdus['REB_COND'].header:
                     temps[key] = hdus['REB_COND'].header[key]
-        ccd = sensorTest.MaskedCCD(bias_file, bias_frame=pca_files)
+        ccd = sensorTest.MaskedCCD(bias_file, bias_frame=bias_model_components)
         for amp in ccd:
             # Retrieve the per row overscan subtracted imaging section.
             amp_image = ccd.unbiased_and_trimmed_image(amp)
