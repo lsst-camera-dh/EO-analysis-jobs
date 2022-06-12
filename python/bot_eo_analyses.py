@@ -37,6 +37,7 @@ except ImportError:
 
 __all__ = ['make_file_prefix',
            'make_rolloff_mask',
+           'make_bias_filename',
            'append_acq_run',
            'make_title',
            'glob_pattern',
@@ -305,9 +306,15 @@ def bias_filename(run, det_name):
     bias_run = siteUtils.get_analysis_run('bias')
     if bias_run is not None and bias_run.lower() == 'rowcol':
         # This will set the bias_frame option for all tasks to
-        # 'rowcol' and so the eotest.sensor.MaskedCCD code will use
-        # the parallel+serial overscan model for bias subtraction.
-        return 'rowcol'
+        # ('rowcol', superbias_file) and so the eotest.sensor.MaskedCCD
+        # code will use the parallel+serial overscan correction and
+        # superbias subtraction for bias correction.
+        superbias_file = make_bias_filename(run, det_name)
+        bias_frame = siteUtils.dependency_glob(
+            superbias_file, description='superbias file:')
+        bias_frame = bias_frame[0] if bias_frame else None
+        print('bias_frame:', bias_frame)
+        return 'rowcol', bias_frame
     elif bias_run is None:
         if use_pca_bias:
             file_prefix = make_file_prefix(run, det_name)
