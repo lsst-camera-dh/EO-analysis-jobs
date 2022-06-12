@@ -127,7 +127,6 @@ def raft_results_task(raft_name):
         except FileNotFoundError as eobj:
             print(eobj)
     if dark_files is not None:
-        print('raft_results_mosaic:', bias_frames)
         dark_mosaic = raftTest.make_raft_mosaic(dark_files, gains=gains,
                                                 bias_frames=bias_frames)
         dark_mosaic.plot(title=f'{title}, medianed dark frames',
