@@ -1058,15 +1058,15 @@ def flat_pairs_task(run, det_name, flat_files, gains, mask_files=(),
                             detresp_file, append_acq_run(file_prefix))
 
 
-def nonlinearity_task(run, det_name, detresp_file, outfile):
+def nonlinearity_task(run, det_name, detresp_file, gains, outfile):
     """Single sensor execution of nonlinearity task."""
     file_prefix = make_file_prefix(run, det_name)
     task = sensorTest.NonlinearityTask()
     try:
-        task.run(file_prefix, detresp_file, outputfile=outfile)
-    except Exception:
+        task.run(file_prefix, detresp_file, gains, outputfile=outfile)
+    except Exception as eobj:
         print(f'NonlinearityTask.run failed for {file_prefix}')
-
+        print(eobj)
 
 def ptc_task(run, det_name, flat_files, gains, mask_files=(),
              flat2_finder=find_flat2_bot, bias_frame=None):
