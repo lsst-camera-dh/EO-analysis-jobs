@@ -98,6 +98,9 @@ def get_isr_files(det_name, run):
         if isinstance(bias_fn, str):
             if os.path.isfile(bias_fn):
                 files.add(bias_fn)
+        elif isinstance(bias_fn, (tuple, list)) and bias_fn[0] == 'rowcol':
+            if bias_fn[1] is not None:
+                files.add(bias_fn[1])
         else:
             files = files.union(bias_fn)
     except IndexError:

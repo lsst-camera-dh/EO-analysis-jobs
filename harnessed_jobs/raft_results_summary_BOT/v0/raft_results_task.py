@@ -114,7 +114,7 @@ def raft_results_task(raft_name):
     bias_run = siteUtils.get_analysis_run('bias')
     if bias_run is not None and bias_run.lower() == 'rowcol':
         for key in bias_frames:
-            bias_frames[key] = 'rowcol'
+            bias_frames[key] = ('rowcol', bias_frames[key])
 
     # Dark mosaic
     dark_files = None
