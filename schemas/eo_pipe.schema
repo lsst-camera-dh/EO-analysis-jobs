@@ -1,0 +1,81 @@
+# -*- python -*-
+[
+{
+    'schema_name' : 'eo_read_noise',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'read_noise' : float
+},
+{
+    'schema_name' : 'eo_defects',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'bright_columns' : int,
+    'bright_pixels' : int,
+    'dark_columns' : int,
+    'dark_pixels' : int
+},
+{
+    'schema_name' : 'eo_dark_current',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'dark_current' : float
+},
+{
+    'schema_name' : 'eo_eper',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'scti' : float,
+    'pcti' : float
+},
+{
+    'schema_name' : 'eo_divisadero_tearing',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'divisadero_tearing' : float
+},
+{
+    'schema_name' : 'eo_ptc_plots',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'ptc_gain' : float,
+    'ptc_a00' : float,
+    'ptc_noise' : float,
+    'ptc_turnoff' : float
+},
+{
+    'schema_name' : 'eo_linearity_plots',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'max_frac_dev' : float,
+    'max_observed_signal' : float
+},
+{
+    'schema_name' : 'eo_bf_analysis',
+    'schema_version' : 0,
+    'amp' : int,
+    'slot' : str,
+    'raft' : str,
+    'bf_xcorr' : float,
+    'bf_ycorr' : float,
+    'bf_mean' : float,
+    'bf_slope_x' : float,
+    'bf_slope_x_err' : float,
+    'bf_slope_y' : float,
+    'bf_slope_y_err' : float
+},
+]
