@@ -701,10 +701,12 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
     file_prefix = make_file_prefix(run, det_name)
     data = defaultdict(list)
 
-    fig = plt.figure(figsize=(16, 16))
+    serial_fig   = plt.figure(figsize=(16, 16))
+    parallel_fig = plt.figure(figsize=(16, 16))
     xlabel_amps = (13, 14, 15, 16)
     ylabel_amps = (1, 5, 9, 13)
-    ax = {amp: fig.add_subplot(4, 4, amp) for amp in range(1, 17)}
+    serial_ax = {amp: serial_fig.add_subplot(4, 4, amp) for amp in range(1, 17)}
+    parallel_ax = {amp: parallel_fig.add_subplot(4, 4, amp) for amp in range(1, 17)}
 
     for bias_file in bias_files:
         with fits.open(bias_file) as hdus:
@@ -717,9 +719,11 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
         for amp in ccd:
             # Retrieve the per row overscan subtracted imaging section.
             amp_image = ccd.unbiased_and_trimmed_image(amp)
-            # Plot the median of each column versus serial pixel number.
+            # Plot the median of each column versus serial pixel number,
+            # and each row verses parallel pixel number. 
             imarr = amp_image.getImage().array
-            ax[amp].plot(range(imarr.shape[1]), np.median(imarr, axis=0))
+            serial_ax[amp].plot(range(imarr.shape[1]), np.median(imarr, axis=0))
+            parallel_ax[amp].plot(range(imarr.shape[0]), np.median(imarr, axis=1))
             # Compute 10-sigma clipped mean and stdev
             mean, stdev = image_stats(amp_image, nsigma=nsigma)
             data['raft'].append(raft)
@@ -747,14 +751,21 @@ def bias_stability_task(run, det_name, bias_files, nsigma=10,
             llc_mean, llc_stdev = image_stats(llc_image, nsigma=nsigma)
             data['llc_mean'].append(llc_mean)
             data['llc_stdev'].append(llc_stdev)
-    title = append_acq_run(f'{det_name}, Run {run}\n'
+    serial_title = append_acq_run(f'{det_name}, Run {run}\n'
                            'median signal (ADU) vs column')
-    plt.suptitle(title)
-    plt.tight_layout(rect=(0, 0, 1, 0.95))
+    serial_fig.suptitle(serial_title)
+    serial_fig.tight_layout(rect=(0, 0, 1, 0.95))
+    parallel_title = append_acq_run(f'{det_name}, Run {run}\n'
+                           'median signal (ADU) vs row')
+    parallel_fig.suptitle(parallel_title)
+    parallel_fig.tight_layout(rect=(0, 0, 1, 0.95))
     for amp in ccd:
-        ax[amp].annotate(f'amp {amp}', (0.5, 0.95),
+        serial_ax[amp].annotate(f'amp {amp}', (0.5, 0.95),
                          xycoords='axes fraction', ha='center')
-    plt.savefig(f'{file_prefix}_bias_serial_profiles.png')
+        parallel_ax[amp].annotate(f'amp {amp}', (0.5, 0.95),
+                         xycoords='axes fraction', ha='center')
+    serial_fig.savefig(f'{file_prefix}_bias_serial_profiles.png')
+    parallel_fig.savefig(f'{file_prefix}_bias_parallel_profiles.png')
     df = pd.DataFrame(data=data)
     df.to_pickle(f'{file_prefix}_bias_frame_stats.pickle')
 
